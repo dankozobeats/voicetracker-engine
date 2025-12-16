@@ -18,18 +18,26 @@
 - ils sont appliqués dans le mois cible (`deferredTo` au format `YYYY-MM`) et n’impactent pas le mois d’origine.
 - si plusieurs différés ciblent le même mois, leur coût est additionné avant d’affecter ce mois.
 
-# 4. Charges fixes
+# 4. Différés avancés
+- chaque dépense différée peut définir `deferredUntil`, `maxDeferralMonths` et `priority`.
+- une dépense est injectée dès que le mois courant atteint `deferredUntil` ou quand `maxDeferralMonths` est dépassé.
+- si le plafond temporel est dépassé, la dépense est **FORCED** : elle s’applique immédiatement et son statut devient `FORCED`.
+- la priorité (1 = critique) ordonne les différés injectés le même mois, mais aucune dépense n’est bloquée.
+- les statuts possibles (`PENDING`, `APPLIED`, `FORCED`, `EXPIRED`) sont exposés par transaction et sont vérifiés dans `engine/calculator.deferred-advanced.spec.ts`.
+- la stratégie est `STRICT` : rien n’est redifféré automatiquement, les dépenses applicables sont toujours injectées et le déficit suit le calcul standard.
+
+# 5. Charges fixes
 - chaque charge fixe mentionne un intervalle `startMonth` / `endMonth` (`YYYY-MM`).
 - elle s’applique à chaque mois compris dans cet intervalle inclusif.
 - hors de son intervalle, la charge ne participe pas au calcul.
 
-# 5. Règles sur les plafonds
+# 6. Règles sur les plafonds
 - les plafonds sont définis par `CeilingRule` et s’appliquent à chaque mois couvert (`YYYY-MM`).
 - le total évalué pour un mois est `dépenses + charges fixes + différés` (tous positifs).
 - un état est produit : `NOT_REACHED` si le total est inférieur, `REACHED` si égal, `EXCEEDED` si supérieur au plafond.
 - chaque mois conserve l’historique des statuts de plafond sans modifier le solde.
 
-# 6. Ordre de calcul
+# 7. Ordre de calcul
 1. ouvrir le mois avec le solde reporté précédent.
 2. ajouter les revenus du mois.
 3. normaliser et soustraire les dépenses non différées.
@@ -38,18 +46,11 @@
 6. appliquer le déficit reporté précédent.
 7. calculer le `endingBalance` puis le propager comme ouverture du mois suivant.
 
-# 7. Cas interdits
+# 8. Cas interdits
 - considérer une dépense négative comme une réduction de revenu.
 - diviser un déficit en fragments partiels.
 - ignorer une charge fixe en cours.
 - traiter un différé dans un mois autre que son `deferredTo`.
 
-# 8. Principe de non-régression
+# 9. Principe de non-régression
 Une règle validée reste figée tant qu’un test Vitest ne certifie pas sa mise à jour avant tout changement.
-
-## 9.Plafonds (Ceilings)
-
-- Un plafond ne bloque jamais une transaction.
-- Il mesure une consommation sur une période.
-- Il produit un état : NOT_REACHED | REACHED | EXCEEDED.
-- Il n’a aucun impact sur les soldes ou le déficit.

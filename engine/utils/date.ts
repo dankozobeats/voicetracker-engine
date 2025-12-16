@@ -28,3 +28,7 @@ export const isMonthInRange = (month: string, startMonth: string, endMonth?: str
   }
   return true;
 };
+
+export const monthIndex = (month: string): number => toIndex(month);
+
+export const monthsBetween = (from: string, to: string): number => monthIndex(to) - monthIndex(from);

@@ -10,6 +10,9 @@ export interface Transaction {
   date: string; // YYYY-MM-DD
   isDeferred?: boolean;
   deferredTo?: string; // YYYY-MM
+  deferredUntil?: string; // YYYY-MM
+  maxDeferralMonths?: number;
+  priority?: number;
 }
 
 export interface RecurringCharge {
@@ -38,6 +41,17 @@ export interface CeilingStatus {
   state: CeilingState;
 }
 
+export type DeferredStatus = 'PENDING' | 'APPLIED' | 'FORCED' | 'EXPIRED';
+
+export interface DeferredResolution {
+  transactionId: string;
+  month: string; // YYYY-MM
+  amount: number;
+  status: DeferredStatus;
+  priority: number;
+  forced: boolean;
+}
+
 export interface MonthProjection {
   month: string; // YYYY-MM
   openingBalance: number;
@@ -48,6 +62,7 @@ export interface MonthProjection {
   carriedOverDeficit: number;
   endingBalance: number;
   ceilings: CeilingStatus[];
+  deferredResolutions: DeferredResolution[];
 }
 
 export interface ProjectionInput {

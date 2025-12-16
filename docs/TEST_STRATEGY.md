@@ -3,7 +3,7 @@ Chaque règle métier de `voicetracker-engine` mérite un test dédié car le mo
 
 # 2. Types de tests
 - **Unitaires** : fonction par fonction (normalisation, handler, utilitaires).  
-- **Scénarios métier** : projections multi-mois, report de découvert, différés.  
+- **Scénarios métier** : projections multi-mois, report de découvert, différés, plafonds et différés avancés (`engine/calculator.deferred-advanced.spec.ts`).  
 - **Tests de régression** : cas découverts en production ou pendant la revue sont ajoutés immédiatement.
 
 # 3. Structure des fichiers de test
