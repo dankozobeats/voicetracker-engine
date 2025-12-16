@@ -13,6 +13,7 @@ export interface Transaction {
   deferredUntil?: string; // YYYY-MM
   maxDeferralMonths?: number;
   priority?: number;
+  category?: string;
 }
 
 export interface RecurringCharge {
@@ -50,6 +51,7 @@ export interface DeferredResolution {
   status: DeferredStatus;
   priority: number;
   forced: boolean;
+  category?: string;
 }
 
 export interface MonthProjection {
@@ -63,6 +65,10 @@ export interface MonthProjection {
   endingBalance: number;
   ceilings: CeilingStatus[];
   deferredResolutions: DeferredResolution[];
+  categoryBudgets: CategoryBudgetResult[];
+  categorySpending: Record<string, number>;
+  multiMonthBudgets?: MultiMonthBudgetResult[];
+  rollingBudgets?: RollingCategoryBudgetResult[];
 }
 
 export interface ProjectionInput {
@@ -73,4 +79,82 @@ export interface ProjectionInput {
   startMonth: string; // YYYY-MM
   months: number;
   ceilingRules?: CeilingRule[];
+  categoryBudgets?: CategoryBudget[];
+  rollingBudgets?: RollingCategoryBudget[];
+  multiMonthBudgets?: MultiMonthBudget[];
+}
+
+export interface CategoryBudget {
+  category: string;
+  budget: number;
+}
+
+export interface CategoryBudgetResult {
+  category: string;
+  budget: number;
+  spent: number;
+  remaining: number;
+  status: BudgetStatus;
+}
+
+export interface MultiMonthBudget {
+  category: string;
+  amount: number;
+  periodStart: string;
+  periodEnd: string;
+}
+
+export type MultiMonthBudgetStatus = 'OK' | 'WARNING' | 'REACHED' | 'EXCEEDED' | 'INACTIVE';
+
+export interface MultiMonthBudgetResult {
+  category: string;
+  periodStart: string;
+  periodEnd: string;
+  totalSpent: number;
+  budgetAmount: number;
+  ratio: number;
+  status: MultiMonthBudgetStatus;
+}
+
+export interface RollingCategoryBudget {
+  category: string;
+  amount: number;
+  windowMonths: number;
+}
+
+export interface RollingCategoryBudgetResult {
+  category: string;
+  windowMonths: number;
+  totalSpent: number;
+  budgetAmount: number;
+  ratio: number;
+  status: 'OK' | 'WARNING' | 'REACHED' | 'EXCEEDED';
+}
+
+export type BudgetStatus = 'OK' | 'WARNING' | 'EXCEEDED';
+
+export type EngineAlertLevel = 'INFO' | 'WARNING' | 'CRITICAL';
+
+export type EngineAlertType =
+  | 'DEFICIT_STARTED'
+  | 'DEFICIT_CARRIED'
+  | 'DEFICIT_WORSENING'
+  | 'DEFERRED_PENDING'
+  | 'DEFERRED_FORCED'
+  | 'DEFERRED_EXPIRED'
+  | 'CEILING_REACHED'
+  | 'CEILING_EXCEEDED'
+  | 'CATEGORY_BUDGET_WARNING'
+  | 'CATEGORY_BUDGET_EXCEEDED';
+
+export interface EngineAlert {
+  month: string; // YYYY-MM
+  type: EngineAlertType;
+  level: EngineAlertLevel;
+  sourceModule: 'deficit' | 'deferred' | 'ceiling' | 'category-budget';
+  metadata?: Record<string, unknown>;
+}
+
+export interface AnalysisResult {
+  insights: string[];
 }

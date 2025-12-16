@@ -1,4 +1,7 @@
 import {
+  BudgetStatus,
+  CategoryBudget,
+  CategoryBudgetResult,
   CeilingRule,
   CeilingState,
   CeilingStatus,
@@ -7,9 +10,12 @@ import {
   MonthProjection,
   ProjectionInput,
   RecurringCharge,
+  RollingCategoryBudget,
   Transaction,
 } from './types';
 import { applyDeficitCarryOver } from './deficit-handler';
+import { evaluateRollingBudgets } from './budgets/rolling';
+import { evaluateMultiMonthBudgets } from './budgets/multi-month';
 import { addMonths, isMonthInRange, monthFromDate, monthIndex } from './utils/date';
 
 /**
@@ -35,6 +41,9 @@ const buildPendingDeferreds = (transactions: Transaction[]): PendingDeferred[] =
       priority: transaction.priority ?? 9,
       deferredUntil: transaction.deferredUntil ?? transaction.deferredTo ?? monthFromDate(transaction.date),
     }));
+
+const WARNING_THRESHOLD = 0.8;
+const EXCEEDED_THRESHOLD = 1.0;
 
 const shouldApplyDeferred = (
   deferred: PendingDeferred,
@@ -81,6 +90,7 @@ const collectDeferredResolutions = (
       status,
       priority: deferred.priority,
       forced: decision.forced,
+      category: deferred.category,
     };
   });
 
@@ -133,6 +143,63 @@ const buildCeilingStatuses = (
     state: ceilingStateFor(rule.amount, totalOutflow),
   }));
 
+const categorizeAmount = (category?: string, amount?: number): string | undefined => {
+  return category && amount !== undefined ? category : undefined;
+};
+
+const accumulateCategorySpending = (bucket: Record<string, number>, category: string, amount: number) => {
+  bucket[category] = (bucket[category] ?? 0) + amount;
+};
+
+const buildMonthlyCategorySpending = (
+  monthTx: Transaction[],
+  deferredResolutions: DeferredResolution[],
+): Record<string, number> => {
+  const bucket: Record<string, number> = {};
+
+  monthTx
+    .filter((transaction) => transaction.type === 'EXPENSE' && !transaction.isDeferred)
+    .forEach((transaction) => {
+      const category = categorizeAmount(transaction.category, transaction.amount);
+      if (category) {
+        accumulateCategorySpending(bucket, category, normalizeExpenseAmount(transaction.amount));
+      }
+    });
+
+  deferredResolutions.forEach((resolution) => {
+    if (resolution.category) {
+      accumulateCategorySpending(bucket, resolution.category, resolution.amount);
+    }
+  });
+
+  return bucket;
+};
+
+const determineBudgetStatus = (budget: number, spent: number): BudgetStatus => {
+  if (spent > budget * EXCEEDED_THRESHOLD) {
+    return 'EXCEEDED';
+  }
+  if (spent >= budget * WARNING_THRESHOLD) {
+    return 'WARNING';
+  }
+  return 'OK';
+};
+
+const buildCategoryBudgetResults = (
+  budgets: CategoryBudget[],
+  spending: Record<string, number>,
+): CategoryBudgetResult[] =>
+  budgets.map((budget) => {
+    const spent = spending[budget.category] ?? 0;
+    return {
+      category: budget.category,
+      budget: budget.budget,
+      spent,
+      remaining: budget.budget - spent,
+      status: determineBudgetStatus(budget.budget, spent),
+    };
+  });
+
 export const calculateProjection = (input: ProjectionInput): MonthProjection[] => {
   const {
     account,
@@ -142,6 +209,9 @@ export const calculateProjection = (input: ProjectionInput): MonthProjection[] =
     startMonth,
     months,
     ceilingRules = [],
+    categoryBudgets = [],
+    rollingBudgets = [],
+    multiMonthBudgets = [],
   } = input;
   if (months <= 0) return [];
 
@@ -175,6 +245,12 @@ export const calculateProjection = (input: ProjectionInput): MonthProjection[] =
       resolutions: deferredResolutions,
     } = collectDeferredResolutions(pendingDeferreds, monthLabel);
 
+    const currentCategorySpending = buildMonthlyCategorySpending(monthTx, deferredResolutions);
+    const categoryBudgetsResults = buildCategoryBudgetResults(
+      categoryBudgets ?? [],
+      currentCategorySpending,
+    );
+
     const totalOutflow = expenses + fixedCharges + deferredOutflow;
     const ceilingStatuses = buildCeilingStatuses(
       activeCeilingRules(ceilingRules, account, monthLabel),
@@ -193,14 +269,30 @@ export const calculateProjection = (input: ProjectionInput): MonthProjection[] =
       endingBalance: 0,
       ceilings: ceilingStatuses,
       deferredResolutions,
+      categoryBudgets: categoryBudgetsResults,
+      categorySpending: currentCategorySpending,
     };
 
     const resolvedMonth = applyDeficitCarryOver(previousMonth, baseMonth);
-    projections.push(resolvedMonth);
+    const rollingResults = evaluateRollingBudgets(resolvedMonth, projections, rollingBudgets ?? []);
+    const monthWithRolling: MonthProjection = {
+      ...resolvedMonth,
+      rollingBudgets: rollingResults,
+    };
+    const multiMonthResults = evaluateMultiMonthBudgets(
+      monthWithRolling,
+      projections,
+      multiMonthBudgets ?? [],
+    );
+    const finalizedMonth: MonthProjection = {
+      ...monthWithRolling,
+      multiMonthBudgets: multiMonthResults,
+    };
+    projections.push(finalizedMonth);
 
     // Le solde final d’un mois devient systématiquement l’ouverture du mois suivant.
-    openingBalance = resolvedMonth.endingBalance;
-    previousMonth = resolvedMonth;
+    openingBalance = finalizedMonth.endingBalance;
+    previousMonth = finalizedMonth;
   }
 
   return projections;
