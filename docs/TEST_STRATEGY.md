@@ -25,3 +25,10 @@ Chaque règle métier de `voicetracker-engine` mérite un test dédié car le mo
 1. Analyser la règle à couvrir.  
 2. Ajouter le test avant ou avec la modification.  
 3. Refuser une PR si un comportement nouveau n’est pas testé ou si un test cassé n’est pas résolu.
+
+# 7. règle métier 
+- Toute règle métier doit avoir :
+  - un test nominal
+  - un test limite (égalité)
+  - un test dépassement
+- Aucun test ne modifie le moteur pour "faire passer" une règle.

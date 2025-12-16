@@ -46,3 +46,10 @@
 
 # 8. Principe de non-régression
 Une règle validée reste figée tant qu’un test Vitest ne certifie pas sa mise à jour avant tout changement.
+
+## 9.Plafonds (Ceilings)
+
+- Un plafond ne bloque jamais une transaction.
+- Il mesure une consommation sur une période.
+- Il produit un état : NOT_REACHED | REACHED | EXCEEDED.
+- Il n’a aucun impact sur les soldes ou le déficit.
