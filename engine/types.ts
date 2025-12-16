@@ -69,6 +69,7 @@ export interface MonthProjection {
   categorySpending: Record<string, number>;
   multiMonthBudgets?: MultiMonthBudgetResult[];
   rollingBudgets?: RollingCategoryBudgetResult[];
+  trends?: CategoryBudgetTrendResult[];
 }
 
 export interface ProjectionInput {
@@ -114,6 +115,17 @@ export interface MultiMonthBudgetResult {
   budgetAmount: number;
   ratio: number;
   status: MultiMonthBudgetStatus;
+}
+
+export type TrendStatus = 'INCREASING' | 'DECREASING' | 'STABLE' | 'NO_HISTORY';
+
+export interface CategoryBudgetTrendResult {
+  category: string;
+  current: number;
+  previous: number;
+  delta: number;
+  percentChange: number;
+  trend: TrendStatus;
 }
 
 export interface RollingCategoryBudget {

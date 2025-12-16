@@ -101,3 +101,10 @@
 
 # 13. Principe de non-régression
 Une règle validée reste figée tant qu’un test Vitest ne certifie pas sa mise à jour avant tout changement.
+
+# 14. Trends / comparaison historique
+- ce module analytique lit uniquement les `CategoryBudgetResult` déjà calculés dans chaque `MonthProjection` ; aucune transaction brute n’est réévaluée.
+- chaque catégorie compare les dépenses du mois courant avec le dernier mois précédent disponible pour la même catégorie.
+- les résultats (`CategoryBudgetTrendResult`) exposent `current`, `previous`, `delta`, `percentChange` et `trend` pour garantir la transparence des calculs.
+- `trend` peut être `INCREASING`, `DECREASING`, `STABLE` (variation ≤ 5 % en valeur absolue) ou `NO_HISTORY` quand aucune donnée précédente n’existe.
+- la comparaison est complètement déterministe, strictement isolée par catégorie et n’impacte ni soldes, ni déficits, ni plafonds, ni différés.

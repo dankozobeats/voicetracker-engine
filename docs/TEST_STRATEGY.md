@@ -90,3 +90,12 @@ Chaque règle métier de `voicetracker-engine` mérite un test dédié car le mo
   - statuts explicites (OK | WARNING | REACHED | EXCEEDED | INACTIVE) sans effet sur les soldes.
   - chaque catégorie reste isolée, la somme d’une période n’impacte pas les autres.
   - les résultats restent analytiques : aucun comportement arbitraire ou décisionnel n’est introduit.
+
+# 14. Tests — Budgets trends
+- fichier : `engine/calculator.budgets-trends.spec.ts`.
+- invariants vérifiés :
+  - couverture de tous les `TrendStatus` : `INCREASING`, `DECREASING`, `STABLE` (variation ≤ 5 %), `NO_HISTORY`.
+  - STABLE se déclenche uniquement lorsque la variation relative reste dans la marge de ±5 %.
+  - déterminisme strict (même entrée → mêmes `trends`).
+  - isolation par catégorie : un changement sur une catégorie n’affecte pas la tendance d’une autre.
+  - comparaisons basées uniquement sur les `CategoryBudgetResult` précédents, sans recalculer les transactions.

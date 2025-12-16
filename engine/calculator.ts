@@ -16,6 +16,7 @@ import {
 import { applyDeficitCarryOver } from './deficit-handler';
 import { evaluateRollingBudgets } from './budgets/rolling';
 import { evaluateMultiMonthBudgets } from './budgets/multi-month';
+import { evaluateBudgetTrends } from './budgets/trends';
 import { addMonths, isMonthInRange, monthFromDate, monthIndex } from './utils/date';
 
 /**
@@ -288,11 +289,16 @@ export const calculateProjection = (input: ProjectionInput): MonthProjection[] =
       ...monthWithRolling,
       multiMonthBudgets: multiMonthResults,
     };
-    projections.push(finalizedMonth);
+    const trendResults = evaluateBudgetTrends(finalizedMonth, projections);
+    const monthWithTrends: MonthProjection = {
+      ...finalizedMonth,
+      trends: trendResults,
+    };
+    projections.push(monthWithTrends);
 
     // Le solde final d’un mois devient systématiquement l’ouverture du mois suivant.
-    openingBalance = finalizedMonth.endingBalance;
-    previousMonth = finalizedMonth;
+    openingBalance = monthWithTrends.endingBalance;
+    previousMonth = monthWithTrends;
   }
 
   return projections;

@@ -132,3 +132,4 @@ Demander clarification.
 - Budgets par catégorie (analytique, non décisionnel)
 - Budgets avancés (glissants, multi-mois, tendances) — module analytique verrouillé.
 - Budgets multi-mois : évalués par période fixe, status OK/WARNING/REACHED/EXCEEDED/INACTIVE, tests dans `engine/calculator.budgets-multimonth.spec.ts`.
+- LOT 3 — Trends / comparaison historique (ANALYTICAL + LOCKABLE) : lecture seule des `CategoryBudgetResult`, statuts `INCREASING`/`DECREASING`/`STABLE`/`NO_HISTORY`, tests dans `engine/calculator.budgets-trends.spec.ts`.
