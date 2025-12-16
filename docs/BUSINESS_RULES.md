@@ -23,7 +23,13 @@
 - elle s’applique à chaque mois compris dans cet intervalle inclusif.
 - hors de son intervalle, la charge ne participe pas au calcul.
 
-# 5. Ordre de calcul
+# 5. Règles sur les plafonds
+- les plafonds sont définis par `CeilingRule` et s’appliquent à chaque mois couvert (`YYYY-MM`).
+- le total évalué pour un mois est `dépenses + charges fixes + différés` (tous positifs).
+- un état est produit : `NOT_REACHED` si le total est inférieur, `REACHED` si égal, `EXCEEDED` si supérieur au plafond.
+- chaque mois conserve l’historique des statuts de plafond sans modifier le solde.
+
+# 6. Ordre de calcul
 1. ouvrir le mois avec le solde reporté précédent.
 2. ajouter les revenus du mois.
 3. normaliser et soustraire les dépenses non différées.
@@ -32,11 +38,11 @@
 6. appliquer le déficit reporté précédent.
 7. calculer le `endingBalance` puis le propager comme ouverture du mois suivant.
 
-# 6. Cas interdits
+# 7. Cas interdits
 - considérer une dépense négative comme une réduction de revenu.
 - diviser un déficit en fragments partiels.
 - ignorer une charge fixe en cours.
 - traiter un différé dans un mois autre que son `deferredTo`.
 
-# 7. Principe de non-régression
+# 8. Principe de non-régression
 Une règle validée reste figée tant qu’un test Vitest ne certifie pas sa mise à jour avant tout changement.

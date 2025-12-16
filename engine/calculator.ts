@@ -1,4 +1,12 @@
-import { ProjectionInput, MonthProjection, RecurringCharge, Transaction } from './types';
+import {
+  CeilingRule,
+  CeilingState,
+  CeilingStatus,
+  MonthProjection,
+  ProjectionInput,
+  RecurringCharge,
+  Transaction,
+} from './types';
 import { applyDeficitCarryOver } from './deficit-handler';
 import { addMonths, monthFromDate, isMonthInRange } from './utils/date';
 
@@ -43,8 +51,48 @@ const activeFixedCharges = (
     return total + charge.amount;
   }, 0);
 
+const ceilingStateFor = (limit: number, totalOutflow: number): CeilingState => {
+  if (totalOutflow < limit) {
+    return 'NOT_REACHED';
+  }
+  if (totalOutflow === limit) {
+    return 'REACHED';
+  }
+  return 'EXCEEDED';
+};
+
+const activeCeilingRules = (
+  ceilingRules: CeilingRule[],
+  account: ProjectionInput['account'],
+  month: string,
+): CeilingRule[] =>
+  ceilingRules.filter(
+    (rule) => rule.account === account && isMonthInRange(month, rule.startMonth, rule.endMonth),
+  );
+
+const buildCeilingStatuses = (
+  ceilingRules: CeilingRule[],
+  month: string,
+  totalOutflow: number,
+): CeilingStatus[] =>
+  ceilingRules.map((rule) => ({
+    ruleId: rule.id,
+    month,
+    ceiling: rule.amount,
+    totalOutflow,
+    state: ceilingStateFor(rule.amount, totalOutflow),
+  }));
+
 export const calculateProjection = (input: ProjectionInput): MonthProjection[] => {
-  const { account, initialBalance, transactions, recurringCharges, startMonth, months } = input;
+  const {
+    account,
+    initialBalance,
+    transactions,
+    recurringCharges,
+    startMonth,
+    months,
+    ceilingRules = [],
+  } = input;
   if (months <= 0) return [];
 
   const accountTransactions = transactions.filter((t) => t.account === account);
@@ -72,6 +120,12 @@ export const calculateProjection = (input: ProjectionInput): MonthProjection[] =
 
     const fixedCharges = activeFixedCharges(recurringCharges, account, monthLabel);
     const deferredIn = deferredSchedule[monthLabel] ?? 0;
+    const totalOutflow = expenses + fixedCharges + deferredIn;
+    const ceilingStatuses = buildCeilingStatuses(
+      activeCeilingRules(ceilingRules, account, monthLabel),
+      monthLabel,
+      totalOutflow,
+    );
 
     const baseMonth: MonthProjection = {
       month: monthLabel,
@@ -82,6 +136,7 @@ export const calculateProjection = (input: ProjectionInput): MonthProjection[] =
       deferredIn,
       carriedOverDeficit: 0,
       endingBalance: 0,
+      ceilings: ceilingStatuses,
     };
 
     const resolvedMonth = applyDeficitCarryOver(previousMonth, baseMonth);
