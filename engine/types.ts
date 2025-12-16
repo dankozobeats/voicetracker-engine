@@ -170,3 +170,18 @@ export interface EngineAlert {
 export interface AnalysisResult {
   insights: string[];
 }
+
+export type AdvancedAlertSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
+
+export type AdvancedAlertDomain = 'DEFICIT' | 'DEFERRED' | 'CEILING' | 'BUDGET' | 'TREND';
+
+export interface AdvancedAlert {
+  month: string; // YYYY-MM
+  domain: AdvancedAlertDomain;
+  category?: string;
+  ruleId: string;
+  groupId: string;
+  severity: AdvancedAlertSeverity;
+  metadata?: Record<string, unknown>;
+  priorityRank: number;
+}

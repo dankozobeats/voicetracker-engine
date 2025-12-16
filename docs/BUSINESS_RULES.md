@@ -108,3 +108,22 @@ Une règle validée reste figée tant qu’un test Vitest ne certifie pas sa mis
 - les résultats (`CategoryBudgetTrendResult`) exposent `current`, `previous`, `delta`, `percentChange` et `trend` pour garantir la transparence des calculs.
 - `trend` peut être `INCREASING`, `DECREASING`, `STABLE` (variation ≤ 5 % en valeur absolue) ou `NO_HISTORY` quand aucune donnée précédente n’existe.
 - la comparaison est complètement déterministe, strictement isolée par catégorie et n’impacte ni soldes, ni déficits, ni plafonds, ni différés.
+
+# 15. Alertes avancées
+- les alertes avancées observent les résultats des modules verrouillés (déficits, différés, plafonds, budgets et tendances) sans jamais modifier les soldes ni rétroagir sur les calculs.
+- chaque alerte expose :
+  - `month` pour tracer la période observée,
+  - `domain` parmi `DEFICIT`, `DEFERRED`, `CEILING`, `BUDGET`, `TREND`,
+  - `category` quand la donnée catégorielle est disponible (`BUDGET`, `TREND`, différés possiblement catégorisés),
+  - `groupId` déterministe (`${domain}` ou `${domain}:${category}`) pour regrouper en amont,
+  - `ruleId` explicite (`{domain}:{détail}:{month}`) garantissant unicité,
+  - `severity` dans l’enum `INFO | WARNING | CRITICAL`,
+  - `priorityRank` ordonné selon les règles métiers.
+- le mapping de sévérité est fixe :
+  - `DEFICIT < 0` → `CRITICAL`,
+  - plafonds `REACHED` → `WARNING`, `EXCEEDED` → `CRITICAL`,
+  - budgets `WARNING` → `WARNING`, `EXCEEDED` → `CRITICAL`,
+  - différés forcés (`FORCED`) → `WARNING`,
+  - tendances `INCREASING` au-dessus du seuil de stabilité (5 %) → `WARNING`.
+- l’ordre global est : Sévérité (`CRITICAL` > `WARNING` > `INFO`), puis domaine (`DEFICIT`, `DEFERRED`, `CEILING`, `BUDGET`, `TREND`), puis catégorie (alphabétique quand disponible) et enfin `ruleId`.
+- le calcul reste pur et déterministe : même entrée → mêmes alertes triées de la même façon, aucune mutation.
