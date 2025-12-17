@@ -134,3 +134,10 @@ Demander clarification.
 - Budgets multi-mois : évalués par période fixe, status OK/WARNING/REACHED/EXCEEDED/INACTIVE, tests dans `engine/calculator.budgets-multimonth.spec.ts`.
 - LOT 3 — Trends / comparaison historique (ANALYTICAL + LOCKABLE) : lecture seule des `CategoryBudgetResult`, statuts `INCREASING`/`DECREASING`/`STABLE`/`NO_HISTORY`, tests dans `engine/calculator.budgets-trends.spec.ts`.
 - Alertes avancées : lecture seule, dérivées des résultats existants, tests dans `engine/alerts/advanced-alerts.spec.ts`.
+
+## 10. Couche consumer verrouillée
+
+- Les consumers ne lisent que des résultats (`AdvancedAlert[]`, `MonthProjection`, etc.) et produisent des artefacts de présentation : aucun recalcul, aucune mutation, aucun effet de bord.
+- Le premier consumer canonicalisé est `analysis/consumers/alert-text.consumer.ts` (tests : `analysis/consumers/alert-text.consumer.spec.ts`) ; il transforme les `AdvancedAlert` en titres/messages FR ordonnés par `priorityRank`.
+- Un second consumer, `analysis/consumers/monthly-summary.consumer.ts` (accompagné de `monthly-summary.consumer.spec.ts`), synthétise les `AdvancedAlert` + `CategoryBudgetTrendResult` en un résumé mensuel neutre avec titres, points clés et détails classés.
+- Tout changement de cette couche (nouveau consumer ou modification existante) exige des tests Vitest (`npx vitest run`) et une discussion explicite avant d’être fusionné.
