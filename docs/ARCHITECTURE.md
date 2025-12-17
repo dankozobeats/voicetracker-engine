@@ -18,6 +18,7 @@ Toutes les références temporelles utilisent le format `YYYY-MM`. Chaque itéra
 - `deficit-handler.ts` : règles de report du découvert.
 - `utils/date.ts` : mathématiques des mois.
 - `types.ts` : objets partagés.
+- `analysis.ts` : couche IA interprétative pure qui lit les projections et alertes pour produire des insights textuels.
 
 # 6. Ce que le moteur NE FAIT PAS
 - pas d’interface utilisateur.
@@ -25,7 +26,7 @@ Toutes les références temporelles utilisent le format `YYYY-MM`. Chaque itéra
 - pas d’authentification ou autorisation.
 - pas d’appels réseaux vers des API externes.
 
-# 7. Évolutivité contrôlée
+# 8. Évolutivité contrôlée
 Ajouter une règle implique :
 1. mettre à jour les types si nécessaire ;
 2. enrichir `calculator.ts` ou `deficit-handler.ts` de façon pure ;

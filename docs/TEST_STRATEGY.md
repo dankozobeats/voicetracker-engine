@@ -100,7 +100,7 @@ Chaque règle métier de `voicetracker-engine` mérite un test dédié car le mo
   - isolation par catégorie : un changement sur une catégorie n’affecte pas la tendance d’une autre.
   - comparaisons basées uniquement sur les `CategoryBudgetResult` précédents, sans recalculer les transactions.
 
-# 15. Tests — Alertes avancées
+-# 15. Tests — Alertes avancées
 - fichier : `engine/alerts/advanced-alerts.spec.ts`.
 - invariants vérifiés :
   - regroupement déterministe par `domain` et `category`, avec `groupId` prédictible.
@@ -108,3 +108,12 @@ Chaque règle métier de `voicetracker-engine` mérite un test dédié car le mo
   - ordre global stable (sévérité > domaine > catégorie alphabétique > `ruleId`) avec `priorityRank`.
   - déterminisme absolu (deux exécutions identiques → mêmes alertes).
   - non-régression : les projections d’entrée restent intègres, aucun autre résultat n’est modifié par la génération.
+
+# 16. Tests — Consumers de présentation
+- fichier : `analysis/consumers/monthly-summary.consumer.spec.ts`.
+- invariants vérifiés :
+  - déterminisme absolu (même `MonthlySummaryInput` → même output).
+  - aucune mutation des objets `MonthProjection`, `AdvancedAlert` ou `CategoryBudgetTrendResult`.
+  - respect strict de l’ordre (`priorityRank`, sévérité).
+  - points clés limités à 3 éléments et dérivés uniquement des alertes.
+  - détails composés exclusivement des alertes et des tendances fournies, sans calcul métier.
