@@ -1,3 +1,4 @@
+import React from 'react';
 import type { AlertTextEntry } from '@/lib/types';
 import { AlertItem } from './AlertItem';
 

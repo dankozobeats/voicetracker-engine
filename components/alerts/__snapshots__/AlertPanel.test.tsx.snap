@@ -1,0 +1,90 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`AlertPanel > renders alerts in the provided priority order and matches snapshot 1`] = `
+<div>
+  <section
+    aria-label="Liste des alertes avancées"
+    class="alert-panel"
+  >
+    <header
+      class="panel-header"
+    >
+      <p
+        class="eyebrow"
+      >
+        Alertes avancées
+      </p>
+      <h2>
+        Alert Text
+      </h2>
+      <p
+        class="panel-subtitle"
+      >
+        Ordre inchangé, directement issu du consumer.
+      </p>
+    </header>
+    <div
+      class="alert-list"
+    >
+      <article
+        class="alert-item"
+      >
+        <div
+          aria-label="Sévérité critical"
+          class="alert-badge"
+          style="background-color: rgb(214, 43, 43);"
+        />
+        <div
+          class="alert-body"
+        >
+          <div
+            class="alert-headline"
+          >
+            <h3>
+              Budget — Alimentation
+            </h3>
+            <span
+              class="alert-priority"
+            >
+              #
+              1
+            </span>
+          </div>
+          <p>
+            Ton : action requise / dépassement · Domaine : Budget · Catégorie : Alimentation · Règle : BUDGET:ALIMENTATION:2024-03 · Groupe : BUDGET:Alimentation
+          </p>
+        </div>
+      </article>
+      <article
+        class="alert-item"
+      >
+        <div
+          aria-label="Sévérité warning"
+          class="alert-badge"
+          style="background-color: rgb(255, 159, 0);"
+        />
+        <div
+          class="alert-body"
+        >
+          <div
+            class="alert-headline"
+          >
+            <h3>
+              Tendance — Alimentation
+            </h3>
+            <span
+              class="alert-priority"
+            >
+              #
+              2
+            </span>
+          </div>
+          <p>
+            Ton : attention / seuil approché · Domaine : Tendance · Catégorie : Alimentation · Règle : TREND:ALIMENTATION:2024-03 · Groupe : TREND:Alimentation
+          </p>
+        </div>
+      </article>
+    </div>
+  </section>
+</div>
+`;
