@@ -62,6 +62,13 @@ export interface CategoryBudgetTrendResult {
   trend: TrendStatus;
 }
 
+export interface MonthlySummaryOutput {
+  month: string;
+  title: string;
+  highlights: string[];
+  details: string[];
+}
+
 export interface MonthProjection {
   month: string; // YYYY-MM
   openingBalance: number;

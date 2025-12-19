@@ -1,0 +1,122 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Sidebar > renders sections with navigation links and matches snapshot 1`] = `
+<div>
+  <aside
+    class="sidebar"
+  >
+    <div
+      class="sidebar-brand"
+    >
+      <p>
+        Voicetracker
+      </p>
+      <span>
+        Lecture seule
+      </span>
+    </div>
+    <nav>
+      <div
+        class="sidebar-section"
+      >
+        <button
+          class="sidebar-section__header"
+          type="button"
+        >
+          <span>
+            Analyse
+          </span>
+          <span>
+            −
+          </span>
+        </button>
+        <ul>
+          <li>
+            <a
+              href="/dashboard"
+            >
+              Dashboard
+            </a>
+          </li>
+          <li>
+            <a
+              href="/analysis"
+            >
+              Analyse mensuelle
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div
+        class="sidebar-section"
+      >
+        <button
+          class="sidebar-section__header"
+          type="button"
+        >
+          <span>
+            Budgets
+          </span>
+          <span>
+            −
+          </span>
+        </button>
+        <ul>
+          <li>
+            <a
+              href="/budgets"
+            >
+              Budgets par catégorie
+            </a>
+          </li>
+          <li>
+            <a
+              href="/budgets"
+            >
+              Budgets glissants
+            </a>
+          </li>
+          <li>
+            <a
+              href="/budgets"
+            >
+              Budgets multi-mois
+            </a>
+          </li>
+          <li>
+            <a
+              href="/budgets"
+            >
+              Tendances
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div
+        class="sidebar-section"
+      >
+        <button
+          class="sidebar-section__header"
+          type="button"
+        >
+          <span>
+            Alertes
+          </span>
+          <span>
+            −
+          </span>
+        </button>
+        <ul>
+          <li>
+            <a
+              href="/alerts"
+            >
+              Alertes avancées
+            </a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </aside>
+</div>
+`;

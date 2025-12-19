@@ -12,12 +12,13 @@ const STATUS_STYLES: Record<MultiMonthBudgetResult['status'], string> = {
 
 export const MultiMonthBudgetItem = ({ budget }: { budget: MultiMonthBudgetResult }) => {
   const accentColor = STATUS_STYLES[budget.status];
+  const badgeStyle = { ['--badge-color' as string]: accentColor } as React.CSSProperties;
 
   return (
     <article className="budget-item">
       <header className="budget-item__header">
         <h3>{budget.category}</h3>
-        <span className="budget-status" style={{ borderColor: accentColor, color: accentColor }}>
+        <span className="budget-status" style={badgeStyle}>
           {budget.status}
         </span>
       </header>

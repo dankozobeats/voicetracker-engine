@@ -32,7 +32,7 @@ exports[`CategoryBudgetsPanel > renders budgets in contract order, preserves sta
           </h3>
           <span
             class="budget-status"
-            style="border-color: rgb(185, 28, 28); color: rgb(185, 28, 28);"
+            style="--badge-color: #b91c1c;"
           >
             EXCEEDED
           </span>

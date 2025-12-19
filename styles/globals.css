@@ -185,6 +185,114 @@ body {
   line-height: 1.6;
 }
 
+.analysis-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.analysis-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.analysis-note {
+  margin: 0;
+  color: #475467;
+  font-size: 0.9rem;
+}
+
+.analysis-section-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.analysis-section-heading {
+  margin: 0;
+  font-size: 0.9rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #4b5563;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  background: #f7f8fa;
+}
+
+.sidebar {
+  width: 260px;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  padding: 2rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sidebar-brand {
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #111827;
+}
+
+.sidebar-brand span {
+  display: block;
+  font-size: 0.75rem;
+  color: #6b7280;
+  letter-spacing: 0.2em;
+}
+
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sidebar-section__header {
+  background: none;
+  border: none;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #111827;
+  cursor: pointer;
+  padding: 0;
+}
+
+.sidebar-section ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.sidebar-section li a {
+  color: #1f2933;
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+
+.sidebar-section li a:hover {
+  text-decoration: underline;
+}
+
+.main-content {
+  flex: 1;
+  padding: 2rem 3rem;
+  background: #f7f8fa;
+}
+
 .budgets-panel {
   background: #fff;
   border-radius: 20px;
@@ -220,13 +328,16 @@ body {
 }
 
 .budget-status {
+  --badge-color: #111827;
   font-size: 0.75rem;
   letter-spacing: 0.1em;
   padding: 0.25rem 0.65rem;
   border-radius: 999px;
-  border: 1px solid;
+  border: 1px solid var(--badge-color);
   font-weight: 600;
   text-transform: uppercase;
+  color: var(--badge-color);
+  background: color-mix(in srgb, var(--badge-color) 20%, #fff);
 }
 
 .budget-metrics {

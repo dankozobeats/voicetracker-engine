@@ -211,3 +211,11 @@ Demander clarification.
 ---
 
 Ce document prévaut sur toute discussion, prompt ou implémentation.
+
+## UI / UX — Règles absolues
+
+- l’UI ne calcule jamais
+- l’UI n’interprète jamais
+- l’UI ne recommande jamais
+- toute valeur affichée provient du moteur ou d’un consumer
+- toute évolution UX doit conserver l’ordre et les statuts d’entrée

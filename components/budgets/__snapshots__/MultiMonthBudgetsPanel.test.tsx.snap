@@ -32,7 +32,7 @@ exports[`MultiMonthBudgetsPanel > renders multi-month budgets in contract order 
           </h3>
           <span
             class="budget-status"
-            style="border-color: rgb(180, 83, 9); color: rgb(180, 83, 9);"
+            style="--badge-color: #b45309;"
           >
             WARNING
           </span>
@@ -84,7 +84,7 @@ exports[`MultiMonthBudgetsPanel > renders multi-month budgets in contract order 
           </h3>
           <span
             class="budget-status"
-            style="border-color: rgb(22, 163, 74); color: rgb(22, 163, 74);"
+            style="--badge-color: #16a34a;"
           >
             OK
           </span>
