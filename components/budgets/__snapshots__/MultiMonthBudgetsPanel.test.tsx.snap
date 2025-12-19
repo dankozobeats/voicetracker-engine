@@ -1,0 +1,131 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`MultiMonthBudgetsPanel > renders multi-month budgets in contract order and matches snapshot 1`] = `
+<div>
+  <section
+    aria-label="Budgets multi-mois"
+    class="budgets-panel"
+  >
+    <header
+      class="panel-header"
+    >
+      <p
+        class="eyebrow"
+      >
+        Budgets multi-mois
+      </p>
+      <h2>
+        Multi-month budgets
+      </h2>
+    </header>
+    <div
+      class="budget-list"
+    >
+      <article
+        class="budget-item"
+      >
+        <header
+          class="budget-item__header"
+        >
+          <h3>
+            Projets
+          </h3>
+          <span
+            class="budget-status"
+            style="border-color: rgb(180, 83, 9); color: rgb(180, 83, 9);"
+          >
+            WARNING
+          </span>
+        </header>
+        <p
+          class="budget-period"
+        >
+          2024-01
+           → 
+          2024-06
+        </p>
+        <dl
+          class="budget-metrics"
+        >
+          <div>
+            <dt>
+              Dépensé
+            </dt>
+            <dd>
+              2 400,00 €
+            </dd>
+          </div>
+          <div>
+            <dt>
+              Budget
+            </dt>
+            <dd>
+              3 000,00 €
+            </dd>
+          </div>
+          <div>
+            <dt>
+              Ratio
+            </dt>
+            <dd>
+              80%
+            </dd>
+          </div>
+        </dl>
+      </article>
+      <article
+        class="budget-item"
+      >
+        <header
+          class="budget-item__header"
+        >
+          <h3>
+            Infrastructures
+          </h3>
+          <span
+            class="budget-status"
+            style="border-color: rgb(22, 163, 74); color: rgb(22, 163, 74);"
+          >
+            OK
+          </span>
+        </header>
+        <p
+          class="budget-period"
+        >
+          2024-01
+           → 
+          2024-12
+        </p>
+        <dl
+          class="budget-metrics"
+        >
+          <div>
+            <dt>
+              Dépensé
+            </dt>
+            <dd>
+              1 800,00 €
+            </dd>
+          </div>
+          <div>
+            <dt>
+              Budget
+            </dt>
+            <dd>
+              2 500,00 €
+            </dd>
+          </div>
+          <div>
+            <dt>
+              Ratio
+            </dt>
+            <dd>
+              72%
+            </dd>
+          </div>
+        </dl>
+      </article>
+    </div>
+  </section>
+</div>
+`;

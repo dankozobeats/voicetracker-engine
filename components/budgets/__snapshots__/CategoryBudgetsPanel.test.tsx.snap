@@ -1,0 +1,72 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`CategoryBudgetsPanel > renders budgets in contract order, preserves statuses, and matches snapshot 1`] = `
+<div>
+  <section
+    aria-label="Budgets par catégorie"
+    class="budgets-panel"
+  >
+    <header
+      class="panel-header"
+    >
+      <p
+        class="eyebrow"
+      >
+        Budgets
+      </p>
+      <h2>
+        Par catégorie
+      </h2>
+    </header>
+    <div
+      class="budget-list"
+    >
+      <article
+        class="budget-item"
+      >
+        <header
+          class="budget-item__header"
+        >
+          <h3>
+            Alimentation
+          </h3>
+          <span
+            class="budget-status"
+            style="border-color: rgb(185, 28, 28); color: rgb(185, 28, 28);"
+          >
+            EXCEEDED
+          </span>
+        </header>
+        <dl
+          class="budget-metrics"
+        >
+          <div>
+            <dt>
+              Dépensé
+            </dt>
+            <dd>
+              680,00 €
+            </dd>
+          </div>
+          <div>
+            <dt>
+              Budget
+            </dt>
+            <dd>
+              600,00 €
+            </dd>
+          </div>
+          <div>
+            <dt>
+              Ratio
+            </dt>
+            <dd>
+              undefined%
+            </dd>
+          </div>
+        </dl>
+      </article>
+    </div>
+  </section>
+</div>
+`;

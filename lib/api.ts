@@ -54,6 +54,15 @@ export const mockedEnginePayload: EnginePayload = {
           ratio: 80,
           status: 'WARNING',
         },
+        {
+          category: 'Infrastructures',
+          periodStart: '2024-01',
+          periodEnd: '2024-12',
+          totalSpent: 1800,
+          budgetAmount: 2500,
+          ratio: 72,
+          status: 'OK',
+        },
       ],
       rollingBudgets: [
         {
@@ -64,6 +73,14 @@ export const mockedEnginePayload: EnginePayload = {
           ratio: 90,
           status: 'WARNING',
         },
+        {
+          category: 'Transport',
+          windowMonths: 3,
+          totalSpent: 450,
+          budgetAmount: 600,
+          ratio: 75,
+          status: 'OK',
+        },
       ],
       trends: [
         {
@@ -73,6 +90,14 @@ export const mockedEnginePayload: EnginePayload = {
           delta: 70,
           percentChange: 11.47,
           trend: 'INCREASING',
+        },
+        {
+          category: 'Transport',
+          current: 210,
+          previous: 205,
+          delta: 5,
+          percentChange: 2.44,
+          trend: 'STABLE',
         },
       ],
     },
@@ -99,6 +124,14 @@ export const mockedEnginePayload: EnginePayload = {
       ratio: 90,
       status: 'WARNING',
     },
+    {
+      category: 'Transport',
+      windowMonths: 3,
+      totalSpent: 450,
+      budgetAmount: 600,
+      ratio: 75,
+      status: 'OK',
+    },
   ],
   multiMonthBudgets: [
     {
@@ -110,6 +143,15 @@ export const mockedEnginePayload: EnginePayload = {
       ratio: 80,
       status: 'WARNING',
     },
+    {
+      category: 'Infrastructures',
+      periodStart: '2024-01',
+      periodEnd: '2024-12',
+      totalSpent: 1800,
+      budgetAmount: 2500,
+      ratio: 72,
+      status: 'OK',
+    },
   ],
   trends: [
     {
@@ -119,6 +161,14 @@ export const mockedEnginePayload: EnginePayload = {
       delta: 70,
       percentChange: 11.47,
       trend: 'INCREASING',
+    },
+    {
+      category: 'Transport',
+      current: 210,
+      previous: 205,
+      delta: 5,
+      percentChange: 2.44,
+      trend: 'STABLE',
     },
   ],
   alertTexts: [
