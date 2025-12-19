@@ -1,6 +1,6 @@
 # CODEX — ENGINE CONTRACT (MANDATORY)
 
-This file MUST be read before any code, test, or documentation change.
+This file MUST be read before any code, test, or documentation change.  
 If this file is ignored, the output is invalid.
 
 ---
@@ -8,11 +8,12 @@ If this file is ignored, the output is invalid.
 ## 1. Mission du projet
 
 `voicetracker-engine` est un moteur financier **déterministe** qui :
+
 - décode les flux financiers mensuels
 - projette revenus, charges fixes et différés
 - normalise les dépenses
 - reporte les déficits
-- évalue des plafonds et alertes
+- évalue plafonds, budgets et alertes
 
 ❌ Aucune UI  
 ❌ Aucune base de données  
@@ -28,20 +29,21 @@ If this file is ignored, the output is invalid.
 - aucune logique implicite
 - chaque mois produit un **résultat immuable**
 - le moteur observe, il ne corrige pas
-- toute règle métier doit être écrite ET testée
+- toute règle métier doit être **écrite ET testée**
 
 ---
 
 ## 3. Hiérarchie de vérité
 
-En cas de conflit, l’ordre suivant s’applique strictement :
+En cas de conflit, l’ordre suivant s’applique **strictement** :
 
 1. `CODEX.md`
 2. `docs/BUSINESS_RULES.md`
 3. `docs/ARCHITECTURE.md`
 4. `docs/TEST_STRATEGY.md`
-5. Code
-6. Demande utilisateur
+5. `docs/API_CONTRACT.md`
+6. Code
+7. Demande utilisateur
 
 Si une demande viole un document supérieur → **REFUS OBLIGATOIRE**
 
@@ -72,7 +74,28 @@ Si une demande viole un document supérieur → **REFUS OBLIGATOIRE**
 
 ---
 
-## 5. Workflow obligatoire
+## 5. Analytique vs Décisionnel
+
+### Analytique
+Un module analytique :
+- lit des données existantes
+- n’altère jamais les soldes
+- ne bloque aucune transaction
+- n’influence aucune règle future
+- est **strictement en lecture seule**
+
+### Décisionnel
+Toute logique qui :
+- modifie un solde
+- empêche une dépense
+- ajuste un comportement futur
+
+est considérée comme **DÉCISIONNELLE** et est **INTERDITE**
+sans modification explicite des règles métier et des tests.
+
+---
+
+## 6. Workflow obligatoire
 
 Pour chaque feature :
 
@@ -88,12 +111,12 @@ Pour chaque feature :
 
 ---
 
-## 6. Tests (OBLIGATOIRES)
+## 7. Tests (OBLIGATOIRES)
 
 - chaque règle métier a au moins un test
 - les tests décrivent le **comportement métier**
 - aucun test ne valide une implémentation interne
-- pas de snapshot
+- pas de snapshot côté moteur
 - pas de mock du moteur
 
 Conventions :
@@ -103,7 +126,39 @@ Conventions :
 
 ---
 
-## 7. Responsabilités de Codex
+## 8. Consumers (lecture seule)
+
+- un consumer :
+  - lit exclusivement les sorties de l’engine
+  - ne recalcule jamais une règle métier
+  - ne modifie jamais l’ordre ou le sens des données
+  - peut agréger, reformuler ou résumer
+
+- un consumer :
+  - ne décide jamais
+  - n’influence jamais un calcul
+  - n’écrit jamais dans une projection
+
+- tout consumer doit :
+  - être déterministe
+  - être testé
+  - produire la même sortie pour la même entrée
+
+---
+
+## 9. Contrat API
+
+- `docs/API_CONTRACT.md` définit la structure JSON exposée à l’extérieur
+- ce contrat est **IMMUTABLE** une fois validé
+- toute modification implique :
+  - discussion préalable
+  - mise à jour du contrat
+  - adaptation engine + consumers + UI
+- aucun composant UI ne doit dévier du contrat
+
+---
+
+## 10. Responsabilités de Codex
 
 Codex DOIT :
 - signaler toute ambiguïté
@@ -119,25 +174,40 @@ Codex NE DOIT JAMAIS :
 
 ---
 
-## 8. En cas de doute
+## 11. Principe de non-régression
+
+- un comportement validé par test est **contractuel**
+- toute modification doit :
+  - casser un test existant
+  - expliquer pourquoi
+  - ajouter un nouveau test
+
+❌ Corriger un test pour faire passer le code est interdit
+
+---
+
+## 12. En cas de doute
 
 NE PAS DEVINER.  
 Demander clarification.
 
-# 9. Modules verrouillés
+---
+
+## 13. Modules verrouillés
+
 - Déficits
 - Normalisation des dépenses
 - Plafonds mensuels
 - Différés avancés (priorisés, bornés, stricts)
 - Budgets par catégorie (analytique, non décisionnel)
-- Budgets avancés (glissants, multi-mois, tendances) — module analytique verrouillé.
-- Budgets multi-mois : évalués par période fixe, status OK/WARNING/REACHED/EXCEEDED/INACTIVE, tests dans `engine/calculator.budgets-multimonth.spec.ts`.
-- LOT 3 — Trends / comparaison historique (ANALYTICAL + LOCKABLE) : lecture seule des `CategoryBudgetResult`, statuts `INCREASING`/`DECREASING`/`STABLE`/`NO_HISTORY`, tests dans `engine/calculator.budgets-trends.spec.ts`.
-- Alertes avancées : lecture seule, dérivées des résultats existants, tests dans `engine/alerts/advanced-alerts.spec.ts`.
+- Budgets avancés :
+  - glissants
+  - multi-mois
+  - trends / comparaison historique
+- Alertes avancées (groupées, priorisées, lecture seule)
+- Consumers (alert-text, monthly-summary, etc.)
+- UI `/analysis` — READ-ONLY, consumer-driven, verrouillée
 
-## 10. Couche consumer verrouillée
+---
 
-- Les consumers ne lisent que des résultats (`AdvancedAlert[]`, `MonthProjection`, etc.) et produisent des artefacts de présentation : aucun recalcul, aucune mutation, aucun effet de bord.
-- Le premier consumer canonicalisé est `analysis/consumers/alert-text.consumer.ts` (tests : `analysis/consumers/alert-text.consumer.spec.ts`) ; il transforme les `AdvancedAlert` en titres/messages FR ordonnés par `priorityRank`.
-- Un second consumer, `analysis/consumers/monthly-summary.consumer.ts` (accompagné de `monthly-summary.consumer.spec.ts`), synthétise les `AdvancedAlert` + `CategoryBudgetTrendResult` en un résumé mensuel neutre avec titres, points clés et détails classés.
-- Tout changement de cette couche (nouveau consumer ou modification existante) exige des tests Vitest (`npx vitest run`) et une discussion explicite avant d’être fusionné.
+Ce document prévaut sur toute discussion, prompt ou implémentation.
