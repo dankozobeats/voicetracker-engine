@@ -1,4 +1,6 @@
-import type { EnginePayload } from './types';
+import type { EnginePayload, MonthlySummaryOutput } from './types';
+import { monthlySummaryConsumer, type MonthlySummaryInput } from '@/analysis/consumers/monthly-summary.consumer';
+import type { AdvancedAlert } from 'engine/types';
 
 export const mockedEnginePayload: EnginePayload = {
   months: [
@@ -190,3 +192,39 @@ export const mockedEnginePayload: EnginePayload = {
     },
   ],
 };
+
+const mockedAdvancedAlerts: AdvancedAlert[] = [
+  {
+    month: '2024-03',
+    domain: 'BUDGET',
+    category: 'Alimentation',
+    ruleId: 'BUDGET:ALIMENTATION:2024-03',
+    groupId: 'BUDGET:Alimentation',
+    severity: 'CRITICAL',
+    metadata: {
+      spent: 680,
+      budget: 600,
+    },
+    priorityRank: 1,
+  },
+  {
+    month: '2024-03',
+    domain: 'TREND',
+    category: 'Alimentation',
+    ruleId: 'TREND:ALIMENTATION:2024-03',
+    groupId: 'TREND:Alimentation',
+    severity: 'WARNING',
+    metadata: {
+      delta: 70,
+    },
+    priorityRank: 2,
+  },
+];
+
+const monthlySummaryInput: MonthlySummaryInput = {
+  month: mockedEnginePayload.months[0].month,
+  alerts: mockedAdvancedAlerts,
+  trends: mockedEnginePayload.trends,
+};
+
+export const mockedMonthlySummary: MonthlySummaryOutput = monthlySummaryConsumer(monthlySummaryInput);

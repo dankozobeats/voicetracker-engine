@@ -1,0 +1,67 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`MonthlySummaryPanel > renders highlights + details snapshot and preserves order 1`] = `
+<div>
+  <section
+    aria-label="Résumé mensuel 2024-03"
+    class="analysis-panel"
+  >
+    <header
+      class="panel-header"
+    >
+      <p
+        class="eyebrow"
+      >
+        Analyse mensuelle
+      </p>
+      <h2>
+        Résumé financier — Mars 2024
+      </h2>
+    </header>
+    <div
+      class="analysis-section"
+    >
+      <p
+        class="analysis-section-label"
+      >
+        Points clés
+      </p>
+      <ul
+        aria-label="Points clés"
+      >
+        <li>
+          Une alerte critiques pour Budget — Alimentation.
+        </li>
+        <li>
+          Une alerte de vigilance pour Tendance — Alimentation.
+        </li>
+      </ul>
+    </div>
+    <div
+      class="analysis-section"
+    >
+      <p
+        class="analysis-section-label"
+      >
+        Détails
+      </p>
+      <ul
+        aria-label="Détails"
+      >
+        <li>
+          La sévérité est critique pour Budget — Alimentation (règle BUDGET:ALIMENTATION:2024-03, groupe BUDGET:Alimentation).
+        </li>
+        <li>
+          La sévérité nécessite de la vigilance pour Tendance — Alimentation (règle TREND:ALIMENTATION:2024-03, groupe TREND:Alimentation).
+        </li>
+        <li>
+          La tendance des dépenses pour Alimentation est en hausse (11.47% de variation).
+        </li>
+        <li>
+          La tendance des dépenses pour Transport est stable (2.44% de variation).
+        </li>
+      </ul>
+    </div>
+  </section>
+</div>
+`;
