@@ -1,13 +1,15 @@
 'use client';
 
 import { FormEvent, useState, useTransition } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 
-// Client-only because it manages form state and navigates after success.
-export const LoginForm = () => {
+interface LoginFormProps {
+  redirect?: string | null;
+}
+
+const LoginForm = ({ redirect }: LoginFormProps) => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -28,8 +30,9 @@ export const LoginForm = () => {
         return;
       }
 
-      const requestedRedirect = searchParams.get('redirect');
-      const safeRedirect = requestedRedirect && requestedRedirect.startsWith('/') ? requestedRedirect : '/dashboard';
+      const safeRedirect =
+        redirect && redirect.startsWith('/') ? redirect : '/dashboard';
+
       router.replace(safeRedirect);
     });
   };
@@ -47,6 +50,7 @@ export const LoginForm = () => {
           className="mt-1 w-full rounded border px-3 py-2"
         />
       </label>
+
       <label className="block">
         <span className="text-sm font-medium text-gray-700">Password</span>
         <input
@@ -58,7 +62,9 @@ export const LoginForm = () => {
           className="mt-1 w-full rounded border px-3 py-2"
         />
       </label>
+
       {error && <p className="text-sm text-red-600">{error}</p>}
+
       <button
         type="submit"
         disabled={isPending}
@@ -69,3 +75,5 @@ export const LoginForm = () => {
     </form>
   );
 };
+
+export default LoginForm;

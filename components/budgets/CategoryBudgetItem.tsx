@@ -12,7 +12,7 @@ export default function CategoryBudgetItem({ budgetResult }: Props) {
 
   return (
     <article>
-      <h3>{budgetResult.categoryName}</h3>
+      <h3>{budgetResult.category}</h3>
 
       <dl>
         <div>

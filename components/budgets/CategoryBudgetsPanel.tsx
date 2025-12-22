@@ -1,6 +1,6 @@
 import React from 'react';
 import type { CategoryBudgetResult } from '@/lib/types';
-import { CategoryBudgetItem } from './CategoryBudgetItem';
+import CategoryBudgetItem from './CategoryBudgetItem';
 
 export const CategoryBudgetsPanel = ({ budgets }: { budgets: CategoryBudgetResult[] }) => {
   return (

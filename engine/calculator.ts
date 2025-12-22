@@ -21,76 +21,93 @@ import { addMonths, isMonthInRange, monthFromDate, monthIndex } from './utils/da
 /**
  * Expenses are recorded either as negative deductions or positive costs.
  * This helper always returns a positive amount because the projection engine
- * treats every expense as a positive cost; that normalization is central to
- * keeping the monthly calculations consistent.
+ * treats every expense as a positive cost.
  */
 export const normalizeExpenseAmount = (amount: number): number => Math.abs(amount);
-
-interface PendingDeferred extends Transaction {
-  deferredStatus: DeferredStatus;
-  deferredUntil: string;
-  priority: number;
-}
-
-const buildPendingDeferreds = (transactions: Transaction[]): PendingDeferred[] =>
-  transactions
-    .filter((transaction) => transaction.isDeferred)
-    .map((transaction) => ({
-      ...transaction,
-      deferredStatus: transaction.deferredStatus ?? 'PENDING',
-      priority: transaction.priority ?? 9,
-      deferredUntil: transaction.deferredUntil ?? transaction.deferredTo ?? monthFromDate(transaction.date),
-    }));
 
 const WARNING_THRESHOLD = 0.8;
 const EXCEEDED_THRESHOLD = 1.0;
 
+/**
+ * Returns only transactions explicitly marked as deferred.
+ * Transactions are treated as immutable inputs.
+ */
+const getDeferredTransactions = (transactions: Transaction[]): Transaction[] =>
+  transactions.filter((transaction) => transaction.isDeferred === true);
+
+/**
+ * Determines whether a deferred transaction should apply for a given month.
+ * This function derives all deferred-related metadata without mutating inputs.
+ */
 const shouldApplyDeferred = (
-  deferred: PendingDeferred,
+  transaction: Transaction,
   currentMonth: string,
-): { shouldApply: boolean; forced: boolean } => {
+): {
+  shouldApply: boolean;
+  forced: boolean;
+  deferredUntil: string;
+  priority: number;
+} => {
+  const deferredUntil =
+    transaction.deferredUntil ??
+    transaction.deferredTo ??
+    monthFromDate(transaction.date);
+
+  const priority = transaction.priority ?? 9;
+
   const currentIndex = monthIndex(currentMonth);
-  const targetIndex = monthIndex(deferred.deferredUntil);
+  const targetIndex = monthIndex(deferredUntil);
+
   const forced =
-    deferred.maxDeferralMonths !== undefined &&
-    currentIndex - targetIndex > deferred.maxDeferralMonths;
+    transaction.maxDeferralMonths !== undefined &&
+    currentIndex - targetIndex > transaction.maxDeferralMonths;
 
   return {
     shouldApply: forced || currentIndex >= targetIndex,
     forced,
+    deferredUntil,
+    priority,
   };
 };
 
+/**
+ * Computes deferred resolutions for the current month.
+ * Fully deterministic, no mutation, no hidden state.
+ */
 const collectDeferredResolutions = (
-  pendingDeferreds: PendingDeferred[],
+  deferredTransactions: Transaction[],
   currentMonth: string,
-): { totalOutflow: number; totalSigned: number; resolutions: DeferredResolution[] } => {
-  const eligible = pendingDeferreds
-    .filter((deferred) => deferred.deferredStatus === 'PENDING')
-    .map((deferred) => ({
-      deferred,
-      decision: shouldApplyDeferred(deferred, currentMonth),
-    }))
+): {
+  totalOutflow: number;
+  totalSigned: number;
+  resolutions: DeferredResolution[];
+} => {
+  const eligible = deferredTransactions
+    .map((transaction) => {
+      const decision = shouldApplyDeferred(transaction, currentMonth);
+      return { transaction, decision };
+    })
     .filter(({ decision }) => decision.shouldApply)
-    .sort((a, b) => a.deferred.priority - b.deferred.priority);
+    .sort((a, b) => a.decision.priority - b.decision.priority);
 
   let totalOutflow = 0;
   let totalSigned = 0;
-  const resolutions = eligible.map(({ deferred, decision }) => {
+
+  const resolutions: DeferredResolution[] = eligible.map(({ transaction, decision }) => {
+    const amount = normalizeExpenseAmount(transaction.amount);
     const status: DeferredStatus = decision.forced ? 'FORCED' : 'APPLIED';
-    deferred.deferredStatus = status;
-    const amount = normalizeExpenseAmount(deferred.amount);
+
     totalOutflow += amount;
-    totalSigned += deferred.amount;
+    totalSigned += transaction.amount;
 
     return {
-      transactionId: deferred.id,
+      transactionId: transaction.id,
       month: currentMonth,
       amount,
       status,
-      priority: deferred.priority,
+      priority: decision.priority,
       forced: decision.forced,
-      category: deferred.category,
+      category: transaction.category,
     };
   });
 
@@ -112,12 +129,8 @@ const activeFixedCharges = (
   }, 0);
 
 const ceilingStateFor = (limit: number, totalOutflow: number): CeilingState => {
-  if (totalOutflow < limit) {
-    return 'NOT_REACHED';
-  }
-  if (totalOutflow === limit) {
-    return 'REACHED';
-  }
+  if (totalOutflow < limit) return 'NOT_REACHED';
+  if (totalOutflow === limit) return 'REACHED';
   return 'EXCEEDED';
 };
 
@@ -143,11 +156,11 @@ const buildCeilingStatuses = (
     state: ceilingStateFor(rule.amount, totalOutflow),
   }));
 
-const categorizeAmount = (category?: string, amount?: number): string | undefined => {
-  return category && amount !== undefined ? category : undefined;
-};
-
-const accumulateCategorySpending = (bucket: Record<string, number>, category: string, amount: number) => {
+const accumulateCategorySpending = (
+  bucket: Record<string, number>,
+  category: string,
+  amount: number,
+) => {
   bucket[category] = (bucket[category] ?? 0) + amount;
 };
 
@@ -158,11 +171,10 @@ const buildMonthlyCategorySpending = (
   const bucket: Record<string, number> = {};
 
   monthTx
-    .filter((transaction) => transaction.type === 'EXPENSE' && !transaction.isDeferred)
-    .forEach((transaction) => {
-      const category = categorizeAmount(transaction.category, transaction.amount);
-      if (category) {
-        accumulateCategorySpending(bucket, category, normalizeExpenseAmount(transaction.amount));
+    .filter((t) => t.type === 'EXPENSE' && !t.isDeferred)
+    .forEach((t) => {
+      if (t.category) {
+        accumulateCategorySpending(bucket, t.category, normalizeExpenseAmount(t.amount));
       }
     });
 
@@ -176,12 +188,8 @@ const buildMonthlyCategorySpending = (
 };
 
 const determineBudgetStatus = (budget: number, spent: number): BudgetStatus => {
-  if (spent > budget * EXCEEDED_THRESHOLD) {
-    return 'EXCEEDED';
-  }
-  if (spent >= budget * WARNING_THRESHOLD) {
-    return 'WARNING';
-  }
+  if (spent > budget * EXCEEDED_THRESHOLD) return 'EXCEEDED';
+  if (spent >= budget * WARNING_THRESHOLD) return 'WARNING';
   return 'OK';
 };
 
@@ -213,10 +221,11 @@ export const calculateProjection = (input: ProjectionInput): MonthProjection[] =
     rollingBudgets = [],
     multiMonthBudgets = [],
   } = input;
+
   if (months <= 0) return [];
 
   const accountTransactions = transactions.filter((t) => t.account === account);
-  const pendingDeferreds = buildPendingDeferreds(accountTransactions);
+  const deferredTransactions = getDeferredTransactions(accountTransactions);
 
   const projections: MonthProjection[] = [];
   let previousMonth: MonthProjection | null = null;
@@ -230,26 +239,20 @@ export const calculateProjection = (input: ProjectionInput): MonthProjection[] =
       .filter((t) => t.type === 'INCOME')
       .reduce((sum, t) => sum + t.amount, 0);
 
-    /**
-     * Expenses may come in with either sign, but the engine consistently treats
-     * them as positive costs to ensure the monthly deficit logic remains stable.
-     */
     const expenses = monthTx
       .filter((t) => t.type === 'EXPENSE' && !t.isDeferred)
       .reduce((sum, t) => sum + normalizeExpenseAmount(t.amount), 0);
 
     const fixedCharges = activeFixedCharges(recurringCharges, account, monthLabel);
+
     const {
       totalOutflow: deferredOutflow,
       totalSigned: deferredIn,
       resolutions: deferredResolutions,
-    } = collectDeferredResolutions(pendingDeferreds, monthLabel);
+    } = collectDeferredResolutions(deferredTransactions, monthLabel);
 
-    const currentCategorySpending = buildMonthlyCategorySpending(monthTx, deferredResolutions);
-    const categoryBudgetsResults = buildCategoryBudgetResults(
-      categoryBudgets ?? [],
-      currentCategorySpending,
-    );
+    const categorySpending = buildMonthlyCategorySpending(monthTx, deferredResolutions);
+    const categoryBudgetResults = buildCategoryBudgetResults(categoryBudgets, categorySpending);
 
     const totalOutflow = expenses + fixedCharges + deferredOutflow;
     const ceilingStatuses = buildCeilingStatuses(
@@ -269,33 +272,36 @@ export const calculateProjection = (input: ProjectionInput): MonthProjection[] =
       endingBalance: 0,
       ceilings: ceilingStatuses,
       deferredResolutions,
-      categoryBudgets: categoryBudgetsResults,
-      categorySpending: currentCategorySpending,
+      categoryBudgets: categoryBudgetResults,
+      categorySpending,
     };
 
     const resolvedMonth = applyDeficitCarryOver(previousMonth, baseMonth);
-    const rollingResults = evaluateRollingBudgets(resolvedMonth, projections, rollingBudgets ?? []);
+
+    const rollingResults = evaluateRollingBudgets(resolvedMonth, projections, rollingBudgets);
     const monthWithRolling: MonthProjection = {
       ...resolvedMonth,
       rollingBudgets: rollingResults,
     };
+
     const multiMonthResults = evaluateMultiMonthBudgets(
       monthWithRolling,
       projections,
-      multiMonthBudgets ?? [],
+      multiMonthBudgets,
     );
     const finalizedMonth: MonthProjection = {
       ...monthWithRolling,
       multiMonthBudgets: multiMonthResults,
     };
+
     const trendResults = evaluateBudgetTrends(finalizedMonth, projections);
     const monthWithTrends: MonthProjection = {
       ...finalizedMonth,
       trends: trendResults,
     };
+
     projections.push(monthWithTrends);
 
-    // Le solde final d’un mois devient systématiquement l’ouverture du mois suivant.
     openingBalance = monthWithTrends.endingBalance;
     previousMonth = monthWithTrends;
   }

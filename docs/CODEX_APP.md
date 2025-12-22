@@ -1,36 +1,87 @@
-# CODEX_APP — Application Auth Layer
+# CODEX_APP.md — Application Layer
 
-This file codifies the assumptions that the Next.js application layer makes about Supabase authentication. Changes to the auth stack must preserve this contract.
+## 1. Purpose
 
-## 1. Environment variables
-- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`: drive the browser-only Supabase client and must never be coupled with server secrets.
-- `NEXT_PUBLIC_APP_URL`: defines public callbacks (`/auth/confirm`, `/auth/reset-password`) and is required on the client for every email flow.
-- `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`: used only on the server (API routes, middleware, protected pages) via `lib/supabase/server.ts`. These values must remain confidential and must not leak to client code.
+This document defines the rules, scope, and guarantees of the **Application Layer**.
 
-## 2. Supabase client boundary
-- `lib/supabase/client.ts` exposes a browser-only client using the anon key. Forms import this helper explicitly so that service role credentials never reach the bundle.
-- `lib/supabase/server.ts` provides:
-  1. A lightweight `supabase` instance for API routes that only needs the service role key.
-  2. `createSupabaseServerClient()` that wires `@supabase/ssr`'s cookie-aware helpers into page and middleware contexts.
-- `lib/supabase/index.ts` re-exports the pieces so existing modules continue to import from `@/lib/supabase` without revealing secrets to the client.
+The Application Layer is responsible for:
+- User management
+- Authentication & authorization
+- Data persistence
+- API routes with side effects
+- UI pages (auth, dashboard, forms)
+- Communication with the Engine
 
-## 3. Auth routes under `/app/auth/*`
-Each route is a server component that delegates only the interactive bits to client components:
-- `/auth/login`: collects credentials, reads an optional `redirect` param, and signs in with `signInWithPassword`. Successful logins use the `redirect` parameter (only internal paths) or default to `/dashboard`.
-- `/auth/register`: signs up with `signUp`, requests a confirm email via `emailRedirectTo`, and notifies the user to check their inbox.
-- `/auth/confirm`: runs `supabase.auth.getSessionFromUrl({ storeSession: true })` client-side, sets the session, then redirects to `/dashboard`. Errors render an inline message.
-- `/auth/forgot-password`: calls `resetPasswordForEmail` with `NEXT_PUBLIC_APP_URL/auth/reset-password` so Supabase can bring the user back to the app. Success and error states are surfaced immediately.
-- `/auth/reset-password`: validates the recovery token via `getSessionFromUrl`, prompts for a new password, and calls `updateUser`. Invalid tokens show guidance instead of auto-redirecting.
-- `/auth/change-password`: fetches the current session on the server (via `createSupabaseServerClient`) before rendering a client form that updates the password. If no session exists, the page prompts the user to log back in.
+This CODEX is **separate and independent** from `CODEX.md`, which governs the Engine.
 
-## 4. Middleware rules (`middleware.ts`)
-- Runs only on `/dashboard/:path*`, `/auth/:path*`, and `/api/:path*` to avoid interfering with public assets.
-- Uses the same service role credentials to read Supabase cookies through `createServerClient()`.
-- Redirects unauthenticated page requests to `/auth/login?redirect=<original>` while preserving the original path and query string.
-- Rejects unauthenticated API requests with `{ error: 'Unauthorized' }` and a `401` status to keep machine consumers predictable.
-- Sends authenticated users away from `/auth/*` by redirecting them to `/dashboard`.
+---
 
-## 5. Security posture
-- Server-only secrets remain in `lib/supabase/server.ts` and `middleware.ts`; client bundles import exclusively from `lib/supabase/client.ts` and never from the service role helper.
-- Every redirect landing page reads Supabase session state (via helpers or Supabase JS) and does not trust raw query strings beyond validating that redirects begin with `/`.
-- Authentication state always derives from Supabase sessions rather than client-side `userId` payloads.
+## 2. Architectural Separation (NON-NEGOTIABLE)
+
+The system is split into **two layers**:
+
+### Engine Layer
+Governed by `CODEX.md`
+
+- Deterministic
+- Stateless
+- User-agnostic
+- Read-only
+- No authentication
+- No database writes
+- No Supabase auth usage
+
+### Application Layer
+Governed by `CODEX_APP.md`
+
+- Stateful
+- Multi-user
+- Authenticated
+- Persistent
+- Allowed side effects
+- Supabase-powered
+
+The Application Layer **may call the Engine**,  
+but the Engine **must never depend on the Application Layer**.
+
+---
+
+## 3. Authentication (Supabase)
+
+Authentication is handled **exclusively** by Supabase Auth.
+
+### Allowed auth flows
+
+- Email + password signup
+- Email confirmation (magic link or OTP)
+- Login
+- Logout
+- Password reset
+- Password change
+- Session refresh
+
+### Auth constraints
+
+- Auth logic MUST live in `/app/auth/*`
+- Server routes may use:
+  - `SUPABASE_SERVICE_ROLE_KEY`
+- Client components may use:
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+No custom auth system is allowed.
+
+---
+
+## 4. User Model
+
+The **source of truth** for users is:
+
+## 9. Linting & Structural Contracts (NON-NEGOTIABLE)
+
+The Application Layer is protected by a **strict ESLint ruleset** whose purpose is to **prevent structural, typing, and export/import regressions**.
+
+This ruleset is part of the **Application contract** and must never be weakened.
+
+---
+
+

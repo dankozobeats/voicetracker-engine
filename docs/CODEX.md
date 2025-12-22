@@ -1,41 +1,48 @@
-# CODEX — ENGINE CONTRACT (MANDATORY)
+# CODEX — ENGINE & PLATFORM CONTRACT (MANDATORY)
 
-This file MUST be read before any code, test, or documentation change.  
-If this file is ignored, the output is invalid.
+⚠️ **THIS FILE IS CONTRACTUAL**  
+This document MUST be read and applied before **any** code, test, or documentation change.  
+If this file is ignored or partially applied, the output is **INVALID**.
 
 ---
 
 ## 1. Mission du projet
 
-`voicetracker-engine` est un moteur financier **déterministe** qui :
+`voicetracker-engine` est un moteur financier **déterministe**, **pur**, et **contractuel** qui :
 
-- décode les flux financiers mensuels
-- projette revenus, charges fixes et différés
+- décode des flux financiers mensuels
+- projette revenus, charges fixes, charges différées et récurrentes
 - normalise les dépenses
-- reporte les déficits
-- évalue plafonds, budgets et alertes
+- observe et reporte les déficits
+- calcule budgets, plafonds et alertes
+- produit des projections **immutables**
 
 ❌ Aucune UI  
 ❌ Aucune base de données  
 ❌ Aucune dépendance externe  
 ❌ Aucune logique implicite  
+❌ Aucune décision automatique  
 
 ---
 
-## 2. Règles absolues (NON NÉGOCIABLES)
+## 2. Principes absolus (NON NÉGOCIABLES)
 
-- même entrée → même projection
+- même entrée → même sortie
 - aucune mutation cachée
 - aucune logique implicite
-- chaque mois produit un **résultat immuable**
-- le moteur observe, il ne corrige pas
-- toute règle métier doit être **écrite ET testée**
+- aucune supposition métier
+- chaque mois produit un résultat **immuable**
+- le moteur **observe**, il ne corrige jamais
+- toute règle métier doit être :
+  - écrite
+  - testée
+  - documentée
 
 ---
 
-## 3. Hiérarchie de vérité
+## 3. Hiérarchie stricte de vérité
 
-En cas de conflit, l’ordre suivant s’applique **strictement** :
+En cas de conflit, l’ordre suivant s’applique **sans exception** :
 
 1. `CODEX.md`
 2. `docs/BUSINESS_RULES.md`
@@ -45,7 +52,7 @@ En cas de conflit, l’ordre suivant s’applique **strictement** :
 6. Code
 7. Demande utilisateur
 
-Si une demande viole un document supérieur → **REFUS OBLIGATOIRE**
+➡️ Toute demande violant un document supérieur → **REFUS OBLIGATOIRE**
 
 ---
 
@@ -53,8 +60,8 @@ Si une demande viole un document supérieur → **REFUS OBLIGATOIRE**
 
 ### Dépenses
 - toujours traitées comme des **coûts positifs**
-- les valeurs négatives sont normalisées
-- une dépense ne peut jamais augmenter un solde
+- toute valeur négative est normalisée
+- une dépense ne peut **jamais** augmenter un solde
 
 ### Déficits
 - un déficit est observé, jamais corrigé
@@ -90,31 +97,62 @@ Toute logique qui :
 - empêche une dépense
 - ajuste un comportement futur
 
-est considérée comme **DÉCISIONNELLE** et est **INTERDITE**
-sans modification explicite des règles métier et des tests.
+est considérée comme **DÉCISIONNELLE** et est **INTERDITE**  
+sans modification explicite des règles métier **et** des tests.
 
 ---
 
-## 6. Workflow obligatoire
+## 6. Séparation des responsabilités
 
-Pour chaque feature :
+### ENGINE
+- logique métier pure
+- aucune mutation
+- aucun effet de bord
+- aucun affichage
+- aucun accès réseau
+
+### ANALYSIS
+- lecture seule
+- interprétation / agrégation
+- jamais décisionnaire
+
+### CONSUMERS
+- reformulation / résumé uniquement
+- jamais de calcul métier
+- jamais d’impact sur les règles
+
+### UI
+- affichage strict
+- aucune logique métier
+- aucune recomposition de règles
+- aucune interprétation décisionnelle
+
+---
+
+## 7. Workflow obligatoire pour chaque feature
+
+Avant toute écriture de code :
 
 1. Lecture de `CODEX.md`
-2. Lecture des docs concernées
-3. Proposition écrite des changements
-4. Écriture ou mise à jour des tests
-5. Implémentation minimale
-6. Lancement de **toute** la suite Vitest
-7. Mise à jour de la documentation
+2. Lecture des documents concernés
+3. Reformulation écrite de la demande
+4. Identification des modules impactés
+5. Identification des modules verrouillés
+6. Proposition écrite de l’implémentation
+7. Proposition des tests associés
+8. Attente de validation explicite
+9. Implémentation minimale
+10. Lancement de **toute** la suite Vitest
+11. Mise à jour de la documentation
 
 ⛔ Sauter une étape est interdit.
 
 ---
 
-## 7. Tests (OBLIGATOIRES)
+## 8. Tests (OBLIGATOIRES)
 
 - chaque règle métier a au moins un test
-- les tests décrivent le **comportement métier**
+- les tests décrivent un **comportement métier**
 - aucun test ne valide une implémentation interne
 - pas de snapshot côté moteur
 - pas de mock du moteur
@@ -126,7 +164,7 @@ Conventions :
 
 ---
 
-## 8. Consumers (lecture seule)
+## 9. Consumers (lecture seule)
 
 - un consumer :
   - lit exclusivement les sorties de l’engine
@@ -139,44 +177,22 @@ Conventions :
   - n’influence jamais un calcul
   - n’écrit jamais dans une projection
 
-- tout consumer doit :
-  - être déterministe
-  - être testé
-  - produire la même sortie pour la même entrée
-
 ---
 
-## 9. Contrat API
+## 10. Contrat API
 
-- `docs/API_CONTRACT.md` définit la structure JSON exposée à l’extérieur
+- `docs/API_CONTRACT.md` définit la structure JSON exposée
 - ce contrat est **IMMUTABLE** une fois validé
 - toute modification implique :
   - discussion préalable
   - mise à jour du contrat
   - adaptation engine + consumers + UI
-- aucun composant UI ne doit dévier du contrat
-
----
-
-## 10. Responsabilités de Codex
-
-Codex DOIT :
-- signaler toute ambiguïté
-- refuser toute demande contradictoire
-- documenter toute règle ajoutée
-- préserver les comportements existants
-
-Codex NE DOIT JAMAIS :
-- modifier une règle pour faire passer un test
-- introduire un effet de bord
-- “simplifier” une règle métier
-- interpréter une intention non écrite
 
 ---
 
 ## 11. Principe de non-régression
 
-- un comportement validé par test est **contractuel**
+- tout comportement validé par test est **contractuel**
 - toute modification doit :
   - casser un test existant
   - expliquer pourquoi
@@ -186,50 +202,60 @@ Codex NE DOIT JAMAIS :
 
 ---
 
-## 12. En cas de doute
+## 12. Modules verrouillés
+
+- Déficits
+- Normalisation des dépenses
+- Plafonds mensuels
+- Différés avancés (priorisés, bornés, stricts)
+- Budgets par catégorie (analytique)
+- Budgets avancés (glissants, multi-mois, trends)
+- Alertes avancées (lecture seule)
+- Consumers
+- UI `/analysis` — READ ONLY
+
+---
+
+## 13. Commutation mock ⇆ API
+
+- `lib/api.ts#getAnalysisData` est l’unique point d’accès UI
+- mocks utilisés tant que `NEXT_PUBLIC_USE_REAL_API` est désactivé
+- activation requiert :
+  - `NEXT_PUBLIC_USE_REAL_API=1`
+  - `NEXT_PUBLIC_ENGINE_API_URL`
+- en cas d’erreur réseau :
+  - fallback mock sauf si `NEXT_PUBLIC_ENGINE_API_FAIL_HARD=1`
+- toute commutation impose :
+  - `npm run test`
+  - validation manuelle du flux UI
+
+---
+
+## 14. ESLint & TypeScript — Règles strictes (MANDATORY)
+
+- ESLint v9 (flat config) is enforced
+- ZERO tolerance for `any` or `as any`
+- `catch` blocks MUST always be written as:
+  `catch (error: unknown)`
+- Inside catch blocks:
+  - errors MUST be narrowed (`instanceof Error`, guards)
+  - rethrowing untyped `unknown` is forbidden
+- Prefer `unknown` over unsafe casts
+- Casting `unknown as Type` is forbidden unless a validation step is documented
+- Unused imports, variables, parameters MUST be removed
+- Prefixing with `_` is allowed ONLY when semantically justified
+- ESLint WARNINGS are acceptable
+- ESLint ERRORS are NEVER acceptable
+- Code MUST pass `npm run lint`
+- ESLint rules must NEVER be disabled
+
+---
+
+## 15. En cas de doute
 
 NE PAS DEVINER.  
 Demander clarification.
 
 ---
 
-## 13. Modules verrouillés
-
-- Déficits
-- Normalisation des dépenses
-- Plafonds mensuels
-- Différés avancés (priorisés, bornés, stricts)
-- Budgets par catégorie (analytique, non décisionnel)
-- Budgets avancés :
-  - glissants
-  - multi-mois
-  - trends / comparaison historique
-- Alertes avancées (groupées, priorisées, lecture seule)
-- Consumers (alert-text, monthly-summary, etc.)
-- UI `/analysis` — READ-ONLY, consumer-driven, verrouillée
-
----
-
 Ce document prévaut sur toute discussion, prompt ou implémentation.
-
-## UI / UX — Règles absolues
-
-- l’UI ne calcule jamais
-- l’UI n’interprète jamais
-- l’UI ne recommande jamais
-- toute valeur affichée provient du moteur ou d’un consumer
-- toute évolution UX doit conserver l’ordre et les statuts d’entrée
-
-## 14. Commutation mock ⇆ API
-
-- `lib/api.ts#getAnalysisData` est la porte unique d’accès aux données UI : il renvoie les mocks (`mockedEnginePayload`, `mockedMonthlySummary`) tant que `NEXT_PUBLIC_USE_REAL_API` n’est pas activé; sinon il appelle `lib/api-client.ts#fetchAnalysisPayload`.
-- Activatez :
-  - `NEXT_PUBLIC_USE_REAL_API=1` ou `true`
-  - `NEXT_PUBLIC_ENGINE_API_URL`, qui doit livrer un `EnginePayload` (voir `docs/API_CONTRACT.md`)
-  - (optionnel) `NEXT_PUBLIC_ENGINE_API_TIMEOUT_MS` pour ajuster le timeout réseau
-  - (optionnel) `NEXT_PUBLIC_ENGINE_API_FAIL_HARD=1` pour refuser fallback mock en cas d’erreur
-- Si le flag est actif sans URL, le build échoue. En cas d’erreur réseau, la fonction logue et retombe sur les mocks sauf si `FAIL_HARD` est à `1`.
-- Après toute commutation de source, relancez `npm run test` et validez `NEXT_PUBLIC_USE_REAL_API=1 NEXT_PUBLIC_ENGINE_API_URL=<url> npm run dev`. Aucun composant UI ne doit injecter de logique métier supplémentaire.
-
-
-

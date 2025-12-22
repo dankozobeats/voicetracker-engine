@@ -1,49 +1,61 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
+  const res = NextResponse.next();
 
   const supabase = createServerClient(
     process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.SUPABASE_ANON_KEY!, // ✅ ANON KEY ONLY
     {
-      // Use Supabase middleware client to read/write cookies safely in Next middleware.
       cookies: {
-        get: (name) => req.cookies.get(name)?.value,
-        set: (name, value, options) =>
-          res.cookies.set({ name, value, ...options }),
-        remove: (name, options) =>
-          res.cookies.set({ name, value: '', ...options }),
+        getAll: () =>
+          req.cookies.getAll().map((cookie) => ({
+            name: cookie.name,
+            value: cookie.value,
+          })),
+
+        setAll: (cookies) => {
+          cookies.forEach(({ name, value, options }) => {
+            res.cookies.set({
+              name,
+              value,
+              ...options,
+            });
+          });
+        },
       },
-    }
-  )
+    },
+  );
 
+  // 🔑 Triggers session refresh if needed
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  const isAuthPage = req.nextUrl.pathname.startsWith('/auth')
+  const pathname = req.nextUrl.pathname;
+
+  const isAuthPage = pathname.startsWith('/auth');
+
   const isProtected =
-    req.nextUrl.pathname.startsWith('/dashboard') ||
-    req.nextUrl.pathname.startsWith('/analysis') ||
-    req.nextUrl.pathname.startsWith('/budgets') ||
-    req.nextUrl.pathname.startsWith('/alerts') ||
-    req.nextUrl.pathname.startsWith('/api')
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/analysis') ||
+    pathname.startsWith('/budgets') ||
+    pathname.startsWith('/alerts');
 
-  if (!user && isProtected) {
-    const loginUrl = new URL('/auth/login', req.url)
-    loginUrl.searchParams.set('redirect', req.nextUrl.pathname)
-    return NextResponse.redirect(loginUrl)
+  if (!session && isProtected) {
+    const loginUrl = new URL('/auth/login', req.url);
+    loginUrl.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
-  if (user && isAuthPage) {
-    return NextResponse.redirect(new URL('/dashboard', req.url))
+  if (session && isAuthPage) {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 
-  return res
+  return res;
 }
 
 export const config = {
-  matcher: ['/((?!_next|favicon.ico).*)'],
-}
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api).*)'],
+};

@@ -9,12 +9,15 @@ if (!serverUrl || !serviceRoleKey) {
   throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be defined on the server');
 }
 
-// Server-only Supabase client for API routes that must keep the service role key confidential.
-// Server-only Supabase client factory so API routes can safely use the service role key without leaking it.
+// Server-only Supabase client (service role, no cookies)
 export const serverSupabase = () => createClient(serverUrl, serviceRoleKey);
 
-const adaptNextCookies = () => {
-  const cookieStore = cookies();
+/**
+ * Adapter between Next.js cookies() API (async in Next 16)
+ * and Supabase SSR cookie interface.
+ */
+const adaptNextCookies = async () => {
+  const cookieStore = await cookies();
 
   return {
     getAll: () =>
@@ -22,15 +25,24 @@ const adaptNextCookies = () => {
         name: cookie.name,
         value: cookie.value,
       })),
+
     setAll: (entries: Parameters<SetAllCookies>[0]) => {
       entries.forEach(({ name, value, options }) => {
-        cookieStore.set({ name, value, ...options });
+        cookieStore.set({
+          name,
+          value,
+          ...options,
+        });
       });
     },
   };
 };
 
-export const createSupabaseServerClient = () =>
+/**
+ * Supabase server client with cookie support (App Router / SSR).
+ * Must be async because cookies() is async.
+ */
+export const createSupabaseServerClient = async () =>
   createServerClient(serverUrl, serviceRoleKey, {
-    cookies: adaptNextCookies(),
+    cookies: await adaptNextCookies(),
   });

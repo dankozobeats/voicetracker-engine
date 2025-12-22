@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       return jsonError(error.message ?? 'Failed to save transaction', 500);
     }
 
-    return NextResponse.json({ transaction: toTransactionResponse(data as unknown) }, { status: 201 });
+    return NextResponse.json({ transaction: toTransactionResponse(data as Record<string, unknown>) }, { status: 201 });
   } catch (error) {
     return jsonError((error as Error).message);
   }

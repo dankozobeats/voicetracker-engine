@@ -1,14 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 
-// Client component because Supabase confirmation relies on URL tokens only available inside the browser.
+interface ConfirmFlowProps {
+  accessToken: string | null;
+  refreshToken: string | null;
+}
 
-export const ConfirmFlow = () => {
+// Client component: completes Supabase email confirmation using tokens
+// passed from ConfirmClient (which owns useSearchParams).
+const ConfirmFlow = ({ accessToken, refreshToken }: ConfirmFlowProps) => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('Verifying your email…');
 
@@ -16,16 +20,13 @@ export const ConfirmFlow = () => {
     const completeConfirmation = async () => {
       setStatus('loading');
 
-      const accessToken = searchParams.get('access_token');
-      const refreshToken = searchParams.get('refresh_token');
-
       if (!accessToken || !refreshToken) {
         setStatus('error');
         setMessage('Missing authentication tokens in the confirmation link.');
         return;
       }
 
-      // Supabase v2 requires manual session extraction from URL
+      // Supabase v2: manually set session from URL tokens
       const { error } = await supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken,
@@ -42,11 +43,12 @@ export const ConfirmFlow = () => {
     };
 
     completeConfirmation();
-  }, [router, searchParams]);
+  }, [accessToken, refreshToken, router]);
 
   return (
     <div className="space-y-4" aria-live="polite">
       <p className="text-sm text-gray-600">{message}</p>
+
       {status === 'error' && (
         <p className="text-sm text-red-600">
           The confirmation link is invalid or expired. Please request a new one or try signing in manually.
@@ -55,3 +57,5 @@ export const ConfirmFlow = () => {
     </div>
   );
 };
+
+export default ConfirmFlow;
