@@ -12,14 +12,22 @@ export default function BudgetsPage() {
       <section className="overview-card">
         <p className="eyebrow">Vue budgets</p>
         <h1>Budgets contractuels</h1>
-        <p>Affichage des budgets tels que livrés par l’engine.</p>
+        <p>Affichage des budgets tels que livrés par l'engine.</p>
       </section>
 
       <div className="analysis-grid">
-        <CategoryBudgetsPanel budgets={mockedEnginePayload.categoryBudgets} />
-        <RollingBudgetsPanel budgets={mockedEnginePayload.rollingBudgets} />
-        <MultiMonthBudgetsPanel budgets={mockedEnginePayload.multiMonthBudgets} />
-        <BudgetTrendsPanel trends={mockedEnginePayload.trends} />
+        <div id="category">
+          <CategoryBudgetsPanel budgets={mockedEnginePayload.categoryBudgets} />
+        </div>
+        <div id="rolling">
+          <RollingBudgetsPanel budgets={mockedEnginePayload.rollingBudgets} />
+        </div>
+        <div id="multi-month">
+          <MultiMonthBudgetsPanel budgets={mockedEnginePayload.multiMonthBudgets} />
+        </div>
+        <div id="trends">
+          <BudgetTrendsPanel trends={mockedEnginePayload.trends} />
+        </div>
       </div>
     </main>
   );

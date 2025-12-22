@@ -7,6 +7,7 @@ const latestMonth = mockedEnginePayload.months[0];
 export default function DashboardPage() {
   return (
     <main className="page-shell dashboard-shell">
+      
       <section className="overview-card">
         <p className="eyebrow">Vue mensuelle</p>
         <h1>Résumé — {latestMonth.month}</h1>

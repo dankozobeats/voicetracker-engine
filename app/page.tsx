@@ -1,14 +1,9 @@
-import Link from 'next/link';
-
 export default function HomePage() {
   return (
-    <main className="page-shell">
-      <p className="eyebrow">Voicetracker UI</p>
-      <h1>Interface lecture seule</h1>
-      <p>Utilisez le dashboard pour visualiser les alertes et les métriques fournies par l’engine.</p>
-      <Link href="/dashboard" className="cta">
-        Aller au dashboard
-      </Link>
+    <main className="flex min-h-screen items-center justify-center bg-slate-900 px-6">
+      <div className="rounded-2xl bg-slate-900 px-10 py-8 text-4xl font-semibold text-white">
+        TAILWIND OK
+      </div>
     </main>
   );
 }

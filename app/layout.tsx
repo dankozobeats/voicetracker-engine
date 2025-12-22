@@ -1,6 +1,6 @@
-import '../styles/globals.css';
+import './globals.css';
+import '../styles/globals.css';  // ← AJOUTE CETTE LIGNE
 import type { ReactNode } from 'react';
-
 import { Sidebar } from '@/components/navigation/Sidebar';
 
 export const metadata = {
@@ -11,10 +11,10 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fr">
-      <body>
-        <div className="app-shell">
+      <body className="bg-slate-50 text-slate-900 antialiased">
+        <div className="flex min-h-screen">
           <Sidebar />
-          <div className="main-content">{children}</div>
+          <main className="flex-1">{children}</main>
         </div>
       </body>
     </html>
