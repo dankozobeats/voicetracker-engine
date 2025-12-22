@@ -219,3 +219,17 @@ Ce document prévaut sur toute discussion, prompt ou implémentation.
 - l’UI ne recommande jamais
 - toute valeur affichée provient du moteur ou d’un consumer
 - toute évolution UX doit conserver l’ordre et les statuts d’entrée
+
+## 14. Commutation mock ⇆ API
+
+- `lib/api.ts#getAnalysisData` est la porte unique d’accès aux données UI : il renvoie les mocks (`mockedEnginePayload`, `mockedMonthlySummary`) tant que `NEXT_PUBLIC_USE_REAL_API` n’est pas activé; sinon il appelle `lib/api-client.ts#fetchAnalysisPayload`.
+- Activatez :
+  - `NEXT_PUBLIC_USE_REAL_API=1` ou `true`
+  - `NEXT_PUBLIC_ENGINE_API_URL`, qui doit livrer un `EnginePayload` (voir `docs/API_CONTRACT.md`)
+  - (optionnel) `NEXT_PUBLIC_ENGINE_API_TIMEOUT_MS` pour ajuster le timeout réseau
+  - (optionnel) `NEXT_PUBLIC_ENGINE_API_FAIL_HARD=1` pour refuser fallback mock en cas d’erreur
+- Si le flag est actif sans URL, le build échoue. En cas d’erreur réseau, la fonction logue et retombe sur les mocks sauf si `FAIL_HARD` est à `1`.
+- Après toute commutation de source, relancez `npm run test` et validez `NEXT_PUBLIC_USE_REAL_API=1 NEXT_PUBLIC_ENGINE_API_URL=<url> npm run dev`. Aucun composant UI ne doit injecter de logique métier supplémentaire.
+
+
+

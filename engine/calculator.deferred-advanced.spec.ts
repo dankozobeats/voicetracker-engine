@@ -3,7 +3,9 @@ import { describe, it, expect } from 'vitest';
 import { calculateProjection } from './calculator';
 import type { DeferredStatus } from './types';
 
-const buildDeferredTransaction = (overrides: Partial<Record<string, any>>) => ({
+const buildDeferredTransaction = (
+  overrides: Partial<Record<string, unknown>>
+) => ({
   id: 'deferred-test',
   account: 'SG',
   type: 'EXPENSE' as const,

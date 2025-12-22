@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import { generateAlerts } from './generate-alerts';
-import type { MonthProjection, EngineAlert } from '../types';
+import type { MonthProjection } from '../types';
 
 const baseProjection: MonthProjection = {
   month: '2024-01',

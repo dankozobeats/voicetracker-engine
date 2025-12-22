@@ -10,7 +10,6 @@ import {
   MonthProjection,
   ProjectionInput,
   RecurringCharge,
-  RollingCategoryBudget,
   Transaction,
 } from './types';
 import { applyDeficitCarryOver } from './deficit-handler';

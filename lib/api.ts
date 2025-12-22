@@ -1,5 +1,6 @@
 import type { EnginePayload, MonthlySummaryOutput } from './types';
 import { monthlySummaryConsumer, type MonthlySummaryInput } from '@/analysis/consumers/monthly-summary.consumer';
+import { fetchAnalysisPayload } from './api-client';
 import type { AdvancedAlert } from 'engine/types';
 
 export const mockedEnginePayload: EnginePayload = {
@@ -228,3 +229,65 @@ const monthlySummaryInput: MonthlySummaryInput = {
 };
 
 export const mockedMonthlySummary: MonthlySummaryOutput = monthlySummaryConsumer(monthlySummaryInput);
+
+const mockedAnalysisData = {
+  payload: mockedEnginePayload,
+  monthlySummary: mockedMonthlySummary,
+};
+
+const useRealApi = ['1', 'true'].includes(String(process.env.NEXT_PUBLIC_USE_REAL_API || '').toLowerCase());
+const engineApiUrl = process.env.NEXT_PUBLIC_ENGINE_API_URL;
+const timeoutMs = Number(process.env.NEXT_PUBLIC_ENGINE_API_TIMEOUT_MS ?? '') || undefined;
+const failHard = ['1', 'true'].includes(String(process.env.NEXT_PUBLIC_ENGINE_API_FAIL_HARD || '').toLowerCase());
+
+const normalizePayload = (payload: EnginePayload): EnginePayload => ({
+  ...payload,
+  months: payload.months ?? [],
+  balances: payload.balances ?? [],
+  categoryBudgets: payload.categoryBudgets ?? [],
+  rollingBudgets: payload.rollingBudgets ?? [],
+  multiMonthBudgets: payload.multiMonthBudgets ?? [],
+  trends: payload.trends ?? [],
+  alertTexts: payload.alertTexts ?? [],
+});
+
+const buildMonthlySummary = (payload: EnginePayload): MonthlySummaryOutput => {
+  const month = payload.months[0]?.month ?? '0000-00';
+
+  return monthlySummaryConsumer({
+    month,
+    alerts: mockedAdvancedAlerts,
+    trends: payload.trends ?? [],
+  });
+};
+
+export async function getAnalysisData() {
+  if (!useRealApi) {
+    return mockedAnalysisData;
+  }
+
+  if (!engineApiUrl) {
+    throw new Error('NEXT_PUBLIC_ENGINE_API_URL must be defined when NEXT_PUBLIC_USE_REAL_API is enabled');
+  }
+
+  try {
+    const payload = normalizePayload(
+      await fetchAnalysisPayload(engineApiUrl, {
+        timeoutMs,
+      })
+    );
+
+    return {
+      payload,
+      monthlySummary: buildMonthlySummary(payload),
+    };
+  } catch (error) {
+    if (failHard) {
+      throw error;
+    }
+
+    console.warn('Falling back to mocked engine data after API failure', error);
+
+    return mockedAnalysisData;
+  }
+}

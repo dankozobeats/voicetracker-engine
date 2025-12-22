@@ -32,3 +32,7 @@ Ajouter une règle implique :
 2. enrichir `calculator.ts` ou `deficit-handler.ts` de façon pure ;
 3. couvrir la règle avec un test Vitest ;
 4. documenter la règle dans `docs/CODEX.md`.
+
+
+# 9. Évolutivité contrôlée
+“La couche d’analyse dépend exclusivement des métadonnées d’alertes, jamais du contexte d’exécution.”
