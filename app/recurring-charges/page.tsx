@@ -47,6 +47,8 @@ export default function RecurringChargesPage() {
   const [filterAccount, setFilterAccount] = useState<'ALL' | 'SG' | 'FLOA'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuspensionsSummary, setShowSuspensionsSummary] = useState(false);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
 
   const fetchCharges = async () => {
     try {
@@ -181,24 +183,31 @@ export default function RecurringChargesPage() {
     }
   };
 
-  const addExcludedMonth = () => {
-    if (!formData.new_excluded_month) return;
-    if (formData.excluded_months.includes(formData.new_excluded_month)) {
-      setError('Ce mois est déjà exclu');
-      return;
-    }
-    setFormData({
-      ...formData,
-      excluded_months: [...formData.excluded_months, formData.new_excluded_month].sort(),
-      new_excluded_month: '',
-    });
-  };
-
   const removeExcludedMonth = (month: string) => {
     setFormData({
       ...formData,
       excluded_months: formData.excluded_months.filter((m) => m !== month),
     });
+  };
+
+  const handleMonthClick = (month: number) => {
+    const monthStr = String(month + 1).padStart(2, '0');
+    const yearMonth = `${selectedYear}-${monthStr}`;
+
+    if (formData.excluded_months.includes(yearMonth)) {
+      // Si le mois est déjà exclu, on le retire
+      setFormData({
+        ...formData,
+        excluded_months: formData.excluded_months.filter((m) => m !== yearMonth),
+      });
+    } else {
+      // Sinon on l'ajoute
+      setFormData({
+        ...formData,
+        excluded_months: [...formData.excluded_months, yearMonth].sort(),
+      });
+    }
+    setSelectedMonth(null);
   };
 
   // Filtrer les charges
@@ -593,45 +602,76 @@ export default function RecurringChargesPage() {
                 Mois à suspendre (optionnel)
               </label>
               <p className="text-xs text-slate-500 mb-2">
-                Indiquez les mois où cette charge ne s&apos;applique pas (ex: vacances, suspension temporaire)
+                Cliquez sur les mois à suspendre (ex: vacances, suspension temporaire)
               </p>
 
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="month"
-                  id="new_excluded_month"
-                  value={formData.new_excluded_month}
-                  onChange={(e) => setFormData({ ...formData, new_excluded_month: e.target.value })}
-                  className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
-                  placeholder="YYYY-MM"
-                />
+              {/* Sélecteur d'année */}
+              <div className="flex items-center justify-between mb-3 bg-slate-50 p-2 rounded-md">
                 <button
                   type="button"
-                  onClick={addExcludedMonth}
-                  disabled={!formData.new_excluded_month}
-                  className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={() => setSelectedYear(selectedYear - 1)}
+                  className="rounded-md p-1 hover:bg-slate-200 text-slate-600"
                 >
-                  Ajouter
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span className="text-sm font-semibold text-slate-900">{selectedYear}</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedYear(selectedYear + 1)}
+                  className="rounded-md p-1 hover:bg-slate-200 text-slate-600"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </button>
               </div>
 
-              {formData.excluded_months.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {formData.excluded_months.map((month) => (
-                    <span
-                      key={month}
-                      className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800"
+              {/* Grille des mois */}
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                {['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'].map((monthName, index) => {
+                  const monthStr = String(index + 1).padStart(2, '0');
+                  const yearMonth = `${selectedYear}-${monthStr}`;
+                  const isExcluded = formData.excluded_months.includes(yearMonth);
+
+                  return (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleMonthClick(index)}
+                      className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                        isExcluded
+                          ? 'bg-amber-500 text-white hover:bg-amber-600'
+                          : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                      }`}
                     >
-                      {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
-                      <button
-                        type="button"
-                        onClick={() => removeExcludedMonth(month)}
-                        className="ml-1 hover:text-amber-900"
+                      {monthName}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {formData.excluded_months.length > 0 && (
+                <div className="border-t border-slate-200 pt-3">
+                  <p className="text-xs font-medium text-slate-700 mb-2">Mois suspendus ({formData.excluded_months.length}) :</p>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.excluded_months.map((month) => (
+                      <span
+                        key={month}
+                        className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800"
                       >
-                        ×
-                      </button>
-                    </span>
-                  ))}
+                        {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                        <button
+                          type="button"
+                          onClick={() => removeExcludedMonth(month)}
+                          className="ml-1 hover:text-amber-900"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
