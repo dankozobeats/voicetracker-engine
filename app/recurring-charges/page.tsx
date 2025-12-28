@@ -1489,28 +1489,20 @@ export default function RecurringChargesPage() {
                           // Check if month has reminder
                           const hasReminder = charge.reminders?.some((r) => !r.dismissed && r.month === monthStr);
 
-                          // Find effective amount (cumulative override logic)
-                          let effectiveAmount = charge.amount;
-                          let isOverride = false;
-
-                          if (charge.monthly_overrides && !isOutOfPeriod) {
-                            const sortedOverrides = Object.entries(charge.monthly_overrides)
-                              .sort(([a], [b]) => a.localeCompare(b));
-
-                            for (const [overrideMonth, overrideAmount] of sortedOverrides) {
-                              if (overrideMonth <= monthStr) {
-                                effectiveAmount = overrideAmount;
-                                isOverride = overrideMonth === monthStr;
-                              }
-                            }
-                          }
+                          // Display ONLY raw stored values - NO CALCULATIONS
+                          // If month has override in DB, show that exact value
+                          // Otherwise show base amount
+                          const hasOverride = charge.monthly_overrides && monthStr in charge.monthly_overrides;
+                          const displayAmount = hasOverride
+                            ? charge.monthly_overrides[monthStr]
+                            : charge.amount;
 
                           timeline.push({
                             month: monthStr,
                             monthName: date.toLocaleDateString('fr-FR', { month: 'short' }),
-                            amount: effectiveAmount,
+                            amount: displayAmount,
                             isExcluded,
-                            isOverride,
+                            isOverride: hasOverride,
                             hasReminder,
                             isOutOfPeriod,
                           });
