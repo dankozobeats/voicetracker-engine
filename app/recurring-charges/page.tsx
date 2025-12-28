@@ -1015,7 +1015,17 @@ export default function RecurringChargesPage() {
                     </span>
                   </div>
                   <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
-                    <span className="font-medium">{formatCurrency(charge.amount)} / mois</span>
+                    <span className="font-medium inline-flex items-center gap-1.5">
+                      {formatCurrency(charge.amount)} / mois
+                      {Object.keys(charge.monthly_overrides).length > 0 && (
+                        <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                          <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                          </svg>
+                          {Object.keys(charge.monthly_overrides).length} variation{Object.keys(charge.monthly_overrides).length > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </span>
                     <span>Compte: {charge.account}</span>
                     <span>
                       Depuis: {new Date(charge.start_date + '-01').toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
