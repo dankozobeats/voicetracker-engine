@@ -76,8 +76,7 @@ describe('fetchAnalysisPayload', () => {
       return new Promise((_resolve, reject) => {
         if (init?.signal) {
           init.signal.addEventListener('abort', () => {
-            const error = new Error('aborted');
-            error.name = 'AbortError';
+            const error = new DOMException('aborted', 'AbortError');
             reject(error);
           });
         }

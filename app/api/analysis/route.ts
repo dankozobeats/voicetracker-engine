@@ -1,70 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/supabase/server';
-import { buildMonthBounds, normalizeMonth, normalizeUuid } from '@/lib/api/validators';
-
-const TRANSACTION_COLUMNS = 'id,user_id,date,label,amount,category';
-const BUDGET_COLUMNS = 'id,user_id,category,monthly_limit,month';
+import { getAuthenticatedUser, unauthorized } from '@/lib/api/auth';
+import { normalizeMonth } from '@/lib/api/validators';
+import { getEngineProjection } from '@/lib/engine-service';
 
 const jsonError = (message: string, status = 400) => NextResponse.json({ error: message }, { status });
-
-const sanitizeTransaction = (record: Record<string, unknown>) => ({
-  id: record.id,
-  user_id: record.user_id,
-  date: record.date,
-  label: record.label,
-  amount: record.amount,
-  category: record.category,
-});
-
-const sanitizeBudget = (record: Record<string, unknown>) => ({
-  id: record.id,
-  user_id: record.user_id,
-  category: record.category,
-  monthly_limit: record.monthly_limit,
-  month: record.month,
-});
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
 
   try {
-    const supabase = serverSupabase(); // server client with service role key
-    const userId = normalizeUuid(searchParams.get('userId'), 'userId');
+    const user = await getAuthenticatedUser();
     const month = normalizeMonth(searchParams.get('month'), 'month');
-    const { start, end } = buildMonthBounds(month);
 
-    const { data: transactions, error: transactionError } = await supabase
-      .from('transactions')
-      .select(TRANSACTION_COLUMNS)
-      .eq('user_id', userId)
-      .gte('date', start)
-      .lte('date', end)
-      .order('date', { ascending: true });
+    // Call the production Engine for 12 months projection (for trends analysis)
+    const payload = await getEngineProjection(user.id, 'SG', month, 12);
 
-    if (transactionError) {
-      return jsonError('Failed to load transactions for analysis', 500);
-    }
+    // Check if we have data (at least one month with transactions)
+    const isEmpty = payload.months.length === 0 || (payload.months[0].income === 0 && payload.months[0].expenses === 0);
 
-    const formattedMonth = `${month}-01`;
-
-    const { data: budgets, error: budgetsError } = await supabase
-      .from('budgets')
-      .select(BUDGET_COLUMNS)
-      .eq('user_id', userId)
-      .eq('month', formattedMonth)
-      .order('category', { ascending: true });
-
-    if (budgetsError) {
-      return jsonError('Failed to load budgets for analysis', 500);
-    }
-
+    // Build a response compatible with AnalysisClient
     return NextResponse.json({
-      userId,
+      userId: user.id,
       month,
-      transactions: (transactions ?? []).map(sanitizeTransaction),
-      budgets: (budgets ?? []).map(sanitizeBudget),
+      emptyState: {
+        isEmpty,
+        emptyReason: isEmpty ? 'NO_TRANSACTIONS' : undefined,
+      },
+      analysis: isEmpty
+        ? undefined
+        : {
+            summary: {
+              openingBalance: payload.months[0].openingBalance,
+              income: payload.months[0].income,
+              expenses: payload.months[0].expenses,
+              net: payload.months[0].endingBalance - payload.months[0].openingBalance,
+            },
+            alerts: payload.alertTexts.map((alert) => ({
+              id: alert.groupId,
+              type: alert.severity === 'CRITICAL' ? 'NEGATIVE_NET' : 'HIGH_SPENDING',
+              category: alert.title,
+              severity: alert.severity,
+              message: alert.message,
+            })),
+            trends: payload.trends,
+          },
     });
   } catch (error) {
+    if ((error as Error).message === 'Unauthorized') {
+      return unauthorized();
+    }
     return jsonError((error as Error).message);
   }
 }

@@ -4,18 +4,18 @@ console.log('[API ENV CHECK]', {
 });
 
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/supabase/server';
+import { serverSupabaseAdmin } from '@/lib/supabase/server';
+import { getAuthenticatedUser, unauthorized } from '@/lib/api/auth';
 import {
   buildMonthBounds,
   normalizeDate,
   normalizeMonth,
   normalizeNumberField,
   normalizeStringField,
-  normalizeUuid,
   parseJsonBody,
 } from '@/lib/api/validators';
 
-const SELECT_COLUMNS = 'id,user_id,date,label,amount,category';
+const SELECT_COLUMNS = 'id,user_id,date,label,amount,category,account,type,is_deferred,deferred_to,deferred_until,max_deferral_months,priority';
 
 const jsonError = (message: string, status = 400) => NextResponse.json({ error: message }, { status });
 
@@ -26,23 +26,29 @@ const toTransactionResponse = (record: Record<string, unknown>) => ({
   label: record.label,
   amount: record.amount,
   category: record.category,
+  account: record.account,
+  type: record.type,
+  is_deferred: record.is_deferred,
+  deferred_to: record.deferred_to,
+  deferred_until: record.deferred_until,
+  max_deferral_months: record.max_deferral_months,
+  priority: record.priority,
 });
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
-  const userIdParam = searchParams.get('userId');
   const monthParam = searchParams.get('month');
 
   try {
-    const supabase = serverSupabase(); // service-role client keeps credentials on the server
-    const userId = normalizeUuid(userIdParam, 'userId');
+    const user = await getAuthenticatedUser();
+    const supabase = serverSupabaseAdmin(); // service-role client keeps credentials on the server
     const month = normalizeMonth(monthParam, 'month');
     const { start, end } = buildMonthBounds(month);
 
     const { data, error } = await supabase
       .from('transactions')
       .select(SELECT_COLUMNS)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .gte('date', start)
       .lte('date', end)
       .order('date', { ascending: true });
@@ -53,11 +59,14 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      userId,
+      userId: user.id,
       month,
       transactions: (data ?? []).map(toTransactionResponse),
     });
   } catch (error) {
+    if ((error as Error).message === 'Unauthorized') {
+      return unauthorized();
+    }
     return jsonError((error as Error).message);
   }
 }
@@ -72,16 +81,57 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const supabase = serverSupabase(); // server client ensures service credentials stay offline
-    const userId = normalizeUuid(payload.userId, 'userId');
+    const user = await getAuthenticatedUser();
+    const supabase = serverSupabaseAdmin(); // server client ensures service credentials stay offline
+
+    // Validate required fields
     const date = normalizeDate(payload.date, 'date');
     const label = normalizeStringField(payload.label, 'label');
     const amount = normalizeNumberField(payload.amount, 'amount');
     const category = normalizeStringField(payload.category, 'category');
 
+    // Validate new fields with defaults
+    const account = (payload.account as string) || 'SG';
+    if (!['SG', 'FLOA'].includes(account)) {
+      return jsonError('account must be SG or FLOA');
+    }
+
+    const type = (payload.type as string) || 'EXPENSE';
+    if (!['INCOME', 'EXPENSE'].includes(type)) {
+      return jsonError('type must be INCOME or EXPENSE');
+    }
+
+    const isDeferred = Boolean(payload.is_deferred);
+    const deferredTo = isDeferred && payload.deferred_to ? String(payload.deferred_to) : null;
+    const deferredUntil = isDeferred && payload.deferred_until ? String(payload.deferred_until) : null;
+    const maxDeferralMonths = isDeferred && payload.max_deferral_months ? Number(payload.max_deferral_months) : null;
+    const priority = payload.priority ? Number(payload.priority) : 9;
+
+    // Validate deferred fields if transaction is deferred
+    if (isDeferred && !deferredTo) {
+      return jsonError('deferred_to is required when is_deferred is true');
+    }
+
+    if (priority < 1 || priority > 9) {
+      return jsonError('priority must be between 1 and 9');
+    }
+
     const { data, error } = await supabase
       .from('transactions')
-      .insert({ user_id: userId, date, label, amount, category })
+      .insert({
+        user_id: user.id,
+        date,
+        label,
+        amount,
+        category,
+        account,
+        type,
+        is_deferred: isDeferred,
+        deferred_to: deferredTo,
+        deferred_until: deferredUntil,
+        max_deferral_months: maxDeferralMonths,
+        priority,
+      })
       .select(SELECT_COLUMNS)
       .single();
 
@@ -92,6 +142,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ transaction: toTransactionResponse(data as Record<string, unknown>) }, { status: 201 });
   } catch (error) {
+    if ((error as Error).message === 'Unauthorized') {
+      return unauthorized();
+    }
     return jsonError((error as Error).message);
   }
 }

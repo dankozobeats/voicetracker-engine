@@ -23,6 +23,7 @@ export const sampleRecurringCharges: RecurringCharge[] = [
   {
     id: 'sg-rent',
     account: 'SG',
+    type: 'EXPENSE',
     amount: 850,
     startMonth: '2024-01',
     endMonth: '2024-12',
@@ -30,6 +31,7 @@ export const sampleRecurringCharges: RecurringCharge[] = [
   {
     id: 'floa-credit',
     account: 'FLOA',
+    type: 'EXPENSE',
     amount: 300,
     startMonth: '2024-01',
     endMonth: '2024-12',

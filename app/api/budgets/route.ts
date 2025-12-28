@@ -1,72 +1,138 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/supabase/server';
+import { serverSupabaseAdmin } from '@/lib/supabase/server';
+import { getAuthenticatedUser, unauthorized } from '@/lib/api/auth';
 import {
-  normalizeMonth,
-  normalizeNumberField,
   normalizeStringField,
-  normalizeUuid,
+  normalizeNumberField,
+  normalizePeriod,
+  normalizeOptionalDate,
   parseJsonBody,
 } from '@/lib/api/validators';
+import { getEngineProjection } from '@/lib/engine-service';
 
-const SELECT_COLUMNS = 'id,user_id,category,monthly_limit,month';
+const SELECT_COLUMNS =
+  'id,user_id,category,amount,period,start_date,end_date,created_at';
 
-const jsonError = (message: string, status = 400) => NextResponse.json({ error: message }, { status });
+const jsonError = (message: string, status = 400) =>
+  NextResponse.json({ error: message }, { status });
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = request.nextUrl;
+const sanitizeBudget = (record: Record<string, unknown>) => ({
+  id: record.id,
+  user_id: record.user_id,
+  category: record.category,
+  amount: record.amount,
+  period: record.period,
+  start_date: record.start_date,
+  end_date: record.end_date,
+  created_at: record.created_at,
+});
 
+/* -------------------------------------------------------------------------- */
+/*                                    GET                                     */
+/* -------------------------------------------------------------------------- */
+
+export async function GET() {
   try {
-    const supabase = serverSupabase(); // service-role client stays server-only
-    const userId = normalizeUuid(searchParams.get('userId'), 'userId');
-    const month = normalizeMonth(searchParams.get('month'), 'month');
-    const formattedMonth = `${month}-01`;
+    const user = await getAuthenticatedUser();
 
-    const { data, error } = await supabase
-      .from('budgets')
-      .select(SELECT_COLUMNS)
-      .eq('user_id', userId)
-      .eq('month', formattedMonth)
-      .order('category', { ascending: true });
+    // Get current month
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-    if (error) {
-      return jsonError('Failed to load budgets', 500);
+    // Call the production Engine for budget calculations
+    const payload = await getEngineProjection(user.id, 'SG', month, 1);
+
+    // Return budgets with Engine-calculated values
+    return NextResponse.json({
+      categoryBudgets: payload.categoryBudgets,
+      rollingBudgets: payload.rollingBudgets,
+      multiMonthBudgets: payload.multiMonthBudgets,
+      trends: payload.trends,
+    });
+  } catch (err) {
+    if ((err as Error).message === 'Unauthorized') {
+      return unauthorized();
     }
-
-    return NextResponse.json({ budgets: data ?? [] });
-  } catch (error) {
-    return jsonError((error as Error).message);
+    console.error('[budgets][GET][FATAL]', err);
+    return jsonError('Internal server error', 500);
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/*                                    POST                                    */
+/* -------------------------------------------------------------------------- */
 
 export async function POST(request: NextRequest) {
   let payload: Record<string, unknown>;
 
   try {
     payload = await parseJsonBody(request);
-  } catch (error) {
-    return jsonError((error as Error).message);
+  } catch (err) {
+    return jsonError((err as Error).message, 400);
   }
 
   try {
-    const supabase = serverSupabase(); // reuse server-only client for inserts
-    const userId = normalizeUuid(payload.userId, 'userId');
-    const category = normalizeStringField(payload.category, 'category');
-    const monthlyLimit = normalizeNumberField(payload.monthly_limit, 'monthly_limit');
-    const month = normalizeMonth(payload.month, 'month');
-    const formattedMonth = `${month}-01`;
+    const user = await getAuthenticatedUser();
+    const supabase = serverSupabaseAdmin();
 
+    // --- Validation ---
+    let category: string;
+    let amount: number;
+    let period: 'MONTHLY' | 'ROLLING' | 'MULTI';
+    let startDate: string | null;
+    let endDate: string | null;
+
+    try {
+      category = normalizeStringField(payload.category, 'category');
+      amount = normalizeNumberField(payload.amount, 'amount');
+      period = normalizePeriod(payload.period, 'period');
+      startDate = normalizeOptionalDate(payload.startDate, 'startDate');
+      endDate = normalizeOptionalDate(payload.endDate, 'endDate');
+    } catch (err) {
+      return jsonError((err as Error).message, 400);
+    }
+
+    if (amount <= 0) {
+      return jsonError('amount must be greater than 0', 400);
+    }
+
+    if (period === 'MULTI' && (!startDate || !endDate)) {
+      return jsonError(
+        'startDate and endDate are required for MULTI period',
+        400
+      );
+    }
+
+    if (startDate && endDate && endDate < startDate) {
+      return jsonError('endDate must be after startDate', 400);
+    }
+
+    // --- Insert ---
+    // Avec le client RLS, le user_id est automatiquement inséré par la policy
     const { data, error } = await supabase
       .from('budgets')
-      .insert({ user_id: userId, category, monthly_limit: monthlyLimit, month: formattedMonth })
+      .insert({
+        user_id: user.id, // 🔒 JAMAIS depuis le payload
+        category,
+        amount,
+        period,
+        start_date: startDate,
+        end_date: endDate,
+      })
       .select(SELECT_COLUMNS)
       .single();
 
     if (error) {
-      return jsonError('Failed to save budget', 500);
+      console.error('[budgets][POST]', error);
+      return jsonError(error.message ?? 'Failed to save budget', 500);
     }
 
-    return NextResponse.json({ budget: data }, { status: 201 });
-  } catch (error) {
-    return jsonError((error as Error).message);
+    return NextResponse.json(
+      { budget: sanitizeBudget(data as Record<string, unknown>) },
+      { status: 201 }
+    );
+  } catch (err) {
+    console.error('[budgets][POST][FATAL]', err);
+    return jsonError('Internal server error', 500);
   }
 }

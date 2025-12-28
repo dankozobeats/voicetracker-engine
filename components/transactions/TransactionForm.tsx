@@ -6,9 +6,14 @@ import { supabase } from '@/lib/supabase/client';
 
 interface TransactionFormData {
   amount: number;
-  type: 'income' | 'expense';
+  type: 'INCOME' | 'EXPENSE';
   category: string;
   occurredAt: string; // YYYY-MM-DD
+  account: 'SG' | 'FLOA';
+  label: string;
+  isDeferred: boolean;
+  deferredTo?: string; // YYYY-MM
+  priority?: number;
 }
 
 export const TransactionForm = () => {
@@ -18,9 +23,13 @@ export const TransactionForm = () => {
 
   const [formData, setFormData] = useState<TransactionFormData>({
     amount: 0,
-    type: 'expense',
+    type: 'EXPENSE',
     category: '',
     occurredAt: new Date().toISOString().split('T')[0], // Date du jour par défaut
+    account: 'SG',
+    label: '',
+    isDeferred: false,
+    priority: 9,
   });
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -41,15 +50,16 @@ export const TransactionForm = () => {
       }
 
       // Mapper les champs du formulaire vers le format attendu par l'API
-      // L'API attend: userId, date, label, amount, category
-      // Pour le label, on utilise le type comme label simple
-      // Pour l'amount, on garde la valeur positive (l'API gère le signe si nécessaire)
       const payload = {
-        userId: user.id,
         date: formData.occurredAt,
-        label: formData.type === 'income' ? 'Revenu' : 'Dépense',
+        label: formData.label || (formData.type === 'INCOME' ? 'Revenu' : 'Dépense'),
         amount: formData.amount,
         category: formData.category,
+        account: formData.account,
+        type: formData.type,
+        is_deferred: formData.isDeferred,
+        deferred_to: formData.isDeferred ? formData.deferredTo : null,
+        priority: formData.isDeferred ? formData.priority : 9,
       };
 
       const response = await fetch('/api/transactions', {
@@ -73,7 +83,7 @@ export const TransactionForm = () => {
     }
   };
 
-  const handleChange = (field: keyof TransactionFormData, value: string | number) => {
+  const handleChange = (field: keyof TransactionFormData, value: string | number | boolean) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -106,20 +116,54 @@ export const TransactionForm = () => {
       </div>
 
       <div>
-        <label htmlFor="type" className="block text-sm font-medium text-slate-700">
-          Type <span className="text-red-500">*</span>
+        <label htmlFor="label" className="block text-sm font-medium text-slate-700">
+          Libellé
         </label>
-        <select
-          id="type"
-          name="type"
-          required
-          value={formData.type}
-          onChange={(e) => handleChange('type', e.target.value as 'income' | 'expense')}
+        <input
+          type="text"
+          id="label"
+          name="label"
+          value={formData.label}
+          onChange={(e) => handleChange('label', e.target.value)}
           className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
-        >
-          <option value="expense">Dépense</option>
-          <option value="income">Revenu</option>
-        </select>
+          placeholder="Ex: Courses du mois, Loyer..."
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="type" className="block text-sm font-medium text-slate-700">
+            Type <span className="text-red-500">*</span>
+          </label>
+          <select
+            id="type"
+            name="type"
+            required
+            value={formData.type}
+            onChange={(e) => handleChange('type', e.target.value as 'INCOME' | 'EXPENSE')}
+            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
+          >
+            <option value="EXPENSE">Dépense</option>
+            <option value="INCOME">Revenu</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="account" className="block text-sm font-medium text-slate-700">
+            Compte <span className="text-red-500">*</span>
+          </label>
+          <select
+            id="account"
+            name="account"
+            required
+            value={formData.account}
+            onChange={(e) => handleChange('account', e.target.value as 'SG' | 'FLOA')}
+            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
+          >
+            <option value="SG">SG</option>
+            <option value="FLOA">FLOA</option>
+          </select>
+        </div>
       </div>
 
       <div>
@@ -151,6 +195,64 @@ export const TransactionForm = () => {
           onChange={(e) => handleChange('occurredAt', e.target.value)}
           className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
         />
+      </div>
+
+      {/* Section Différé */}
+      <div className="border-t border-slate-200 pt-6">
+        <div className="mb-4">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={formData.isDeferred}
+              onChange={(e) => handleChange('isDeferred', e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+            />
+            <span className="text-sm font-medium text-slate-700">Transaction différée</span>
+          </label>
+          <p className="mt-1 text-xs text-slate-500">
+            Cochez cette case pour reporter le paiement à un mois ultérieur
+          </p>
+        </div>
+
+        {formData.isDeferred && (
+          <div className="space-y-4 rounded-md bg-slate-50 p-4">
+            <div>
+              <label htmlFor="deferredTo" className="block text-sm font-medium text-slate-700">
+                Reporter au mois <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="month"
+                id="deferredTo"
+                name="deferredTo"
+                required={formData.isDeferred}
+                value={formData.deferredTo || ''}
+                onChange={(e) => handleChange('deferredTo', e.target.value)}
+                className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
+              />
+              <p className="mt-1 text-xs text-slate-500">Format: YYYY-MM</p>
+            </div>
+
+            <div>
+              <label htmlFor="priority" className="block text-sm font-medium text-slate-700">
+                Priorité (1-9) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                id="priority"
+                name="priority"
+                required={formData.isDeferred}
+                min="1"
+                max="9"
+                value={formData.priority || 9}
+                onChange={(e) => handleChange('priority', parseInt(e.target.value) || 9)}
+                className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                1 = priorité maximale, 9 = priorité minimale
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end gap-4">

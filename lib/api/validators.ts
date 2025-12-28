@@ -65,6 +65,37 @@ export const normalizeNumberField = (value: unknown, fieldName: string): number 
   return value;
 };
 
+export const normalizeOptionalDate = (value: unknown, fieldName: string): string | null => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  if (typeof value !== 'string' || !DATE_PATTERN.test(value)) {
+    throw new Error(`${fieldName} must use the YYYY-MM-DD format`);
+  }
+  ensureDateComponents(value);
+  return value;
+};
+
+export const normalizeOptionalMonth = (value: unknown, fieldName: string): string | null => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  if (typeof value !== 'string' || !MONTH_PATTERN.test(value)) {
+    throw new Error(`${fieldName} must use the YYYY-MM format`);
+  }
+  return value;
+};
+
+export const normalizePeriod = (value: unknown, fieldName = 'period'): 'MONTHLY' | 'ROLLING' | 'MULTI' => {
+  if (typeof value !== 'string') {
+    throw new Error(`${fieldName} is required and must be a string`);
+  }
+  if (value !== 'MONTHLY' && value !== 'ROLLING' && value !== 'MULTI') {
+    throw new Error(`${fieldName} must be one of: MONTHLY, ROLLING, MULTI`);
+  }
+  return value;
+};
+
 export const buildMonthBounds = (month: string): { start: string; end: string } => {
   const [yearStr, monthStr] = month.split('-');
   const year = Number(yearStr);

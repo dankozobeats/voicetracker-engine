@@ -19,9 +19,11 @@ export interface Transaction {
 export interface RecurringCharge {
   id: string;
   account: Account;
+  type: TransactionType; // INCOME or EXPENSE
   amount: number;
   startMonth: string; // YYYY-MM
   endMonth?: string; // YYYY-MM
+  excludedMonths?: string[]; // Array of YYYY-MM months to skip
 }
 
 export interface CeilingRule {

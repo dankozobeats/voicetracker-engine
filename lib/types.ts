@@ -111,3 +111,97 @@ export interface EnginePayload {
   trends: CategoryBudgetTrendResult[];
   alertTexts: AlertTextEntry[];
 }
+
+export type EmptyStateReason = 'NO_TRANSACTIONS' | 'NO_DATA';
+
+export interface EmptyStateOutput {
+  isEmpty: boolean;
+  emptyReason?: EmptyStateReason;
+}
+
+// =========================================
+// DATABASE SCHEMA TYPES (Supabase tables)
+// =========================================
+
+export type Account = 'SG' | 'FLOA';
+export type TransactionType = 'INCOME' | 'EXPENSE';
+export type BudgetPeriod = 'MONTHLY' | 'ROLLING' | 'MULTI';
+
+/**
+ * Transaction record from Supabase
+ */
+export interface SupabaseTransactionRecord {
+  id: string;
+  user_id: string;
+  date: string; // YYYY-MM-DD
+  label: string;
+  amount: number;
+  category: string | null;
+  account: Account;
+  type: TransactionType;
+  is_deferred: boolean;
+  deferred_to: string | null; // YYYY-MM
+  deferred_until: string | null; // YYYY-MM
+  max_deferral_months: number | null;
+  priority: number;
+  created_at?: string;
+}
+
+/**
+ * Recurring charge record from Supabase
+ */
+export interface SupabaseRecurringChargeRecord {
+  id: string;
+  user_id: string;
+  account: Account;
+  type: TransactionType; // INCOME or EXPENSE
+  label: string;
+  amount: number;
+  start_month: string; // YYYY-MM
+  end_month: string | null; // YYYY-MM
+  excluded_months?: string[]; // Array of YYYY-MM months to skip
+  created_at?: string;
+}
+
+/**
+ * Ceiling rule record from Supabase
+ */
+export interface SupabaseCeilingRuleRecord {
+  id: string;
+  user_id: string;
+  account: Account;
+  label: string;
+  amount: number;
+  start_month: string; // YYYY-MM
+  end_month: string | null; // YYYY-MM
+  created_at?: string;
+}
+
+/**
+ * Budget record from Supabase (updated schema)
+ */
+export interface SupabaseBudgetRecord {
+  id: string;
+  user_id: string;
+  category: string;
+  amount: number;
+  period: BudgetPeriod;
+  start_date: string | null; // DATE for MONTHLY budgets
+  end_date: string | null; // DATE for MONTHLY budgets
+  window_months: number | null; // For ROLLING budgets (e.g., 3)
+  period_start: string | null; // YYYY-MM for MULTI budgets
+  period_end: string | null; // YYYY-MM for MULTI budgets
+  created_at?: string;
+}
+
+/**
+ * Account balance record from Supabase
+ */
+export interface SupabaseAccountBalanceRecord {
+  id: string;
+  user_id: string;
+  account: Account;
+  month: string; // YYYY-MM
+  opening_balance: number;
+  created_at?: string;
+}

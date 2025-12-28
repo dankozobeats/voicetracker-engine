@@ -34,6 +34,11 @@ export default function CategoryBudgetItem({ budgetResult }: Props) {
           <dt>Ratio</dt>
           <dd>{ratio} %</dd>
         </div>
+
+        <div>
+          <dt>Statut</dt>
+          <dd>{budgetResult.status}</dd>
+        </div>
       </dl>
     </article>
   );

@@ -117,16 +117,29 @@ const collectDeferredResolutions = (
 const monthlyTransactions = (transactions: Transaction[], month: string): Transaction[] =>
   transactions.filter((transaction) => monthFromDate(transaction.date) === month);
 
-const activeFixedCharges = (
+const activeRecurringCharges = (
   recurringCharges: RecurringCharge[],
   account: ProjectionInput['account'],
   month: string,
-): number =>
-  recurringCharges.reduce((total, charge) => {
-    if (charge.account !== account) return total;
-    if (!isMonthInRange(month, charge.startMonth, charge.endMonth)) return total;
-    return total + charge.amount;
-  }, 0);
+): { income: number; expenses: number } => {
+  let income = 0;
+  let expenses = 0;
+
+  recurringCharges.forEach((charge) => {
+    if (charge.account !== account) return;
+    if (!isMonthInRange(month, charge.startMonth, charge.endMonth)) return;
+    // Skip if this month is in the excluded months list
+    if (charge.excludedMonths && charge.excludedMonths.includes(month)) return;
+
+    if (charge.type === 'INCOME') {
+      income += charge.amount;
+    } else {
+      expenses += charge.amount;
+    }
+  });
+
+  return { income, expenses };
+};
 
 const ceilingStateFor = (limit: number, totalOutflow: number): CeilingState => {
   if (totalOutflow < limit) return 'NOT_REACHED';
@@ -235,15 +248,19 @@ export const calculateProjection = (input: ProjectionInput): MonthProjection[] =
     const monthLabel = addMonths(startMonth, offset);
     const monthTx = monthlyTransactions(accountTransactions, monthLabel);
 
-    const income = monthTx
+    const transactionIncome = monthTx
       .filter((t) => t.type === 'INCOME')
       .reduce((sum, t) => sum + t.amount, 0);
 
-    const expenses = monthTx
+    const transactionExpenses = monthTx
       .filter((t) => t.type === 'EXPENSE' && !t.isDeferred)
       .reduce((sum, t) => sum + normalizeExpenseAmount(t.amount), 0);
 
-    const fixedCharges = activeFixedCharges(recurringCharges, account, monthLabel);
+    const recurringChargeAmounts = activeRecurringCharges(recurringCharges, account, monthLabel);
+
+    const income = transactionIncome + recurringChargeAmounts.income;
+    const expenses = transactionExpenses;
+    const fixedCharges = recurringChargeAmounts.expenses;
 
     const {
       totalOutflow: deferredOutflow,

@@ -21,39 +21,36 @@ exports[`CategoryBudgetsPanel > renders budgets in contract order, preserves sta
     <div
       class="budget-list"
     >
-      <article
-        class="budget-item"
-      >
-        <header
-          class="budget-item__header"
-        >
-          <h3>
-            Alimentation
-          </h3>
-          <span
-            class="budget-status"
-            style="--badge-color: #b91c1c;"
-          >
-            EXCEEDED
-          </span>
-        </header>
-        <dl
-          class="budget-metrics"
-        >
-          <div>
-            <dt>
-              Dépensé
-            </dt>
-            <dd>
-              680,00 €
-            </dd>
-          </div>
+      <article>
+        <h3>
+          Alimentation
+        </h3>
+        <dl>
           <div>
             <dt>
               Budget
             </dt>
             <dd>
-              600,00 €
+              600
+               €
+            </dd>
+          </div>
+          <div>
+            <dt>
+              Dépensé
+            </dt>
+            <dd>
+              680
+               €
+            </dd>
+          </div>
+          <div>
+            <dt>
+              Restant
+            </dt>
+            <dd>
+              -80
+               €
             </dd>
           </div>
           <div>
@@ -61,7 +58,16 @@ exports[`CategoryBudgetsPanel > renders budgets in contract order, preserves sta
               Ratio
             </dt>
             <dd>
-              undefined%
+              113
+               %
+            </dd>
+          </div>
+          <div>
+            <dt>
+              Statut
+            </dt>
+            <dd>
+              EXCEEDED
             </dd>
           </div>
         </dl>

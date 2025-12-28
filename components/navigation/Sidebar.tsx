@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 
 const SECTIONS = [
   {
@@ -11,6 +11,16 @@ const SECTIONS = [
     items: [
       { label: 'Dashboard', href: '/dashboard' },
       { label: 'Analyse mensuelle', href: '/analysis' },
+    ],
+  },
+  {
+    label: 'Gestion',
+    items: [
+      { label: 'Mes transactions', href: '/transactions' },
+      { label: 'Charges récurrentes', href: '/recurring-charges' },
+      { label: 'Règles de plafond', href: '/ceiling-rules' },
+      { label: 'Soldes d\'ouverture', href: '/account-balances' },
+      { label: 'Checklist d\'import', href: '/import-checklist' },
     ],
   },
   {
@@ -91,6 +101,24 @@ export const Sidebar = () => {
           </div>
         ))}
       </nav>
+
+      {/* Actions */}
+      <div className="p-4 border-t border-slate-800 space-y-2">
+        <Link
+          href="/transactions/new"
+          className="flex items-center gap-2 w-full px-4 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium text-sm transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Ajouter une transaction</span>
+        </Link>
+        <Link
+          href="/budgets/new"
+          className="flex items-center gap-2 w-full px-4 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium text-sm transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Créer un budget</span>
+        </Link>
+      </div>
     </aside>
   );
 };

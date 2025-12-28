@@ -39,9 +39,9 @@ export function AlertsList({ alerts }: AlertsListProps) {
   return (
     <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
       <ul className="space-y-4">
-        {alerts.map((alert) => (
+        {alerts.map((alert, index) => (
           <li
-            key={`${alert.domain}-${alert.category}-${alert.ruleId}`}
+            key={`${alert.domain}-${alert.category}-${alert.ruleId}-${index}`}
             className={`rounded-xl border-l-4 p-4 shadow-sm ${severityStyles[alert.severity].background} ${severityStyles[alert.severity].border}`}
           >
             <div className="flex flex-wrap items-center justify-between gap-4">
