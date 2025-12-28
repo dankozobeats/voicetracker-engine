@@ -227,8 +227,22 @@ export default function ManageBudgetsPage() {
     try {
       const response = await fetch('/api/recurring-charges');
       const data = await response.json();
-      const expenses = data.recurringCharges.filter((c: RecurringCharge) => c.type === 'EXPENSE');
-      setAvailableCharges(expenses);
+      const allExpenses = data.recurringCharges.filter((c: RecurringCharge) => c.type === 'EXPENSE');
+
+      // Récupérer tous les IDs de charges déjà affectées à des budgets
+      const assignedChargeIds = new Set<string>();
+      budgets.forEach((budget) => {
+        budget.charges.forEach((charge) => {
+          assignedChargeIds.add(charge.id);
+        });
+      });
+
+      // Filtrer pour ne garder que les charges non encore affectées
+      const unassignedCharges = allExpenses.filter(
+        (charge: RecurringCharge) => !assignedChargeIds.has(charge.id)
+      );
+
+      setAvailableCharges(unassignedCharges);
       setShowAssignModal(true);
     } catch (err) {
       alert('Erreur lors du chargement des charges récurrentes');
@@ -287,8 +301,6 @@ export default function ManageBudgetsPage() {
   }
 
   const selectedBudget = budgets.find(b => b.id === selectedBudgetId);
-  const assignedChargeIds = selectedBudget?.charges.map(c => c.id) || [];
-  const unassignedCharges = availableCharges.filter(c => !assignedChargeIds.includes(c.id));
 
   return (
     <main className="container mx-auto p-6 max-w-6xl">
@@ -575,13 +587,16 @@ export default function ManageBudgetsPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
-              {unassignedCharges.length === 0 ? (
+              {availableCharges.length === 0 ? (
                 <p className="text-center text-slate-600 py-8">
-                  Toutes les charges EXPENSE sont déjà affectées à ce budget.
+                  Toutes les charges récurrentes sont déjà affectées à des budgets.
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {unassignedCharges.map((charge) => (
+                  <p className="text-sm text-slate-600 mb-4">
+                    {availableCharges.length} charge{availableCharges.length > 1 ? 's' : ''} disponible{availableCharges.length > 1 ? 's' : ''}
+                  </p>
+                  {availableCharges.map((charge) => (
                     <div
                       key={charge.id}
                       className="flex items-center justify-between rounded-lg border border-slate-200 p-4 hover:bg-slate-50"
