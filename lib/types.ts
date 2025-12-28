@@ -59,6 +59,10 @@ export interface CategoryBudgetTrendResult {
   category: string;
   current: number;
   previous: number;
+  currentFixedCharges: number;
+  previousFixedCharges: number;
+  currentVariableSpent: number;
+  previousVariableSpent: number;
   delta: number;
   percentChange: number;
   trend: TrendStatus;

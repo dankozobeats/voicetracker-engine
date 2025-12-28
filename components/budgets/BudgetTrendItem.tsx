@@ -39,6 +39,9 @@ export const BudgetTrendItem = ({ trend }: { trend: CategoryBudgetTrendResult })
 
   const config = trendConfig[trend.trend] || trendConfig.NO_HISTORY;
 
+  const fixedChargesDelta = trend.currentFixedCharges - trend.previousFixedCharges;
+  const variableSpentDelta = trend.currentVariableSpent - trend.previousVariableSpent;
+
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
       {/* Header */}
@@ -53,22 +56,65 @@ export const BudgetTrendItem = ({ trend }: { trend: CategoryBudgetTrendResult })
         </span>
       </div>
 
-      {/* Comparaison visuelle */}
+      {/* Detailed breakdown comparison */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-lg bg-slate-50 p-3">
-          <p className="text-xs text-slate-500 mb-1">Mois précédent</p>
-          <p className="text-lg font-semibold text-slate-900">{formatCurrency(trend.previous)}</p>
+        {/* Previous month */}
+        <div className="rounded-lg bg-slate-50 p-3 space-y-2">
+          <p className="text-xs font-medium text-slate-500 mb-2">Mois précédent</p>
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-slate-600">Charges fixes</span>
+              <span className="text-sm font-medium text-orange-600">{formatCurrency(trend.previousFixedCharges)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-slate-600">Variables</span>
+              <span className="text-sm font-medium text-blue-600">{formatCurrency(trend.previousVariableSpent)}</span>
+            </div>
+            <div className="pt-1 mt-1 border-t border-slate-200 flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-700">Total</span>
+              <span className="text-base font-semibold text-slate-900">{formatCurrency(trend.previous)}</span>
+            </div>
+          </div>
         </div>
-        <div className="rounded-lg bg-slate-50 p-3">
-          <p className="text-xs text-slate-500 mb-1">Mois actuel</p>
-          <p className="text-lg font-semibold text-slate-900">{formatCurrency(trend.current)}</p>
+
+        {/* Current month */}
+        <div className="rounded-lg bg-slate-50 p-3 space-y-2">
+          <p className="text-xs font-medium text-slate-500 mb-2">Mois actuel</p>
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-slate-600">Charges fixes</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-medium text-orange-600">{formatCurrency(trend.currentFixedCharges)}</span>
+                {fixedChargesDelta !== 0 && (
+                  <span className={`text-xs font-medium ${fixedChargesDelta > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {fixedChargesDelta > 0 ? '↑' : '↓'}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-slate-600">Variables</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-medium text-blue-600">{formatCurrency(trend.currentVariableSpent)}</span>
+                {variableSpentDelta !== 0 && (
+                  <span className={`text-xs font-medium ${variableSpentDelta > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {variableSpentDelta > 0 ? '↑' : '↓'}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="pt-1 mt-1 border-t border-slate-200 flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-700">Total</span>
+              <span className="text-base font-semibold text-slate-900">{formatCurrency(trend.current)}</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Variation */}
+      {/* Variation summary */}
       <div className="pt-2 border-t border-slate-100">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-600">Variation</span>
+          <span className="text-sm text-slate-600">Variation totale</span>
           <div className="text-right">
             <p className={`text-sm font-semibold ${config.deltaColor}`}>
               {trend.delta > 0 ? '+' : ''}{formatCurrency(trend.delta)}
