@@ -1,5 +1,4 @@
 import { AlertPanel } from '@/components/alerts/AlertPanel';
-import { BalanceProjection } from '@/components/projection/BalanceProjection';
 import { formatCurrency } from '@/lib/format';
 import { getAuthenticatedUser } from '@/lib/api/auth';
 import { getEngineProjection } from '@/lib/engine-service';
@@ -10,8 +9,8 @@ async function getDashboardData() {
 
   const user = await getAuthenticatedUser();
 
-  // Call the production Engine for 6-month projection
-  const payload = await getEngineProjection(user.id, 'SG', month, 6);
+  // Call the production Engine for the current month
+  const payload = await getEngineProjection(user.id, 'SG', month, 1);
 
   return { payload };
 }
@@ -103,8 +102,6 @@ export default async function DashboardPage() {
       )}
 
       <AlertPanel alertTexts={payload.alertTexts} />
-
-      <BalanceProjection projections={payload.months} />
     </main>
   );
 }

@@ -11,6 +11,7 @@ const SECTIONS = [
     items: [
       { label: 'Dashboard', href: '/dashboard' },
       { label: 'Analyse mensuelle', href: '/analysis' },
+      { label: 'Projection de solde', href: '/projection' },
     ],
   },
   {
