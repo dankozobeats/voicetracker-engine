@@ -1451,17 +1451,12 @@ export default function RecurringChargesPage() {
                       <div className="mt-1 text-lg font-semibold text-slate-900">
                         {formatCurrency(charge.amount)} / mois
                       </div>
-                      {/* Quick summary badges - always visible */}
+                      {/* Quick summary - always visible */}
                       <div className="mt-2 flex flex-wrap gap-2 text-xs">
                         <span className="text-slate-600">
                           {new Date(charge.start_date + '-01').toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
                           {charge.end_date && <> → {new Date(charge.end_date + '-01').toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}</>}
                         </span>
-                        {Object.keys(charge.monthly_overrides).length > 0 && (
-                          <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 font-medium text-green-800">
-                            {Object.keys(charge.monthly_overrides).length} variation{Object.keys(charge.monthly_overrides).length > 1 ? 's' : ''}
-                          </span>
-                        )}
                         {charge.excluded_months && charge.excluded_months.length > 0 && (
                           <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-800">
                             {charge.excluded_months.length} suspension{charge.excluded_months.length > 1 ? 's' : ''}
@@ -1473,6 +1468,23 @@ export default function RecurringChargesPage() {
                           </span>
                         )}
                       </div>
+
+                      {/* Monthly overrides - always visible */}
+                      {Object.keys(charge.monthly_overrides).length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {Object.entries(charge.monthly_overrides)
+                            .sort(([a], [b]) => a.localeCompare(b))
+                            .map(([month, amount]) => (
+                              <span
+                                key={month}
+                                className="inline-flex items-center gap-1.5 rounded bg-green-200 px-2 py-1 text-xs font-medium text-green-900"
+                              >
+                                {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}
+                                <span className="font-semibold">{formatCurrency(amount)}</span>
+                              </span>
+                            ))}
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <button
