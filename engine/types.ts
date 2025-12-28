@@ -91,13 +91,16 @@ export interface ProjectionInput {
 export interface CategoryBudget {
   category: string;
   budget: number;
+  linkedCharges?: string[]; // IDs of recurring charges linked to this budget
 }
 
 export interface CategoryBudgetResult {
   category: string;
   budget: number;
-  spent: number;
-  remaining: number;
+  fixedCharges: number; // Sum of linked recurring charges
+  variableSpent: number; // Actual transaction spending
+  spent: number; // Total: fixedCharges + variableSpent
+  remaining: number; // budget - spent
   status: BudgetStatus;
 }
 

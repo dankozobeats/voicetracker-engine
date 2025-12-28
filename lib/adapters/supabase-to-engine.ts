@@ -76,6 +76,7 @@ export const supabaseCeilingRuleToEngine = (
  */
 export const supabaseBudgetsToEngine = (
   records: SupabaseBudgetRecord[],
+  budgetChargeLinks?: Array<{ budget_id: string; recurring_charge_id: string }>,
 ): {
   categoryBudgets: CategoryBudget[];
   rollingBudgets: RollingCategoryBudget[];
@@ -85,11 +86,20 @@ export const supabaseBudgetsToEngine = (
   const rollingBudgets: RollingCategoryBudget[] = [];
   const multiMonthBudgets: MultiMonthBudget[] = [];
 
+  // Create a map of budget_id -> linked charge IDs
+  const linksMap = new Map<string, string[]>();
+  (budgetChargeLinks ?? []).forEach((link) => {
+    const existing = linksMap.get(link.budget_id) ?? [];
+    existing.push(link.recurring_charge_id);
+    linksMap.set(link.budget_id, existing);
+  });
+
   records.forEach((record) => {
     if (record.period === 'MONTHLY') {
       categoryBudgets.push({
         category: record.category,
         budget: record.amount,
+        linkedCharges: linksMap.get(record.id),
       });
     } else if (record.period === 'ROLLING' && record.window_months !== null) {
       rollingBudgets.push({

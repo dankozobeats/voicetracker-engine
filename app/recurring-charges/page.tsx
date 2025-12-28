@@ -1558,20 +1558,28 @@ export default function RecurringChargesPage() {
                           // Check if month has reminder
                           const hasReminder = charge.reminders?.some((r) => !r.dismissed && r.month === monthStr);
 
-                          // Display ONLY raw stored values - NO CALCULATIONS
-                          // If month has override in DB, show that exact value
-                          // Otherwise show base amount
-                          const hasOverride = charge.monthly_overrides && monthStr in charge.monthly_overrides;
-                          const displayAmount = hasOverride
-                            ? charge.monthly_overrides[monthStr]
-                            : charge.amount;
+                          // Calculate effective amount with cumulative override logic (same as form)
+                          let effectiveAmount = charge.amount;
+                          let isOverride = false;
+
+                          if (charge.monthly_overrides) {
+                            const sortedOverrides = Object.entries(charge.monthly_overrides)
+                              .sort(([a], [b]) => a.localeCompare(b));
+
+                            for (const [overrideMonth, overrideAmount] of sortedOverrides) {
+                              if (overrideMonth <= monthStr) {
+                                effectiveAmount = overrideAmount;
+                                isOverride = overrideMonth === monthStr;
+                              }
+                            }
+                          }
 
                           timeline.push({
                             month: monthStr,
                             monthName: date.toLocaleDateString('fr-FR', { month: 'short' }),
-                            amount: displayAmount,
+                            amount: effectiveAmount,
                             isExcluded,
-                            isOverride: hasOverride,
+                            isOverride,
                             hasReminder,
                             isOutOfPeriod,
                           });

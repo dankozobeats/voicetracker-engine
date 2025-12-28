@@ -237,15 +237,47 @@ const determineBudgetStatus = (budget: number, spent: number): BudgetStatus => {
   return 'OK';
 };
 
+/**
+ * Check if a recurring charge is active for a given month
+ */
+const isChargeActiveForMonth = (charge: RecurringCharge, month: string): boolean => {
+  if (!isMonthInRange(month, charge.startMonth, charge.endMonth)) return false;
+  if (charge.excludedMonths?.includes(month)) return false;
+  return true;
+};
+
 const buildCategoryBudgetResults = (
   budgets: CategoryBudget[],
   spending: Record<string, number>,
+  recurringCharges: RecurringCharge[],
+  currentMonth: string,
 ): CategoryBudgetResult[] =>
   budgets.map((budget) => {
-    const spent = spending[budget.category] ?? 0;
+    // Calculate fixed charges (linked recurring charges for this budget)
+    const linkedChargeIds = budget.linkedCharges ?? [];
+    const fixedCharges = linkedChargeIds.reduce((sum, chargeId) => {
+      const charge = recurringCharges.find((c) => c.id === chargeId);
+      if (!charge || charge.type !== 'EXPENSE') return sum;
+
+      // Check if charge is active for this month
+      if (!isChargeActiveForMonth(charge, currentMonth)) return sum;
+
+      // Get the amount (with monthly override if present)
+      const amount = getEffectiveAmount(charge, currentMonth);
+      return sum + Math.abs(amount);
+    }, 0);
+
+    // Variable spending from transactions
+    const variableSpent = spending[budget.category] ?? 0;
+
+    // Total spent = fixed charges + variable spending
+    const spent = fixedCharges + variableSpent;
+
     return {
       category: budget.category,
       budget: budget.budget,
+      fixedCharges,
+      variableSpent,
       spent,
       remaining: budget.budget - spent,
       status: determineBudgetStatus(budget.budget, spent),
@@ -300,7 +332,12 @@ export const calculateProjection = (input: ProjectionInput): MonthProjection[] =
     } = collectDeferredResolutions(deferredTransactions, monthLabel);
 
     const categorySpending = buildMonthlyCategorySpending(monthTx, deferredResolutions);
-    const categoryBudgetResults = buildCategoryBudgetResults(categoryBudgets, categorySpending);
+    const categoryBudgetResults = buildCategoryBudgetResults(
+      categoryBudgets,
+      categorySpending,
+      recurringCharges,
+      monthLabel,
+    );
 
     const totalOutflow = expenses + fixedCharges + deferredOutflow;
     const ceilingStatuses = buildCeilingStatuses(

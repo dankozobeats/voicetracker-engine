@@ -25,15 +25,18 @@ J'ai créé TOUS les fichiers nécessaires pour connecter le vrai Engine à votr
 | **`docs/RESUME_EXECUTIF.md`** | ⭐ **COMMENCEZ ICI** - Vue d'ensemble rapide (5 min) |
 | **`docs/DIAGNOSTIC_ET_SOLUTION.md`** | Pour comprendre le problème en détail (15 min) |
 | **`docs/MIGRATION_GUIDE.md`** | Guide étape par étape pour la migration (référence) |
+| **`docs/SYSTEME_BUDGETS.md`** | 💰 **NOUVEAU** - Documentation complète du système de budgets |
 
 ### 2. Code et SQL
 
 | Fichier | Description |
 |---------|-------------|
 | **`docs/supabase-complete-migration.sql`** | ⭐ Script SQL à exécuter dans Supabase |
+| **`docs/budget-recurring-charges-link.sql`** | 💰 **NOUVEAU** - Table de liaison budgets ↔ charges récurrentes |
 | **`lib/types.ts`** | Types TypeScript mis à jour (déjà fait) |
 | **`lib/adapters/supabase-to-engine.ts`** | Transformation Supabase ↔ Engine (déjà fait) |
 | **`app/api/engine/projection/route.ts`** | Nouvel endpoint Engine (déjà fait) |
+| **`app/api/budgets/[id]/charges/route.ts`** | 💰 **NOUVEAU** - API pour affecter charges aux budgets |
 
 ---
 
@@ -54,7 +57,10 @@ J'ai créé TOUS les fichiers nécessaires pour connecter le vrai Engine à votr
 |----------------|-------|-------|
 | Dashboard | Calculs simples | ✅ Engine complet |
 | Budgets | `spent: 0` hardcodé | ✅ Dépenses réelles |
+| **Budgets + Charges** | ❌ Séparés | ✅ **Système intégré** |
 | Charges récurrentes | ❌ Non supporté | ✅ Automatique |
+| Affectation charges | ❌ Impossible | ✅ **Glisser-déposer charges vers budgets** |
+| Reste disponible | ❌ Non calculé | ✅ **Budget - Charges fixes affichées** |
 | Plafonds | ❌ Non supporté | ✅ Avec alertes |
 | Budgets glissants | ❌ Non supporté | ✅ Fully functional |
 | Transactions différées | ❌ Non supporté | ✅ Avec priorités |

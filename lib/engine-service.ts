@@ -76,6 +76,19 @@ export async function getEngineProjection(
     throw new Error(`Failed to load budgets: ${budgetsError.message}`);
   }
 
+  // Fetch budget-charge links
+  const budgetIds = (budgets ?? []).map(b => b.id);
+  const { data: budgetChargeLinks, error: linksError } = budgetIds.length > 0
+    ? await supabase
+        .from('budget_recurring_charges')
+        .select('budget_id, recurring_charge_id')
+        .in('budget_id', budgetIds)
+    : { data: [], error: null };
+
+  if (linksError) {
+    throw new Error(`Failed to load budget-charge links: ${linksError.message}`);
+  }
+
   // Fetch opening balance for this account/month
   const { data: balanceRecord, error: balanceError } = await supabase
     .from('account_balances')
@@ -106,7 +119,10 @@ export async function getEngineProjection(
   );
 
   const { categoryBudgets, rollingBudgets, multiMonthBudgets } =
-    supabaseBudgetsToEngine((budgets ?? []) as SupabaseBudgetRecord[]);
+    supabaseBudgetsToEngine(
+      (budgets ?? []) as SupabaseBudgetRecord[],
+      budgetChargeLinks ?? [],
+    );
 
   const initialBalance = (balanceRecord as SupabaseAccountBalanceRecord | null)?.opening_balance ?? 0;
 

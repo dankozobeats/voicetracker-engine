@@ -25,8 +25,10 @@ export type BudgetStatus = 'OK' | 'WARNING' | 'EXCEEDED';
 export interface CategoryBudgetResult {
   category: string;
   budget: number;
-  spent: number;
-  remaining: number;
+  fixedCharges: number; // Sum of linked recurring charges
+  variableSpent: number; // Actual transaction spending
+  spent: number; // Total: fixedCharges + variableSpent
+  remaining: number; // budget - spent
   status: BudgetStatus;
 }
 

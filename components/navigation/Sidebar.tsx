@@ -24,12 +24,10 @@ const SECTIONS = [
     ],
   },
   {
- label: 'Budgets',
-  items: [
-    { label: 'Par catégorie', href: '/budgets#category' },
-    { label: 'Glissants', href: '/budgets#rolling' },
-    { label: 'Multi-mois', href: '/budgets#multi-month' },
-    { label: 'Tendances', href: '/budgets#trends' },
+    label: 'Budgets',
+    items: [
+      { label: 'Gérer mes budgets', href: '/budgets/manage' },
+      { label: 'Résultats', href: '/budgets' },
     ],
   },
   {

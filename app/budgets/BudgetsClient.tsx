@@ -111,7 +111,7 @@ export const BudgetsClient = () => {
           <h2 className="mb-2 text-2xl font-semibold text-slate-900">Aucun budget défini</h2>
           <p className="mb-6 text-slate-600">Créez votre premier budget pour commencer le suivi de vos dépenses.</p>
           <Link
-            href="/budgets/new"
+            href="/budgets/manage"
             className="inline-block rounded-lg bg-slate-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-slate-800"
           >
             Créer un budget
@@ -122,19 +122,13 @@ export const BudgetsClient = () => {
   }
 
   return (
-    <div className="analysis-grid">
-      <div id="category">
-        <CategoryBudgetsPanel budgets={budgets.categoryBudgets} />
-      </div>
-      <div id="rolling">
-        <RollingBudgetsPanel budgets={budgets.rollingBudgets} />
-      </div>
-      <div id="multi-month">
-        <MultiMonthBudgetsPanel budgets={budgets.multiMonthBudgets} />
-      </div>
-      <div id="trends">
+    <div className="space-y-8">
+      <CategoryBudgetsPanel budgets={budgets.categoryBudgets} />
+      <RollingBudgetsPanel budgets={budgets.rollingBudgets} />
+      <MultiMonthBudgetsPanel budgets={budgets.multiMonthBudgets} />
+      {budgets.trends && budgets.trends.length > 0 && (
         <BudgetTrendsPanel trends={budgets.trends} />
-      </div>
+      )}
     </div>
   );
 };

@@ -38,6 +38,8 @@ export const mockedEnginePayload: EnginePayload = {
         {
           category: 'Alimentation',
           budget: 600,
+          fixedCharges: 0,
+          variableSpent: 680,
           spent: 680,
           remaining: -80,
           status: 'EXCEEDED',
@@ -113,6 +115,8 @@ export const mockedEnginePayload: EnginePayload = {
     {
       category: 'Alimentation',
       budget: 600,
+      fixedCharges: 0,
+      variableSpent: 680,
       spent: 680,
       remaining: -80,
       status: 'EXCEEDED',
