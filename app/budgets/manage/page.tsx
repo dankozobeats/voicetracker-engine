@@ -66,6 +66,7 @@ export default function ManageBudgetsPage() {
   const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(null);
   const [availableCharges, setAvailableCharges] = useState<RecurringCharge[]>([]);
   const [assigning, setAssigning] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<BudgetFormData>({
     category: '',
@@ -265,7 +266,26 @@ export default function ManageBudgetsPage() {
         throw new Error(errorData.error || 'Erreur lors de l\'affectation');
       }
 
+      // Trouver le nom de la charge pour le message
+      const assignedCharge = availableCharges.find((c) => c.id === chargeId);
+
+      // Retirer immédiatement la charge de la liste disponible
+      setAvailableCharges((prev) => prev.filter((c) => c.id !== chargeId));
+
+      // Rafraîchir les budgets pour voir la mise à jour
       await fetchBudgets();
+
+      // Afficher un message de succès
+      if (assignedCharge) {
+        setSuccessMessage(`✓ ${assignedCharge.label} affectée avec succès`);
+        setTimeout(() => setSuccessMessage(null), 3000);
+      }
+
+      // Fermer le modal si plus aucune charge disponible
+      if (availableCharges.length <= 1) {
+        setShowAssignModal(false);
+        setSelectedBudgetId(null);
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Erreur lors de l\'affectation');
     } finally {
@@ -584,6 +604,11 @@ export default function ManageBudgetsPage() {
               <p className="text-sm text-slate-600 mt-1">
                 Budget restant: {formatCurrency(selectedBudget.remainingBudget)}
               </p>
+              {successMessage && (
+                <div className="mt-3 rounded-lg bg-green-50 border border-green-200 px-4 py-2 text-sm text-green-800">
+                  {successMessage}
+                </div>
+              )}
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
