@@ -711,10 +711,9 @@ export default function RecurringChargesPage() {
 
               {/* Date de fin */}
               <div className="bg-slate-50 rounded-lg p-3">
-                <button
-                  type="button"
+                <div
                   onClick={() => setShowEndDatePicker(!showEndDatePicker)}
-                  className="w-full flex items-center justify-between hover:text-slate-900"
+                  className="w-full flex items-center justify-between hover:text-slate-900 cursor-pointer"
                 >
                   <span className="text-sm font-medium text-slate-700">Date de fin (optionnel)</span>
                   <div className="flex items-center gap-2">
@@ -744,7 +743,7 @@ export default function RecurringChargesPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </div>
-                </button>
+                </div>
 
                 {showEndDatePicker && (
                   <div className="mt-3 space-y-2">
