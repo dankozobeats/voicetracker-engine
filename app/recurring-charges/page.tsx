@@ -1130,7 +1130,7 @@ export default function RecurringChargesPage() {
                               <div className="text-xs font-medium text-slate-600 mb-2">Timeline (12 prochains mois)</div>
                               <div className="grid grid-cols-6 gap-1 text-xs">
                                 {timelineMonths.map(({ month, amount, isOverride }, idx) => (
-                                  <div key={month} className="flex flex-col items-center">
+                                  <div key={`timeline-${idx}-${month}`} className="flex flex-col items-center">
                                     <div className="text-[10px] text-slate-500 mb-0.5">
                                       {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short' })}
                                     </div>
