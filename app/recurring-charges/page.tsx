@@ -1401,85 +1401,142 @@ export default function RecurringChargesPage() {
             {filteredCharges.map((charge) => (
               <div
                 key={charge.id}
-                className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4"
+                className="rounded-lg border border-slate-200 bg-white p-4 space-y-3"
               >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-slate-900">{charge.label}</h3>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      charge.type === 'INCOME'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {charge.type === 'INCOME' ? 'Revenu' : 'Dépense'}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
-                    <span className="font-medium inline-flex items-center gap-1.5">
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-slate-900">{charge.label}</h3>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        charge.type === 'INCOME'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {charge.type === 'INCOME' ? 'Revenu' : 'Dépense'}
+                      </span>
+                      <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-700">
+                        {charge.account}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-lg font-semibold text-slate-900">
                       {formatCurrency(charge.amount)} / mois
-                      {Object.keys(charge.monthly_overrides).length > 0 && (
-                        <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-                          <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                          </svg>
-                          {Object.keys(charge.monthly_overrides).length} variation{Object.keys(charge.monthly_overrides).length > 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </span>
-                    <span>Compte: {charge.account}</span>
-                    <span>
-                      Depuis: {new Date(charge.start_date + '-01').toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
-                    </span>
-                    {charge.end_date && (
-                      <span>
-                        Jusqu&apos;à: {new Date(charge.end_date + '-01').toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
-                      </span>
-                    )}
-                    {charge.excluded_months && charge.excluded_months.length > 0 && (
-                      <span className="inline-flex items-center gap-1">
-                        <span className="text-xs text-slate-500">·</span>
-                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                          {charge.excluded_months.length} mois suspendu{charge.excluded_months.length > 1 ? 's' : ''}
-                        </span>
-                        {charge.excluded_months.includes(currentMonth) && (
-                          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                            dont ce mois-ci
-                          </span>
-                        )}
-                      </span>
-                    )}
-                    {charge.reminders && charge.reminders.filter((r) => !r.dismissed).length > 0 && (
-                      <span className="inline-flex items-center gap-1">
-                        <span className="text-xs text-slate-500">·</span>
-                        <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800">
-                          <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                          </svg>
-                          {charge.reminders.filter((r) => !r.dismissed).length} rappel{charge.reminders.filter((r) => !r.dismissed).length > 1 ? 's' : ''}
-                        </span>
-                        {charge.reminders.some((r) => !r.dismissed && r.month === currentMonth) && (
-                          <span className="inline-flex items-center rounded-full bg-orange-200 px-2 py-0.5 text-xs font-medium text-orange-900">
-                            ce mois-ci
-                          </span>
-                        )}
-                      </span>
-                    )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => startEdit(charge)}
+                      className="rounded-md px-3 py-1 text-sm font-medium text-blue-600 hover:bg-blue-50"
+                    >
+                      Modifier
+                    </button>
+                    <button
+                      onClick={() => handleDelete(charge.id)}
+                      className="rounded-md px-3 py-1 text-sm font-medium text-red-600 hover:bg-red-50"
+                    >
+                      Supprimer
+                    </button>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => startEdit(charge)}
-                    className="rounded-md px-3 py-1 text-sm font-medium text-blue-600 hover:bg-blue-50"
-                  >
-                    Modifier
-                  </button>
-                  <button
-                    onClick={() => handleDelete(charge.id)}
-                    className="rounded-md px-3 py-1 text-sm font-medium text-red-600 hover:bg-red-50"
-                  >
-                    Supprimer
-                  </button>
+
+                {/* Période */}
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>
+                    {new Date(charge.start_date + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                    {charge.end_date && (
+                      <> → {new Date(charge.end_date + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</>
+                    )}
+                    {!charge.end_date && <> → Indéterminé</>}
+                  </span>
                 </div>
+
+                {/* Montants variables */}
+                {Object.keys(charge.monthly_overrides).length > 0 && (
+                  <div className="bg-green-50 rounded p-3 border border-green-200">
+                    <div className="text-xs font-medium text-green-900 mb-2 flex items-center gap-1.5">
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                      Montants variables ({Object.keys(charge.monthly_overrides).length})
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {Object.entries(charge.monthly_overrides)
+                        .sort(([a], [b]) => a.localeCompare(b))
+                        .map(([month, amount]) => (
+                          <span
+                            key={month}
+                            className="inline-flex items-center gap-1.5 rounded bg-green-200 px-2 py-1 text-xs font-medium text-green-900"
+                          >
+                            {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}
+                            <span className="font-semibold">{formatCurrency(amount)}</span>
+                          </span>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Mois suspendus */}
+                {charge.excluded_months && charge.excluded_months.length > 0 && (
+                  <div className="bg-amber-50 rounded p-3 border border-amber-200">
+                    <div className="text-xs font-medium text-amber-900 mb-2 flex items-center gap-1.5">
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Mois suspendus ({charge.excluded_months.length})
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {charge.excluded_months
+                        .sort((a, b) => a.localeCompare(b))
+                        .map((month) => (
+                          <span
+                            key={month}
+                            className={`inline-flex items-center rounded px-2 py-1 text-xs font-medium ${
+                              month === currentMonth
+                                ? 'bg-red-200 text-red-900'
+                                : 'bg-amber-200 text-amber-900'
+                            }`}
+                          >
+                            {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}
+                          </span>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Rappels */}
+                {charge.reminders && charge.reminders.filter((r) => !r.dismissed).length > 0 && (
+                  <div className="bg-orange-50 rounded p-3 border border-orange-200">
+                    <div className="text-xs font-medium text-orange-900 mb-2 flex items-center gap-1.5">
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                      Rappels ({charge.reminders.filter((r) => !r.dismissed).length})
+                    </div>
+                    <div className="space-y-1.5">
+                      {charge.reminders
+                        .filter((r) => !r.dismissed)
+                        .sort((a, b) => a.month.localeCompare(b.month))
+                        .map((reminder) => (
+                          <div
+                            key={reminder.id}
+                            className={`rounded px-2 py-1.5 text-xs ${
+                              reminder.month === currentMonth
+                                ? 'bg-orange-200 text-orange-900 font-medium'
+                                : 'bg-orange-100 text-orange-800'
+                            }`}
+                          >
+                            <span className="font-medium">
+                              {new Date(reminder.month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}:
+                            </span>{' '}
+                            {reminder.note}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
