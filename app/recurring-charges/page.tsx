@@ -1075,26 +1075,87 @@ export default function RecurringChargesPage() {
                     </p>
 
                     {Object.keys(formData.monthly_overrides).length > 0 && (
-                      <div className="mb-3 flex flex-wrap gap-1">
-                        {Object.entries(formData.monthly_overrides)
-                          .sort(([a], [b]) => a.localeCompare(b))
-                          .map(([month, amount]) => (
-                            <span
-                              key={month}
-                              className="inline-flex items-center gap-1 rounded bg-green-200 px-2 py-1 text-xs font-medium text-green-900"
-                            >
-                              {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}:{' '}
-                              {formatCurrency(amount)}
-                              <button
-                                type="button"
-                                onClick={() => removeMonthlyOverride(month)}
-                                className="hover:text-green-950 ml-1"
+                      <>
+                        <div className="mb-3 flex flex-wrap gap-1">
+                          {Object.entries(formData.monthly_overrides)
+                            .sort(([a], [b]) => a.localeCompare(b))
+                            .map(([month, amount]) => (
+                              <span
+                                key={month}
+                                className="inline-flex items-center gap-1 rounded bg-green-200 px-2 py-1 text-xs font-medium text-green-900"
                               >
-                                ✕
-                              </button>
-                            </span>
-                          ))}
-                      </div>
+                                {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}:{' '}
+                                {formatCurrency(amount)}
+                                <button
+                                  type="button"
+                                  onClick={() => removeMonthlyOverride(month)}
+                                  className="hover:text-green-950 ml-1"
+                                >
+                                  ✕
+                                </button>
+                              </span>
+                            ))}
+                        </div>
+
+                        {/* Timeline visuelle */}
+                        {(() => {
+                          // Generate timeline for next 12 months from start_date or current month
+                          const startMonth = formData.start_date || new Date().toISOString().slice(0, 7);
+                          const timelineMonths: { month: string; amount: number; isOverride: boolean }[] = [];
+
+                          for (let i = 0; i < 12; i++) {
+                            const date = new Date(startMonth + '-01');
+                            date.setMonth(date.getMonth() + i);
+                            const monthStr = date.toISOString().slice(0, 7);
+
+                            // Find effective amount for this month (cumulative logic)
+                            let effectiveAmount = formData.amount;
+                            let isOverride = false;
+
+                            const sortedOverrides = Object.entries(formData.monthly_overrides)
+                              .sort(([a], [b]) => a.localeCompare(b));
+
+                            for (const [overrideMonth, overrideAmount] of sortedOverrides) {
+                              if (overrideMonth <= monthStr) {
+                                effectiveAmount = overrideAmount;
+                                isOverride = overrideMonth === monthStr;
+                              }
+                            }
+
+                            timelineMonths.push({ month: monthStr, amount: effectiveAmount, isOverride });
+                          }
+
+                          return (
+                            <div className="mb-3 bg-white rounded border border-green-300 p-2">
+                              <div className="text-xs font-medium text-slate-600 mb-2">Timeline (12 prochains mois)</div>
+                              <div className="grid grid-cols-6 gap-1 text-xs">
+                                {timelineMonths.map(({ month, amount, isOverride }, idx) => (
+                                  <div key={month} className="flex flex-col items-center">
+                                    <div className="text-[10px] text-slate-500 mb-0.5">
+                                      {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short' })}
+                                    </div>
+                                    <div
+                                      className={`rounded px-1.5 py-0.5 font-medium text-center w-full ${
+                                        isOverride
+                                          ? 'bg-green-500 text-white shadow-sm'
+                                          : 'bg-green-100 text-green-900'
+                                      }`}
+                                    >
+                                      {formatCurrency(amount)}
+                                    </div>
+                                    {isOverride && (
+                                      <div className="text-[9px] text-green-700 mt-0.5">override</div>
+                                    )}
+                                    {idx > 0 && timelineMonths[idx - 1].amount !== amount && !isOverride && (
+                                      <div className="text-[9px] text-green-600 mt-0.5">↑ propagé</div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </>
                     )}
 
                     <div className="space-y-2 mb-3">
