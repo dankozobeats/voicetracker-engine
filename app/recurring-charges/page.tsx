@@ -46,6 +46,7 @@ export default function RecurringChargesPage() {
   const [filterType, setFilterType] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
   const [filterAccount, setFilterAccount] = useState<'ALL' | 'SG' | 'FLOA'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSuspensionsSummary, setShowSuspensionsSummary] = useState(false);
 
   const fetchCharges = async () => {
     try {
@@ -223,6 +224,42 @@ export default function RecurringChargesPage() {
     floa: filteredCharges.filter((c) => c.account === 'FLOA').length,
   };
 
+  // Récapitulatif des suspensions
+  const getCurrentMonth = () => new Date().toISOString().slice(0, 7); // YYYY-MM
+  const currentMonth = getCurrentMonth();
+
+  const suspendedCharges = charges
+    .filter((charge) => charge.excluded_months && charge.excluded_months.length > 0)
+    .map((charge) => {
+      const sortedExcludedMonths = [...(charge.excluded_months || [])].sort();
+      const currentlySuspended = sortedExcludedMonths.includes(currentMonth);
+
+      // Trouver le prochain mois de reprise (le premier mois après aujourd'hui qui n'est pas exclu)
+      let resumeMonth: string | null = null;
+      if (currentlySuspended) {
+        // Chercher le mois suivant qui n'est pas exclu
+        const date = new Date(currentMonth + '-01');
+        for (let i = 1; i <= 12; i++) {
+          date.setMonth(date.getMonth() + 1);
+          const nextMonth = date.toISOString().slice(0, 7);
+          if (!sortedExcludedMonths.includes(nextMonth)) {
+            // Vérifier aussi si c'est avant end_date
+            if (!charge.end_date || nextMonth <= charge.end_date) {
+              resumeMonth = nextMonth;
+              break;
+            }
+          }
+        }
+      }
+
+      return {
+        ...charge,
+        currentlySuspended,
+        resumeMonth,
+        sortedExcludedMonths,
+      };
+    });
+
   if (loading) {
     return (
       <main className="page-shell">
@@ -289,6 +326,98 @@ export default function RecurringChargesPage() {
             </p>
           </div>
         </div>
+
+        {/* Récapitulatif des suspensions - Collapsible */}
+        {suspendedCharges.length > 0 && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50">
+            <button
+              onClick={() => setShowSuspensionsSummary(!showSuspensionsSummary)}
+              className="flex w-full items-center justify-between p-4 text-left hover:bg-amber-100 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-amber-900">
+                  Charges avec suspensions ({suspendedCharges.length})
+                </h3>
+                {suspendedCharges.some(c => c.currentlySuspended) && (
+                  <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                    {suspendedCharges.filter(c => c.currentlySuspended).length} suspendue(s) ce mois
+                  </span>
+                )}
+              </div>
+              <svg
+                className={`h-5 w-5 text-amber-700 transition-transform ${showSuspensionsSummary ? 'rotate-180' : ''}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {showSuspensionsSummary && (
+              <div className="border-t border-amber-200 p-4 space-y-2">
+                {suspendedCharges.map((charge) => (
+                  <div
+                    key={charge.id}
+                    className="flex items-start justify-between rounded-md bg-white p-3 text-sm"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-900">{charge.label}</span>
+                        {charge.currentlySuspended ? (
+                          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                            Suspendu ce mois-ci
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                            Actif ce mois-ci
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-600">
+                        <span className="font-medium">{formatCurrency(charge.amount)}/mois</span>
+                        <span className="mx-2">·</span>
+                        <span>{charge.account}</span>
+                        {charge.currentlySuspended && charge.resumeMonth && (
+                          <>
+                            <span className="mx-2">·</span>
+                            <span className="text-amber-700 font-medium">
+                              Reprise:{' '}
+                              {new Date(charge.resumeMonth + '-01').toLocaleDateString('fr-FR', {
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        <span className="text-xs text-slate-500">Mois exclus:</span>
+                        {charge.sortedExcludedMonths.map((month) => (
+                          <span
+                            key={month}
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                              month === currentMonth
+                                ? 'bg-red-100 text-red-800'
+                                : month < currentMonth
+                                  ? 'bg-slate-100 text-slate-600'
+                                  : 'bg-amber-100 text-amber-800'
+                            }`}
+                          >
+                            {new Date(month + '-01').toLocaleDateString('fr-FR', {
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Filtres */}
         {charges.length > 0 && (
@@ -562,31 +691,31 @@ export default function RecurringChargesPage() {
                       {charge.type === 'INCOME' ? 'Revenu' : 'Dépense'}
                     </span>
                   </div>
-                  <div className="mt-1 flex gap-4 text-sm text-slate-600">
-                    <span>{formatCurrency(charge.amount)} / mois</span>
+                  <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
+                    <span className="font-medium">{formatCurrency(charge.amount)} / mois</span>
                     <span>Compte: {charge.account}</span>
                     <span>
-                      Depuis: {new Date(charge.start_date + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                      Depuis: {new Date(charge.start_date + '-01').toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
                     </span>
                     {charge.end_date && (
                       <span>
-                        Jusqu&apos;à: {new Date(charge.end_date + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                        Jusqu&apos;à: {new Date(charge.end_date + '-01').toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                      </span>
+                    )}
+                    {charge.excluded_months && charge.excluded_months.length > 0 && (
+                      <span className="inline-flex items-center gap-1">
+                        <span className="text-xs text-slate-500">·</span>
+                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                          {charge.excluded_months.length} mois suspendu{charge.excluded_months.length > 1 ? 's' : ''}
+                        </span>
+                        {charge.excluded_months.includes(currentMonth) && (
+                          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                            dont ce mois-ci
+                          </span>
+                        )}
                       </span>
                     )}
                   </div>
-                  {charge.excluded_months && charge.excluded_months.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      <span className="text-xs text-slate-500">Suspendu:</span>
-                      {charge.excluded_months.map((month) => (
-                        <span
-                          key={month}
-                          className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
-                        >
-                          {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
                 <div className="flex gap-2">
                   <button
