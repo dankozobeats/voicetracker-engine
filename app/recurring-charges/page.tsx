@@ -13,6 +13,7 @@ interface RecurringCharge {
   start_date: string;
   end_date: string | null;
   excluded_months: string[];
+  monthly_overrides: Record<string, number>;
 }
 
 interface FormData {
@@ -24,6 +25,9 @@ interface FormData {
   end_date: string;
   excluded_months: string[];
   new_excluded_month: string;
+  monthly_overrides: Record<string, number>;
+  override_month: string;
+  override_amount: string;
 }
 
 export default function RecurringChargesPage() {
@@ -41,6 +45,9 @@ export default function RecurringChargesPage() {
     end_date: '',
     excluded_months: [],
     new_excluded_month: '',
+    monthly_overrides: {},
+    override_month: '',
+    override_amount: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [filterType, setFilterType] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
@@ -96,6 +103,9 @@ export default function RecurringChargesPage() {
       end_date: charge.end_date || '',
       excluded_months: charge.excluded_months || [],
       new_excluded_month: '',
+      monthly_overrides: charge.monthly_overrides || {},
+      override_month: '',
+      override_amount: '',
     });
     setShowForm(true);
   };
@@ -111,6 +121,9 @@ export default function RecurringChargesPage() {
       end_date: '',
       excluded_months: [],
       new_excluded_month: '',
+      monthly_overrides: {},
+      override_month: '',
+      override_amount: '',
     });
     setShowForm(false);
   };
@@ -138,6 +151,7 @@ export default function RecurringChargesPage() {
           start_date: formData.start_date,
           end_date: formData.end_date || null,
           excluded_months: formData.excluded_months,
+          monthly_overrides: formData.monthly_overrides,
         }),
       });
 
@@ -156,6 +170,9 @@ export default function RecurringChargesPage() {
         end_date: '',
         excluded_months: [],
         new_excluded_month: '',
+        monthly_overrides: {},
+        override_month: '',
+        override_amount: '',
       });
       setEditingId(null);
       setShowForm(false);
@@ -227,6 +244,31 @@ export default function RecurringChargesPage() {
 
   const clearEndDate = () => {
     setFormData({ ...formData, end_date: '' });
+  };
+
+  const addMonthlyOverride = () => {
+    if (!formData.override_month || !formData.override_amount) return;
+
+    const amount = parseFloat(formData.override_amount);
+    if (isNaN(amount) || amount <= 0) return;
+
+    setFormData({
+      ...formData,
+      monthly_overrides: {
+        ...formData.monthly_overrides,
+        [formData.override_month]: amount,
+      },
+      override_month: '',
+      override_amount: '',
+    });
+  };
+
+  const removeMonthlyOverride = (month: string) => {
+    const { [month]: _, ...rest } = formData.monthly_overrides;
+    setFormData({
+      ...formData,
+      monthly_overrides: rest,
+    });
   };
 
   // Filtrer les charges
@@ -849,6 +891,72 @@ export default function RecurringChargesPage() {
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Montants variables par mois */}
+              <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-slate-700">Montants variables (optionnel)</span>
+                  {Object.keys(formData.monthly_overrides).length > 0 && (
+                    <span className="text-xs bg-green-200 text-green-900 px-2 py-0.5 rounded-full font-medium">
+                      {Object.keys(formData.monthly_overrides).length}
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-xs text-green-800 mb-3">
+                  Définir des montants différents pour certains mois (ex: prime de fin d'année, facture variable)
+                </p>
+
+                {Object.keys(formData.monthly_overrides).length > 0 && (
+                  <div className="mb-3 flex flex-wrap gap-1">
+                    {Object.entries(formData.monthly_overrides)
+                      .sort(([a], [b]) => a.localeCompare(b))
+                      .map(([month, amount]) => (
+                        <span
+                          key={month}
+                          className="inline-flex items-center gap-1 rounded bg-green-200 px-2 py-1 text-xs font-medium text-green-900"
+                        >
+                          {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}:{' '}
+                          {formatCurrency(amount)}
+                          <button
+                            type="button"
+                            onClick={() => removeMonthlyOverride(month)}
+                            className="hover:text-green-950 ml-1"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <input
+                    type="month"
+                    value={formData.override_month}
+                    onChange={(e) => setFormData({ ...formData, override_month: e.target.value })}
+                    className="flex-1 rounded border border-green-300 px-2 py-1.5 text-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                    placeholder="Mois"
+                  />
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.override_amount}
+                    onChange={(e) => setFormData({ ...formData, override_amount: e.target.value })}
+                    className="w-32 rounded border border-green-300 px-2 py-1.5 text-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                    placeholder="Montant"
+                  />
+                  <button
+                    type="button"
+                    onClick={addMonthlyOverride}
+                    disabled={!formData.override_month || !formData.override_amount}
+                    className="rounded bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Ajouter
+                  </button>
+                </div>
               </div>
             </div>
 

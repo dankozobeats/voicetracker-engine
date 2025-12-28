@@ -160,6 +160,7 @@ export interface SupabaseRecurringChargeRecord {
   start_month: string; // YYYY-MM
   end_month: string | null; // YYYY-MM
   excluded_months?: string[]; // Array of YYYY-MM months to skip
+  monthly_overrides?: Record<string, number>; // Custom amounts for specific months {"2025-12": 150}
   created_at?: string;
 }
 

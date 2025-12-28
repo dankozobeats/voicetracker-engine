@@ -131,10 +131,13 @@ const activeRecurringCharges = (
     // Skip if this month is in the excluded months list
     if (charge.excludedMonths && charge.excludedMonths.includes(month)) return;
 
+    // Use monthly override if defined for this month, otherwise use base amount
+    const amount = charge.monthlyOverrides?.[month] ?? charge.amount;
+
     if (charge.type === 'INCOME') {
-      income += charge.amount;
+      income += amount;
     } else {
-      expenses += charge.amount;
+      expenses += amount;
     }
   });
 

@@ -54,6 +54,7 @@ export const supabaseRecurringChargeToEngine = (
   startMonth: record.start_month,
   endMonth: record.end_month ?? undefined,
   excludedMonths: record.excluded_months ?? undefined,
+  monthlyOverrides: record.monthly_overrides ?? undefined,
 });
 
 /**

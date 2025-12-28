@@ -24,6 +24,7 @@ export interface RecurringCharge {
   startMonth: string; // YYYY-MM
   endMonth?: string; // YYYY-MM
   excludedMonths?: string[]; // Array of YYYY-MM months to skip
+  monthlyOverrides?: Record<string, number>; // Custom amounts for specific months {"2025-12": 150}
 }
 
 export interface CeilingRule {
