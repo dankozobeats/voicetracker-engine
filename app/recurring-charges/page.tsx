@@ -74,6 +74,10 @@ export default function RecurringChargesPage() {
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [showExcludedMonthsPicker, setShowExcludedMonthsPicker] = useState(false);
+  const [showMonthlyOverridesSection, setShowMonthlyOverridesSection] = useState(false);
+  const [showRemindersSection, setShowRemindersSection] = useState(false);
+  const [overrideYear, setOverrideYear] = useState(new Date().getFullYear());
+  const [reminderYear, setReminderYear] = useState(new Date().getFullYear());
 
   const fetchCharges = async () => {
     try {
@@ -325,6 +329,18 @@ export default function RecurringChargesPage() {
       ...formData,
       reminders: formData.reminders.map((r) => (r.id === id ? { ...r, dismissed: true } : r)),
     });
+  };
+
+  const handleOverrideMonthClick = (month: number) => {
+    const monthStr = String(month + 1).padStart(2, '0');
+    const yearMonth = `${overrideYear}-${monthStr}`;
+    setFormData({ ...formData, override_month: yearMonth });
+  };
+
+  const handleReminderMonthClick = (month: number) => {
+    const monthStr = String(month + 1).padStart(2, '0');
+    const yearMonth = `${reminderYear}-${monthStr}`;
+    setFormData({ ...formData, reminder_month: yearMonth });
   };
 
   // Filtrer les charges
@@ -1030,141 +1046,255 @@ export default function RecurringChargesPage() {
 
               {/* Montants variables par mois */}
               <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                <div className="flex items-center justify-between mb-2">
+                <div
+                  onClick={() => setShowMonthlyOverridesSection(!showMonthlyOverridesSection)}
+                  className="flex items-center justify-between cursor-pointer hover:opacity-80"
+                >
                   <span className="text-sm font-medium text-slate-700">Montants variables (optionnel)</span>
-                  {Object.keys(formData.monthly_overrides).length > 0 && (
-                    <span className="text-xs bg-green-200 text-green-900 px-2 py-0.5 rounded-full font-medium">
-                      {Object.keys(formData.monthly_overrides).length}
-                    </span>
-                  )}
-                </div>
-
-                <p className="text-xs text-green-800 mb-3">
-                  Le dernier montant défini reste actif pour les mois suivants (ex: augmentation de salaire, nouveau loyer)
-                </p>
-
-                {Object.keys(formData.monthly_overrides).length > 0 && (
-                  <div className="mb-3 flex flex-wrap gap-1">
-                    {Object.entries(formData.monthly_overrides)
-                      .sort(([a], [b]) => a.localeCompare(b))
-                      .map(([month, amount]) => (
-                        <span
-                          key={month}
-                          className="inline-flex items-center gap-1 rounded bg-green-200 px-2 py-1 text-xs font-medium text-green-900"
-                        >
-                          {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}:{' '}
-                          {formatCurrency(amount)}
-                          <button
-                            type="button"
-                            onClick={() => removeMonthlyOverride(month)}
-                            className="hover:text-green-950 ml-1"
-                          >
-                            ✕
-                          </button>
-                        </span>
-                      ))}
+                  <div className="flex items-center gap-2">
+                    {Object.keys(formData.monthly_overrides).length > 0 && (
+                      <span className="text-xs bg-green-200 text-green-900 px-2 py-0.5 rounded-full font-medium">
+                        {Object.keys(formData.monthly_overrides).length}
+                      </span>
+                    )}
+                    <svg
+                      className={`h-4 w-4 transition-transform ${showMonthlyOverridesSection ? 'rotate-180' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
                   </div>
-                )}
-
-                <div className="flex gap-2">
-                  <input
-                    type="month"
-                    value={formData.override_month}
-                    onChange={(e) => setFormData({ ...formData, override_month: e.target.value })}
-                    className="flex-1 rounded border border-green-300 px-2 py-1.5 text-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
-                    placeholder="Mois"
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.override_amount}
-                    onChange={(e) => setFormData({ ...formData, override_amount: e.target.value })}
-                    className="w-32 rounded border border-green-300 px-2 py-1.5 text-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
-                    placeholder="Montant"
-                  />
-                  <button
-                    type="button"
-                    onClick={addMonthlyOverride}
-                    disabled={!formData.override_month || !formData.override_amount}
-                    className="rounded bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Ajouter
-                  </button>
                 </div>
+
+                {showMonthlyOverridesSection && (
+                  <>
+                    <p className="text-xs text-green-800 mb-3 mt-2">
+                      Le dernier montant défini reste actif pour les mois suivants (ex: augmentation de salaire, nouveau loyer)
+                    </p>
+
+                    {Object.keys(formData.monthly_overrides).length > 0 && (
+                      <div className="mb-3 flex flex-wrap gap-1">
+                        {Object.entries(formData.monthly_overrides)
+                          .sort(([a], [b]) => a.localeCompare(b))
+                          .map(([month, amount]) => (
+                            <span
+                              key={month}
+                              className="inline-flex items-center gap-1 rounded bg-green-200 px-2 py-1 text-xs font-medium text-green-900"
+                            >
+                              {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}:{' '}
+                              {formatCurrency(amount)}
+                              <button
+                                type="button"
+                                onClick={() => removeMonthlyOverride(month)}
+                                className="hover:text-green-950 ml-1"
+                              >
+                                ✕
+                              </button>
+                            </span>
+                          ))}
+                      </div>
+                    )}
+
+                    <div className="space-y-2 mb-3">
+                      <div className="flex items-center justify-center gap-3 py-1">
+                        <button
+                          type="button"
+                          onClick={() => setOverrideYear(overrideYear - 1)}
+                          className="rounded p-1 hover:bg-green-200 text-slate-600"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                          </svg>
+                        </button>
+                        <span className="text-sm font-semibold text-slate-900 min-w-[60px] text-center">{overrideYear}</span>
+                        <button
+                          type="button"
+                          onClick={() => setOverrideYear(overrideYear + 1)}
+                          className="rounded p-1 hover:bg-green-200 text-slate-600"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'].map((monthName, index) => {
+                          const monthStr = String(index + 1).padStart(2, '0');
+                          const yearMonth = `${overrideYear}-${monthStr}`;
+                          const isSelected = formData.override_month === yearMonth;
+
+                          return (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => handleOverrideMonthClick(index)}
+                              className={`rounded px-2 py-1.5 text-xs font-medium transition-colors ${
+                                isSelected
+                                  ? 'bg-green-500 text-white shadow-sm'
+                                  : 'bg-white border border-green-300 text-slate-700 hover:bg-green-100'
+                              }`}
+                            >
+                              {monthName}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.override_amount}
+                        onChange={(e) => setFormData({ ...formData, override_amount: e.target.value })}
+                        className="flex-1 rounded border border-green-300 px-2 py-1.5 text-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                        placeholder="Montant pour le mois sélectionné"
+                      />
+                      <button
+                        type="button"
+                        onClick={addMonthlyOverride}
+                        disabled={!formData.override_month || !formData.override_amount}
+                        className="rounded bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Ajouter
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Rappels */}
               <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
-                <div className="flex items-center justify-between mb-2">
+                <div
+                  onClick={() => setShowRemindersSection(!showRemindersSection)}
+                  className="flex items-center justify-between cursor-pointer hover:opacity-80"
+                >
                   <span className="text-sm font-medium text-slate-700">Rappels (optionnel)</span>
-                  {formData.reminders.filter((r) => !r.dismissed).length > 0 && (
-                    <span className="text-xs bg-orange-200 text-orange-900 px-2 py-0.5 rounded-full font-medium">
-                      {formData.reminders.filter((r) => !r.dismissed).length}
-                    </span>
-                  )}
-                </div>
-
-                <p className="text-xs text-orange-800 mb-3">
-                  Créez des rappels pour ne pas oublier de mettre à jour cette charge à une date précise
-                </p>
-
-                {formData.reminders.filter((r) => !r.dismissed).length > 0 && (
-                  <div className="mb-3 space-y-2">
-                    {formData.reminders
-                      .filter((r) => !r.dismissed)
-                      .sort((a, b) => a.month.localeCompare(b.month))
-                      .map((reminder) => (
-                        <div
-                          key={reminder.id}
-                          className="flex items-start gap-2 rounded bg-orange-100 px-3 py-2 text-xs"
-                        >
-                          <div className="flex-1">
-                            <div className="font-medium text-orange-900">
-                              {new Date(reminder.month + '-01').toLocaleDateString('fr-FR', {
-                                month: 'long',
-                                year: 'numeric',
-                              })}
-                            </div>
-                            <div className="text-orange-800 mt-0.5">{reminder.note}</div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeReminder(reminder.id)}
-                            className="text-orange-600 hover:text-orange-900 font-medium"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
+                  <div className="flex items-center gap-2">
+                    {formData.reminders.filter((r) => !r.dismissed).length > 0 && (
+                      <span className="text-xs bg-orange-200 text-orange-900 px-2 py-0.5 rounded-full font-medium">
+                        {formData.reminders.filter((r) => !r.dismissed).length}
+                      </span>
+                    )}
+                    <svg
+                      className={`h-4 w-4 transition-transform ${showRemindersSection ? 'rotate-180' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
                   </div>
-                )}
-
-                <div className="flex gap-2">
-                  <input
-                    type="month"
-                    value={formData.reminder_month}
-                    onChange={(e) => setFormData({ ...formData, reminder_month: e.target.value })}
-                    className="w-40 rounded border border-orange-300 px-2 py-1.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-orange-500"
-                    placeholder="Mois"
-                  />
-                  <input
-                    type="text"
-                    value={formData.reminder_note}
-                    onChange={(e) => setFormData({ ...formData, reminder_note: e.target.value })}
-                    className="flex-1 rounded border border-orange-300 px-2 py-1.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-orange-500"
-                    placeholder="Note (ex: Augmentation de loyer)"
-                    maxLength={100}
-                  />
-                  <button
-                    type="button"
-                    onClick={addReminder}
-                    disabled={!formData.reminder_month || !formData.reminder_note.trim()}
-                    className="rounded bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Ajouter
-                  </button>
                 </div>
+
+                {showRemindersSection && (
+                  <>
+                    <p className="text-xs text-orange-800 mb-3 mt-2">
+                      Créez des rappels pour ne pas oublier de mettre à jour cette charge à une date précise
+                    </p>
+
+                    {formData.reminders.filter((r) => !r.dismissed).length > 0 && (
+                      <div className="mb-3 space-y-2">
+                        {formData.reminders
+                          .filter((r) => !r.dismissed)
+                          .sort((a, b) => a.month.localeCompare(b.month))
+                          .map((reminder) => (
+                            <div
+                              key={reminder.id}
+                              className="flex items-start gap-2 rounded bg-orange-100 px-3 py-2 text-xs"
+                            >
+                              <div className="flex-1">
+                                <div className="font-medium text-orange-900">
+                                  {new Date(reminder.month + '-01').toLocaleDateString('fr-FR', {
+                                    month: 'long',
+                                    year: 'numeric',
+                                  })}
+                                </div>
+                                <div className="text-orange-800 mt-0.5">{reminder.note}</div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeReminder(reminder.id)}
+                                className="text-orange-600 hover:text-orange-900 font-medium"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+
+                    <div className="space-y-2 mb-3">
+                      <div className="flex items-center justify-center gap-3 py-1">
+                        <button
+                          type="button"
+                          onClick={() => setReminderYear(reminderYear - 1)}
+                          className="rounded p-1 hover:bg-orange-200 text-slate-600"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                          </svg>
+                        </button>
+                        <span className="text-sm font-semibold text-slate-900 min-w-[60px] text-center">{reminderYear}</span>
+                        <button
+                          type="button"
+                          onClick={() => setReminderYear(reminderYear + 1)}
+                          className="rounded p-1 hover:bg-orange-200 text-slate-600"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'].map((monthName, index) => {
+                          const monthStr = String(index + 1).padStart(2, '0');
+                          const yearMonth = `${reminderYear}-${monthStr}`;
+                          const isSelected = formData.reminder_month === yearMonth;
+
+                          return (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => handleReminderMonthClick(index)}
+                              className={`rounded px-2 py-1.5 text-xs font-medium transition-colors ${
+                                isSelected
+                                  ? 'bg-orange-500 text-white shadow-sm'
+                                  : 'bg-white border border-orange-300 text-slate-700 hover:bg-orange-100'
+                              }`}
+                            >
+                              {monthName}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={formData.reminder_note}
+                        onChange={(e) => setFormData({ ...formData, reminder_note: e.target.value })}
+                        className="flex-1 rounded border border-orange-300 px-2 py-1.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-orange-500"
+                        placeholder="Note pour le mois sélectionné (ex: Augmentation de loyer)"
+                        maxLength={100}
+                      />
+                      <button
+                        type="button"
+                        onClick={addReminder}
+                        disabled={!formData.reminder_month || !formData.reminder_note.trim()}
+                        className="rounded bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Ajouter
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
