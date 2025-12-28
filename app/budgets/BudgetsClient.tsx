@@ -19,10 +19,13 @@ interface BudgetsData {
   trends: CategoryBudgetTrendResult[];
 }
 
+type TabType = 'monthly' | 'rolling' | 'multi' | 'trends';
+
 export const BudgetsClient = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [budgets, setBudgets] = useState<BudgetsData | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('monthly');
 
   useEffect(() => {
     const fetchBudgets = async () => {
@@ -121,14 +124,81 @@ export const BudgetsClient = () => {
     );
   }
 
+  const tabs = [
+    {
+      id: 'monthly' as TabType,
+      label: 'Budgets mensuels',
+      count: budgets.categoryBudgets.length,
+      icon: '📊',
+    },
+    {
+      id: 'rolling' as TabType,
+      label: 'Budgets glissants',
+      count: budgets.rollingBudgets.length,
+      icon: '📈',
+    },
+    {
+      id: 'multi' as TabType,
+      label: 'Budgets multi-mois',
+      count: budgets.multiMonthBudgets.length,
+      icon: '📅',
+    },
+    {
+      id: 'trends' as TabType,
+      label: 'Évolution',
+      count: budgets.trends.length,
+      icon: '📉',
+    },
+  ];
+
   return (
-    <div className="space-y-8">
-      <CategoryBudgetsPanel budgets={budgets.categoryBudgets} />
-      <RollingBudgetsPanel budgets={budgets.rollingBudgets} />
-      <MultiMonthBudgetsPanel budgets={budgets.multiMonthBudgets} />
-      {budgets.trends && budgets.trends.length > 0 && (
-        <BudgetTrendsPanel trends={budgets.trends} />
-      )}
+    <div className="space-y-6">
+      {/* Tab Navigation */}
+      <div className="border-b border-slate-200">
+        <nav className="-mb-px flex space-x-8 overflow-x-auto" aria-label="Tabs">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`
+                whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors
+                ${
+                  activeTab === tab.id
+                    ? 'border-slate-900 text-slate-900'
+                    : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                }
+              `}
+            >
+              <span className="flex items-center gap-2">
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
+                {tab.count > 0 && (
+                  <span
+                    className={`
+                      rounded-full px-2 py-0.5 text-xs font-semibold
+                      ${
+                        activeTab === tab.id
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-slate-100 text-slate-600'
+                      }
+                    `}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </span>
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Tab Content */}
+      <div>
+        {activeTab === 'monthly' && <CategoryBudgetsPanel budgets={budgets.categoryBudgets} />}
+        {activeTab === 'rolling' && <RollingBudgetsPanel budgets={budgets.rollingBudgets} />}
+        {activeTab === 'multi' && <MultiMonthBudgetsPanel budgets={budgets.multiMonthBudgets} />}
+        {activeTab === 'trends' && <BudgetTrendsPanel trends={budgets.trends} />}
+      </div>
     </div>
   );
 };
