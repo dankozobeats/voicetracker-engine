@@ -904,7 +904,7 @@ export default function RecurringChargesPage() {
                 </div>
 
                 <p className="text-xs text-green-800 mb-3">
-                  Définir des montants différents pour certains mois (ex: prime de fin d'année, facture variable)
+                  Le dernier montant défini reste actif pour les mois suivants (ex: augmentation de salaire, nouveau loyer)
                 </p>
 
                 {Object.keys(formData.monthly_overrides).length > 0 && (

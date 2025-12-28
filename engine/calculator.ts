@@ -117,6 +117,34 @@ const collectDeferredResolutions = (
 const monthlyTransactions = (transactions: Transaction[], month: string): Transaction[] =>
   transactions.filter((transaction) => monthFromDate(transaction.date) === month);
 
+/**
+ * Finds the most recent override amount that applies to the given month.
+ * If an override exists for the exact month, use it.
+ * Otherwise, use the last chronologically defined override before this month.
+ * Falls back to the base amount if no overrides are defined.
+ */
+const getEffectiveAmount = (
+  charge: RecurringCharge,
+  month: string,
+): number => {
+  if (!charge.monthlyOverrides || Object.keys(charge.monthlyOverrides).length === 0) {
+    return charge.amount;
+  }
+
+  // Check for exact match first
+  if (charge.monthlyOverrides[month] !== undefined) {
+    return charge.monthlyOverrides[month];
+  }
+
+  // Find all overrides before or equal to current month, sorted chronologically
+  const applicableOverrides = Object.entries(charge.monthlyOverrides)
+    .filter(([overrideMonth]) => overrideMonth <= month)
+    .sort(([a], [b]) => b.localeCompare(a)); // Descending order (most recent first)
+
+  // Use the most recent override, or fall back to base amount
+  return applicableOverrides.length > 0 ? applicableOverrides[0][1] : charge.amount;
+};
+
 const activeRecurringCharges = (
   recurringCharges: RecurringCharge[],
   account: ProjectionInput['account'],
@@ -131,8 +159,8 @@ const activeRecurringCharges = (
     // Skip if this month is in the excluded months list
     if (charge.excludedMonths && charge.excludedMonths.includes(month)) return;
 
-    // Use monthly override if defined for this month, otherwise use base amount
-    const amount = charge.monthlyOverrides?.[month] ?? charge.amount;
+    // Use the effective amount (last override or base amount)
+    const amount = getEffectiveAmount(charge, month);
 
     if (charge.type === 'INCOME') {
       income += amount;
