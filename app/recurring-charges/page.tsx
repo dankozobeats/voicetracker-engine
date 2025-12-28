@@ -1469,22 +1469,78 @@ export default function RecurringChargesPage() {
                         )}
                       </div>
 
-                      {/* Monthly overrides - always visible */}
-                      {Object.keys(charge.monthly_overrides).length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          {Object.entries(charge.monthly_overrides)
-                            .sort(([a], [b]) => a.localeCompare(b))
-                            .map(([month, amount]) => (
-                              <span
+                      {/* Mini-Timeline - Visual 6-month forecast */}
+                      <div className="mt-3 border-t border-slate-100 pt-3">
+                        <div className="text-[10px] font-medium text-slate-500 mb-1.5">6 prochains mois</div>
+                        <div className="grid grid-cols-6 gap-1">
+                          {(() => {
+                            const today = new Date();
+                            const timeline = [];
+
+                            for (let i = 0; i < 6; i++) {
+                              const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
+                              const monthStr = date.toISOString().slice(0, 7);
+
+                              // Check if month is excluded
+                              const isExcluded = charge.excluded_months?.includes(monthStr);
+
+                              // Check if month has reminder
+                              const hasReminder = charge.reminders?.some((r) => !r.dismissed && r.month === monthStr);
+
+                              // Find effective amount (cumulative override logic)
+                              let effectiveAmount = charge.amount;
+                              let isOverride = false;
+
+                              if (charge.monthly_overrides) {
+                                const sortedOverrides = Object.entries(charge.monthly_overrides)
+                                  .sort(([a], [b]) => a.localeCompare(b));
+
+                                for (const [overrideMonth, overrideAmount] of sortedOverrides) {
+                                  if (overrideMonth <= monthStr) {
+                                    effectiveAmount = overrideAmount;
+                                    isOverride = overrideMonth === monthStr;
+                                  }
+                                }
+                              }
+
+                              timeline.push({
+                                month: monthStr,
+                                monthName: date.toLocaleDateString('fr-FR', { month: 'short' }),
+                                amount: effectiveAmount,
+                                isExcluded,
+                                isOverride,
+                                hasReminder,
+                              });
+                            }
+
+                            return timeline.map(({ month, monthName, amount, isExcluded, isOverride, hasReminder }) => (
+                              <div
                                 key={month}
-                                className="inline-flex items-center gap-1.5 rounded bg-green-200 px-2 py-1 text-xs font-medium text-green-900"
+                                className="relative group"
+                                title={`${monthName}: ${isExcluded ? 'Suspendu' : formatCurrency(amount)}${isOverride ? ' (override)' : ''}${hasReminder ? ' [Rappel]' : ''}`}
                               >
-                                {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}
-                                <span className="font-semibold">{formatCurrency(amount)}</span>
-                              </span>
-                            ))}
+                                <div className="text-[9px] text-center text-slate-500 mb-0.5 uppercase">
+                                  {monthName}
+                                </div>
+                                <div
+                                  className={`h-8 rounded text-[10px] font-semibold flex items-center justify-center relative ${
+                                    isExcluded
+                                      ? 'bg-amber-200 text-amber-900 line-through'
+                                      : isOverride
+                                      ? 'bg-green-500 text-white shadow-sm'
+                                      : 'bg-green-100 text-green-900'
+                                  }`}
+                                >
+                                  {isExcluded ? '—' : `${Math.round(amount)}€`}
+                                  {hasReminder && !isExcluded && (
+                                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full border border-white" />
+                                  )}
+                                </div>
+                              </div>
+                            ));
+                          })()}
                         </div>
-                      )}
+                      </div>
                     </div>
                     <div className="flex gap-2">
                       <button
