@@ -148,6 +148,16 @@ export interface SupabaseTransactionRecord {
 }
 
 /**
+ * Reminder for a recurring charge
+ */
+export interface RecurringChargeReminder {
+  id: string; // uuid
+  month: string; // YYYY-MM - when to show the reminder
+  note: string; // User's note about what to update
+  dismissed: boolean; // Whether user has dismissed this reminder
+}
+
+/**
  * Recurring charge record from Supabase
  */
 export interface SupabaseRecurringChargeRecord {
@@ -161,6 +171,7 @@ export interface SupabaseRecurringChargeRecord {
   end_month: string | null; // YYYY-MM
   excluded_months?: string[]; // Array of YYYY-MM months to skip
   monthly_overrides?: Record<string, number>; // Custom amounts for specific months {"2025-12": 150}
+  reminders?: RecurringChargeReminder[]; // Reminders to update this charge
   created_at?: string;
 }
 

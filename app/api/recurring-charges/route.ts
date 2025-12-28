@@ -8,7 +8,7 @@ import {
   parseJsonBody,
 } from '@/lib/api/validators';
 
-const SELECT_COLUMNS = 'id,user_id,label,amount,account,type,start_month,end_month,excluded_months,monthly_overrides,created_at';
+const SELECT_COLUMNS = 'id,user_id,label,amount,account,type,start_month,end_month,excluded_months,monthly_overrides,reminders,created_at';
 
 const jsonError = (message: string, status = 400) =>
   NextResponse.json({ error: message }, { status });
@@ -24,6 +24,7 @@ const sanitizeRecurringCharge = (record: Record<string, unknown>) => ({
   end_date: record.end_month,
   excluded_months: record.excluded_months ?? [],
   monthly_overrides: record.monthly_overrides ?? {},
+  reminders: record.reminders ?? [],
   created_at: record.created_at,
 });
 
@@ -88,6 +89,7 @@ export async function POST(request: NextRequest) {
     const endMonth = normalizeOptionalMonth(payload.end_date, 'end_date');
     const excludedMonths = (payload.excluded_months as string[]) || [];
     const monthlyOverrides = (payload.monthly_overrides as Record<string, number>) || {};
+    const reminders = (payload.reminders as Array<Record<string, unknown>>) || [];
 
     console.log('[recurring-charges][POST] Validated:', {
       label,
@@ -98,6 +100,7 @@ export async function POST(request: NextRequest) {
       endMonth,
       excludedMonths,
       monthlyOverrides,
+      reminders,
     });
 
     if (!['SG', 'FLOA'].includes(account)) {
@@ -133,6 +136,7 @@ export async function POST(request: NextRequest) {
         end_month: endMonth,
         excluded_months: excludedMonths,
         monthly_overrides: monthlyOverrides,
+        reminders,
       })
       .select(SELECT_COLUMNS)
       .single();
@@ -188,6 +192,7 @@ export async function PUT(request: NextRequest) {
     const endMonth = normalizeOptionalMonth(payload.end_date, 'end_date');
     const excludedMonths = (payload.excluded_months as string[]) || [];
     const monthlyOverrides = (payload.monthly_overrides as Record<string, number>) || {};
+    const reminders = (payload.reminders as Array<Record<string, unknown>>) || [];
 
     console.log('[recurring-charges][PUT] Validated:', {
       label,
@@ -198,6 +203,7 @@ export async function PUT(request: NextRequest) {
       endMonth,
       excludedMonths,
       monthlyOverrides,
+      reminders,
     });
 
     if (!['SG', 'FLOA'].includes(account)) {
@@ -232,6 +238,7 @@ export async function PUT(request: NextRequest) {
         end_month: endMonth,
         excluded_months: excludedMonths,
         monthly_overrides: monthlyOverrides,
+        reminders,
       })
       .eq('id', id)
       .eq('user_id', user.id)

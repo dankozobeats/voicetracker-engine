@@ -4,6 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { formatCurrency } from '@/lib/format';
 
+interface Reminder {
+  id: string;
+  month: string;
+  note: string;
+  dismissed: boolean;
+}
+
 interface RecurringCharge {
   id: string;
   label: string;
@@ -14,6 +21,7 @@ interface RecurringCharge {
   end_date: string | null;
   excluded_months: string[];
   monthly_overrides: Record<string, number>;
+  reminders: Reminder[];
 }
 
 interface FormData {
@@ -28,6 +36,9 @@ interface FormData {
   monthly_overrides: Record<string, number>;
   override_month: string;
   override_amount: string;
+  reminders: Reminder[];
+  reminder_month: string;
+  reminder_note: string;
 }
 
 export default function RecurringChargesPage() {
@@ -48,6 +59,9 @@ export default function RecurringChargesPage() {
     monthly_overrides: {},
     override_month: '',
     override_amount: '',
+    reminders: [],
+    reminder_month: '',
+    reminder_note: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [filterType, setFilterType] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
@@ -106,6 +120,9 @@ export default function RecurringChargesPage() {
       monthly_overrides: charge.monthly_overrides || {},
       override_month: '',
       override_amount: '',
+      reminders: charge.reminders || [],
+      reminder_month: '',
+      reminder_note: '',
     });
     setShowForm(true);
   };
@@ -124,6 +141,9 @@ export default function RecurringChargesPage() {
       monthly_overrides: {},
       override_month: '',
       override_amount: '',
+      reminders: [],
+      reminder_month: '',
+      reminder_note: '',
     });
     setShowForm(false);
   };
@@ -152,6 +172,7 @@ export default function RecurringChargesPage() {
           end_date: formData.end_date || null,
           excluded_months: formData.excluded_months,
           monthly_overrides: formData.monthly_overrides,
+          reminders: formData.reminders,
         }),
       });
 
@@ -173,6 +194,9 @@ export default function RecurringChargesPage() {
         monthly_overrides: {},
         override_month: '',
         override_amount: '',
+        reminders: [],
+        reminder_month: '',
+        reminder_note: '',
       });
       setEditingId(null);
       setShowForm(false);
@@ -271,6 +295,38 @@ export default function RecurringChargesPage() {
     });
   };
 
+  const addReminder = () => {
+    if (!formData.reminder_month || !formData.reminder_note.trim()) return;
+
+    const newReminder: Reminder = {
+      id: crypto.randomUUID(),
+      month: formData.reminder_month,
+      note: formData.reminder_note.trim(),
+      dismissed: false,
+    };
+
+    setFormData({
+      ...formData,
+      reminders: [...formData.reminders, newReminder].sort((a, b) => a.month.localeCompare(b.month)),
+      reminder_month: '',
+      reminder_note: '',
+    });
+  };
+
+  const removeReminder = (id: string) => {
+    setFormData({
+      ...formData,
+      reminders: formData.reminders.filter((r) => r.id !== id),
+    });
+  };
+
+  const dismissReminder = (id: string) => {
+    setFormData({
+      ...formData,
+      reminders: formData.reminders.map((r) => (r.id === id ? { ...r, dismissed: true } : r)),
+    });
+  };
+
   // Filtrer les charges
   const filteredCharges = charges.filter((charge) => {
     if (filterType !== 'ALL' && charge.type !== filterType) return false;
@@ -294,9 +350,23 @@ export default function RecurringChargesPage() {
     floa: filteredCharges.filter((c) => c.account === 'FLOA').length,
   };
 
-  // Récapitulatif des suspensions
+  // Récapitulatif des suspensions et rappels
   const getCurrentMonth = () => new Date().toISOString().slice(0, 7); // YYYY-MM
   const currentMonth = getCurrentMonth();
+
+  // Collecter tous les rappels actifs pour ce mois
+  const activeReminders = charges
+    .filter((charge) => charge.reminders && charge.reminders.length > 0)
+    .flatMap((charge) =>
+      charge.reminders
+        .filter((reminder) => !reminder.dismissed && reminder.month === currentMonth)
+        .map((reminder) => ({
+          ...reminder,
+          chargeId: charge.id,
+          chargeLabel: charge.label,
+        }))
+    )
+    .sort((a, b) => a.chargeLabel.localeCompare(b.chargeLabel));
 
   const suspendedCharges = charges
     .filter((charge) => charge.excluded_months && charge.excluded_months.length > 0)
@@ -396,6 +466,72 @@ export default function RecurringChargesPage() {
             </p>
           </div>
         </div>
+
+        {/* Rappels actifs pour ce mois */}
+        {activeReminders.length > 0 && (
+          <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <svg className="h-5 w-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              <h3 className="text-sm font-semibold text-orange-900">
+                Rappels actifs pour {new Date(currentMonth + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })} ({activeReminders.length})
+              </h3>
+            </div>
+            <div className="space-y-2">
+              {activeReminders.map((reminder) => (
+                <div
+                  key={reminder.id}
+                  className="flex items-start justify-between rounded-lg bg-white border border-orange-200 p-3"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-slate-900">{reminder.chargeLabel}</span>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-600">{reminder.note}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const charge = charges.find((c) => c.id === reminder.chargeId);
+                        if (charge) startEdit(charge);
+                      }}
+                      className="rounded-md bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700"
+                    >
+                      Modifier
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const charge = charges.find((c) => c.id === reminder.chargeId);
+                        if (!charge) return;
+
+                        const updatedReminders = charge.reminders.map((r) =>
+                          r.id === reminder.id ? { ...r, dismissed: true } : r
+                        );
+
+                        await fetch(`/api/recurring-charges?id=${charge.id}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            ...charge,
+                            start_date: charge.start_date,
+                            end_date: charge.end_date || null,
+                            reminders: updatedReminders,
+                          }),
+                        });
+
+                        await fetchCharges();
+                      }}
+                      className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      Ignorer
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Récapitulatif des suspensions - Collapsible */}
         {suspendedCharges.length > 0 && (
@@ -957,6 +1093,79 @@ export default function RecurringChargesPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Rappels */}
+              <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-slate-700">Rappels (optionnel)</span>
+                  {formData.reminders.filter((r) => !r.dismissed).length > 0 && (
+                    <span className="text-xs bg-orange-200 text-orange-900 px-2 py-0.5 rounded-full font-medium">
+                      {formData.reminders.filter((r) => !r.dismissed).length}
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-xs text-orange-800 mb-3">
+                  Créez des rappels pour ne pas oublier de mettre à jour cette charge à une date précise
+                </p>
+
+                {formData.reminders.filter((r) => !r.dismissed).length > 0 && (
+                  <div className="mb-3 space-y-2">
+                    {formData.reminders
+                      .filter((r) => !r.dismissed)
+                      .sort((a, b) => a.month.localeCompare(b.month))
+                      .map((reminder) => (
+                        <div
+                          key={reminder.id}
+                          className="flex items-start gap-2 rounded bg-orange-100 px-3 py-2 text-xs"
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium text-orange-900">
+                              {new Date(reminder.month + '-01').toLocaleDateString('fr-FR', {
+                                month: 'long',
+                                year: 'numeric',
+                              })}
+                            </div>
+                            <div className="text-orange-800 mt-0.5">{reminder.note}</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeReminder(reminder.id)}
+                            className="text-orange-600 hover:text-orange-900 font-medium"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <input
+                    type="month"
+                    value={formData.reminder_month}
+                    onChange={(e) => setFormData({ ...formData, reminder_month: e.target.value })}
+                    className="w-40 rounded border border-orange-300 px-2 py-1.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-orange-500"
+                    placeholder="Mois"
+                  />
+                  <input
+                    type="text"
+                    value={formData.reminder_note}
+                    onChange={(e) => setFormData({ ...formData, reminder_note: e.target.value })}
+                    className="flex-1 rounded border border-orange-300 px-2 py-1.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-orange-500"
+                    placeholder="Note (ex: Augmentation de loyer)"
+                    maxLength={100}
+                  />
+                  <button
+                    type="button"
+                    onClick={addReminder}
+                    disabled={!formData.reminder_month || !formData.reminder_note.trim()}
+                    className="rounded bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Ajouter
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end gap-4">
@@ -1044,6 +1253,22 @@ export default function RecurringChargesPage() {
                         {charge.excluded_months.includes(currentMonth) && (
                           <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
                             dont ce mois-ci
+                          </span>
+                        )}
+                      </span>
+                    )}
+                    {charge.reminders && charge.reminders.filter((r) => !r.dismissed).length > 0 && (
+                      <span className="inline-flex items-center gap-1">
+                        <span className="text-xs text-slate-500">·</span>
+                        <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800">
+                          <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                          </svg>
+                          {charge.reminders.filter((r) => !r.dismissed).length} rappel{charge.reminders.filter((r) => !r.dismissed).length > 1 ? 's' : ''}
+                        </span>
+                        {charge.reminders.some((r) => !r.dismissed && r.month === currentMonth) && (
+                          <span className="inline-flex items-center rounded-full bg-orange-200 px-2 py-0.5 text-xs font-medium text-orange-900">
+                            ce mois-ci
                           </span>
                         )}
                       </span>
