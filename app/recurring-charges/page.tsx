@@ -49,6 +49,8 @@ export default function RecurringChargesPage() {
   const [showSuspensionsSummary, setShowSuspensionsSummary] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [startDateYear, setStartDateYear] = useState(new Date().getFullYear());
+  const [endDateYear, setEndDateYear] = useState(new Date().getFullYear());
 
   const fetchCharges = async () => {
     try {
@@ -208,6 +210,22 @@ export default function RecurringChargesPage() {
       });
     }
     setSelectedMonth(null);
+  };
+
+  const handleStartDateClick = (month: number) => {
+    const monthStr = String(month + 1).padStart(2, '0');
+    const yearMonth = `${startDateYear}-${monthStr}`;
+    setFormData({ ...formData, start_date: yearMonth });
+  };
+
+  const handleEndDateClick = (month: number) => {
+    const monthStr = String(month + 1).padStart(2, '0');
+    const yearMonth = `${endDateYear}-${monthStr}`;
+    setFormData({ ...formData, end_date: yearMonth });
+  };
+
+  const clearEndDate = () => {
+    setFormData({ ...formData, end_date: '' });
   };
 
   // Filtrer les charges
@@ -567,33 +585,135 @@ export default function RecurringChargesPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="start_date" className="block text-sm font-medium text-slate-700">
-                  Début <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="month"
-                  id="start_date"
-                  required
-                  value={formData.start_date}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                  className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
-                />
+            {/* Date de début */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Début <span className="text-red-500">*</span>
+              </label>
+
+              {/* Sélecteur d'année pour date de début */}
+              <div className="flex items-center justify-between mb-3 bg-slate-50 p-2 rounded-md">
+                <button
+                  type="button"
+                  onClick={() => setStartDateYear(startDateYear - 1)}
+                  className="rounded-md p-1 hover:bg-slate-200 text-slate-600"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span className="text-sm font-semibold text-slate-900">{startDateYear}</span>
+                <button
+                  type="button"
+                  onClick={() => setStartDateYear(startDateYear + 1)}
+                  className="rounded-md p-1 hover:bg-slate-200 text-slate-600"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
               </div>
 
-              <div>
-                <label htmlFor="end_date" className="block text-sm font-medium text-slate-700">
+              {/* Grille des mois pour date de début */}
+              <div className="grid grid-cols-4 gap-2 mb-2">
+                {['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'].map((monthName, index) => {
+                  const monthStr = String(index + 1).padStart(2, '0');
+                  const yearMonth = `${startDateYear}-${monthStr}`;
+                  const isSelected = formData.start_date === yearMonth;
+
+                  return (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleStartDateClick(index)}
+                      className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                        isSelected
+                          ? 'bg-blue-500 text-white hover:bg-blue-600'
+                          : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      {monthName}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {formData.start_date && (
+                <p className="text-xs text-slate-600 mt-1">
+                  Sélectionné: {new Date(formData.start_date + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                </p>
+              )}
+            </div>
+
+            {/* Date de fin */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-slate-700">
                   Fin (optionnel)
                 </label>
-                <input
-                  type="month"
-                  id="end_date"
-                  value={formData.end_date}
-                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                  className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
-                />
+                {formData.end_date && (
+                  <button
+                    type="button"
+                    onClick={clearEndDate}
+                    className="text-xs text-slate-500 hover:text-slate-700"
+                  >
+                    Effacer
+                  </button>
+                )}
               </div>
+
+              {/* Sélecteur d'année pour date de fin */}
+              <div className="flex items-center justify-between mb-3 bg-slate-50 p-2 rounded-md">
+                <button
+                  type="button"
+                  onClick={() => setEndDateYear(endDateYear - 1)}
+                  className="rounded-md p-1 hover:bg-slate-200 text-slate-600"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span className="text-sm font-semibold text-slate-900">{endDateYear}</span>
+                <button
+                  type="button"
+                  onClick={() => setEndDateYear(endDateYear + 1)}
+                  className="rounded-md p-1 hover:bg-slate-200 text-slate-600"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Grille des mois pour date de fin */}
+              <div className="grid grid-cols-4 gap-2 mb-2">
+                {['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'].map((monthName, index) => {
+                  const monthStr = String(index + 1).padStart(2, '0');
+                  const yearMonth = `${endDateYear}-${monthStr}`;
+                  const isSelected = formData.end_date === yearMonth;
+
+                  return (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleEndDateClick(index)}
+                      className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                        isSelected
+                          ? 'bg-green-500 text-white hover:bg-green-600'
+                          : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      {monthName}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {formData.end_date && (
+                <p className="text-xs text-slate-600 mt-1">
+                  Sélectionné: {new Date(formData.end_date + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                </p>
+              )}
             </div>
 
             {/* Mois exclus */}
