@@ -48,9 +48,11 @@ export default function RecurringChargesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuspensionsSummary, setShowSuspensionsSummary] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [startDateYear, setStartDateYear] = useState(new Date().getFullYear());
   const [endDateYear, setEndDateYear] = useState(new Date().getFullYear());
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [showExcludedMonthsPicker, setShowExcludedMonthsPicker] = useState(false);
 
   const fetchCharges = async () => {
     try {
@@ -209,7 +211,6 @@ export default function RecurringChargesPage() {
         excluded_months: [...formData.excluded_months, yearMonth].sort(),
       });
     }
-    setSelectedMonth(null);
   };
 
   const handleStartDateClick = (month: number) => {
@@ -587,70 +588,100 @@ export default function RecurringChargesPage() {
 
             {/* Date de début */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Début <span className="text-red-500">*</span>
-              </label>
-
-              {/* Sélecteur d'année pour date de début */}
-              <div className="flex items-center justify-between mb-3 bg-slate-50 p-2 rounded-md">
-                <button
-                  type="button"
-                  onClick={() => setStartDateYear(startDateYear - 1)}
-                  className="rounded-md p-1 hover:bg-slate-200 text-slate-600"
+              <button
+                type="button"
+                onClick={() => setShowStartDatePicker(!showStartDatePicker)}
+                className="w-full flex items-center justify-between text-sm font-medium text-slate-700 mb-2 hover:text-slate-900"
+              >
+                <span>
+                  Début <span className="text-red-500">*</span>
+                </span>
+                <svg
+                  className={`h-5 w-5 transition-transform ${showStartDatePicker ? 'rotate-180' : ''}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <span className="text-sm font-semibold text-slate-900">{startDateYear}</span>
-                <button
-                  type="button"
-                  onClick={() => setStartDateYear(startDateYear + 1)}
-                  className="rounded-md p-1 hover:bg-slate-200 text-slate-600"
-                >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Grille des mois pour date de début */}
-              <div className="grid grid-cols-4 gap-2 mb-2">
-                {['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'].map((monthName, index) => {
-                  const monthStr = String(index + 1).padStart(2, '0');
-                  const yearMonth = `${startDateYear}-${monthStr}`;
-                  const isSelected = formData.start_date === yearMonth;
-
-                  return (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => handleStartDateClick(index)}
-                      className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                        isSelected
-                          ? 'bg-blue-500 text-white hover:bg-blue-600'
-                          : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      {monthName}
-                    </button>
-                  );
-                })}
-              </div>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
 
               {formData.start_date && (
-                <p className="text-xs text-slate-600 mt-1">
+                <p className="text-xs text-slate-600 mb-2">
                   Sélectionné: {new Date(formData.start_date + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
                 </p>
+              )}
+
+              {showStartDatePicker && (
+                <div className="space-y-3">
+                  {/* Sélecteur d'année pour date de début */}
+                  <div className="flex items-center justify-between bg-slate-50 p-2 rounded-md">
+                    <button
+                      type="button"
+                      onClick={() => setStartDateYear(startDateYear - 1)}
+                      className="rounded-md p-1 hover:bg-slate-200 text-slate-600"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <span className="text-sm font-semibold text-slate-900">{startDateYear}</span>
+                    <button
+                      type="button"
+                      onClick={() => setStartDateYear(startDateYear + 1)}
+                      className="rounded-md p-1 hover:bg-slate-200 text-slate-600"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Grille des mois pour date de début */}
+                  <div className="grid grid-cols-4 gap-2">
+                    {['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'].map((monthName, index) => {
+                      const monthStr = String(index + 1).padStart(2, '0');
+                      const yearMonth = `${startDateYear}-${monthStr}`;
+                      const isSelected = formData.start_date === yearMonth;
+
+                      return (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => handleStartDateClick(index)}
+                          className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                            isSelected
+                              ? 'bg-blue-500 text-white hover:bg-blue-600'
+                              : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          {monthName}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
             </div>
 
             {/* Date de fin */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-slate-700">
-                  Fin (optionnel)
-                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowEndDatePicker(!showEndDatePicker)}
+                  className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-900"
+                >
+                  <span>Fin (optionnel)</span>
+                  <svg
+                    className={`h-5 w-5 transition-transform ${showEndDatePicker ? 'rotate-180' : ''}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
                 {formData.end_date && (
                   <button
                     type="button"
@@ -662,118 +693,84 @@ export default function RecurringChargesPage() {
                 )}
               </div>
 
-              {/* Sélecteur d'année pour date de fin */}
-              <div className="flex items-center justify-between mb-3 bg-slate-50 p-2 rounded-md">
-                <button
-                  type="button"
-                  onClick={() => setEndDateYear(endDateYear - 1)}
-                  className="rounded-md p-1 hover:bg-slate-200 text-slate-600"
-                >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <span className="text-sm font-semibold text-slate-900">{endDateYear}</span>
-                <button
-                  type="button"
-                  onClick={() => setEndDateYear(endDateYear + 1)}
-                  className="rounded-md p-1 hover:bg-slate-200 text-slate-600"
-                >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Grille des mois pour date de fin */}
-              <div className="grid grid-cols-4 gap-2 mb-2">
-                {['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'].map((monthName, index) => {
-                  const monthStr = String(index + 1).padStart(2, '0');
-                  const yearMonth = `${endDateYear}-${monthStr}`;
-                  const isSelected = formData.end_date === yearMonth;
-
-                  return (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => handleEndDateClick(index)}
-                      className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                        isSelected
-                          ? 'bg-green-500 text-white hover:bg-green-600'
-                          : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      {monthName}
-                    </button>
-                  );
-                })}
-              </div>
-
               {formData.end_date && (
-                <p className="text-xs text-slate-600 mt-1">
+                <p className="text-xs text-slate-600 mb-2">
                   Sélectionné: {new Date(formData.end_date + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
                 </p>
+              )}
+
+              {showEndDatePicker && (
+                <div className="space-y-3">
+                  {/* Sélecteur d'année pour date de fin */}
+                  <div className="flex items-center justify-between bg-slate-50 p-2 rounded-md">
+                    <button
+                      type="button"
+                      onClick={() => setEndDateYear(endDateYear - 1)}
+                      className="rounded-md p-1 hover:bg-slate-200 text-slate-600"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <span className="text-sm font-semibold text-slate-900">{endDateYear}</span>
+                    <button
+                      type="button"
+                      onClick={() => setEndDateYear(endDateYear + 1)}
+                      className="rounded-md p-1 hover:bg-slate-200 text-slate-600"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Grille des mois pour date de fin */}
+                  <div className="grid grid-cols-4 gap-2">
+                    {['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'].map((monthName, index) => {
+                      const monthStr = String(index + 1).padStart(2, '0');
+                      const yearMonth = `${endDateYear}-${monthStr}`;
+                      const isSelected = formData.end_date === yearMonth;
+
+                      return (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => handleEndDateClick(index)}
+                          className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                            isSelected
+                              ? 'bg-green-500 text-white hover:bg-green-600'
+                              : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          {monthName}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
             </div>
 
             {/* Mois exclus */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Mois à suspendre (optionnel)
-              </label>
-              <p className="text-xs text-slate-500 mb-2">
-                Cliquez sur les mois à suspendre (ex: vacances, suspension temporaire)
-              </p>
-
-              {/* Sélecteur d'année */}
-              <div className="flex items-center justify-between mb-3 bg-slate-50 p-2 rounded-md">
-                <button
-                  type="button"
-                  onClick={() => setSelectedYear(selectedYear - 1)}
-                  className="rounded-md p-1 hover:bg-slate-200 text-slate-600"
+              <button
+                type="button"
+                onClick={() => setShowExcludedMonthsPicker(!showExcludedMonthsPicker)}
+                className="w-full flex items-center justify-between text-sm font-medium text-slate-700 mb-2 hover:text-slate-900"
+              >
+                <span>Mois à suspendre (optionnel)</span>
+                <svg
+                  className={`h-5 w-5 transition-transform ${showExcludedMonthsPicker ? 'rotate-180' : ''}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <span className="text-sm font-semibold text-slate-900">{selectedYear}</span>
-                <button
-                  type="button"
-                  onClick={() => setSelectedYear(selectedYear + 1)}
-                  className="rounded-md p-1 hover:bg-slate-200 text-slate-600"
-                >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Grille des mois */}
-              <div className="grid grid-cols-4 gap-2 mb-3">
-                {['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'].map((monthName, index) => {
-                  const monthStr = String(index + 1).padStart(2, '0');
-                  const yearMonth = `${selectedYear}-${monthStr}`;
-                  const isExcluded = formData.excluded_months.includes(yearMonth);
-
-                  return (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => handleMonthClick(index)}
-                      className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                        isExcluded
-                          ? 'bg-amber-500 text-white hover:bg-amber-600'
-                          : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      {monthName}
-                    </button>
-                  );
-                })}
-              </div>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
 
               {formData.excluded_months.length > 0 && (
-                <div className="border-t border-slate-200 pt-3">
+                <div className="mb-2">
                   <p className="text-xs font-medium text-slate-700 mb-2">Mois suspendus ({formData.excluded_months.length}) :</p>
                   <div className="flex flex-wrap gap-2">
                     {formData.excluded_months.map((month) => (
@@ -781,7 +778,7 @@ export default function RecurringChargesPage() {
                         key={month}
                         className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800"
                       >
-                        {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                        {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
                         <button
                           type="button"
                           onClick={() => removeExcludedMonth(month)}
@@ -791,6 +788,61 @@ export default function RecurringChargesPage() {
                         </button>
                       </span>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {showExcludedMonthsPicker && (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-500">
+                    Cliquez sur les mois à suspendre (ex: vacances, suspension temporaire)
+                  </p>
+
+                  {/* Sélecteur d'année */}
+                  <div className="flex items-center justify-between bg-slate-50 p-2 rounded-md">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedYear(selectedYear - 1)}
+                      className="rounded-md p-1 hover:bg-slate-200 text-slate-600"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <span className="text-sm font-semibold text-slate-900">{selectedYear}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedYear(selectedYear + 1)}
+                      className="rounded-md p-1 hover:bg-slate-200 text-slate-600"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Grille des mois */}
+                  <div className="grid grid-cols-4 gap-2">
+                    {['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'].map((monthName, index) => {
+                      const monthStr = String(index + 1).padStart(2, '0');
+                      const yearMonth = `${selectedYear}-${monthStr}`;
+                      const isExcluded = formData.excluded_months.includes(yearMonth);
+
+                      return (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => handleMonthClick(index)}
+                          className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                            isExcluded
+                              ? 'bg-amber-500 text-white hover:bg-amber-600'
+                              : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          {monthName}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
