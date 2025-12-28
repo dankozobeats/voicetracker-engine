@@ -1469,78 +1469,114 @@ export default function RecurringChargesPage() {
                         )}
                       </div>
 
-                      {/* Mini-Timeline - Visual 6-month forecast */}
-                      <div className="mt-3 border-t border-slate-100 pt-3">
-                        <div className="text-[10px] font-medium text-slate-500 mb-1.5">6 prochains mois</div>
-                        <div className="grid grid-cols-6 gap-1">
-                          {(() => {
-                            const today = new Date();
-                            const timeline = [];
+                      {/* Mini-Timeline - Visual 12-month forecast - ALWAYS FIRST */}
+                      {(() => {
+                        const today = new Date();
+                        const timeline = [];
 
-                            for (let i = 0; i < 6; i++) {
-                              const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
-                              const monthStr = date.toISOString().slice(0, 7);
+                        for (let i = 0; i < 12; i++) {
+                          const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
+                          const monthStr = date.toISOString().slice(0, 7);
 
-                              // Check if month is excluded
-                              const isExcluded = charge.excluded_months?.includes(monthStr);
+                          // Check if month is within charge period
+                          const isBeforeStart = charge.start_date && monthStr < charge.start_date;
+                          const isAfterEnd = charge.end_date && monthStr > charge.end_date;
+                          const isOutOfPeriod = isBeforeStart || isAfterEnd;
 
-                              // Check if month has reminder
-                              const hasReminder = charge.reminders?.some((r) => !r.dismissed && r.month === monthStr);
+                          // Check if month is excluded
+                          const isExcluded = charge.excluded_months?.includes(monthStr);
 
-                              // Find effective amount (cumulative override logic)
-                              let effectiveAmount = charge.amount;
-                              let isOverride = false;
+                          // Check if month has reminder
+                          const hasReminder = charge.reminders?.some((r) => !r.dismissed && r.month === monthStr);
 
-                              if (charge.monthly_overrides) {
-                                const sortedOverrides = Object.entries(charge.monthly_overrides)
-                                  .sort(([a], [b]) => a.localeCompare(b));
+                          // Find effective amount (cumulative override logic)
+                          let effectiveAmount = charge.amount;
+                          let isOverride = false;
 
-                                for (const [overrideMonth, overrideAmount] of sortedOverrides) {
-                                  if (overrideMonth <= monthStr) {
-                                    effectiveAmount = overrideAmount;
-                                    isOverride = overrideMonth === monthStr;
-                                  }
-                                }
+                          if (charge.monthly_overrides && !isOutOfPeriod) {
+                            const sortedOverrides = Object.entries(charge.monthly_overrides)
+                              .sort(([a], [b]) => a.localeCompare(b));
+
+                            for (const [overrideMonth, overrideAmount] of sortedOverrides) {
+                              if (overrideMonth <= monthStr) {
+                                effectiveAmount = overrideAmount;
+                                isOverride = overrideMonth === monthStr;
                               }
-
-                              timeline.push({
-                                month: monthStr,
-                                monthName: date.toLocaleDateString('fr-FR', { month: 'short' }),
-                                amount: effectiveAmount,
-                                isExcluded,
-                                isOverride,
-                                hasReminder,
-                              });
                             }
+                          }
 
-                            return timeline.map(({ month, monthName, amount, isExcluded, isOverride, hasReminder }) => (
-                              <div
-                                key={month}
-                                className="relative group"
-                                title={`${monthName}: ${isExcluded ? 'Suspendu' : formatCurrency(amount)}${isOverride ? ' (override)' : ''}${hasReminder ? ' [Rappel]' : ''}`}
+                          timeline.push({
+                            month: monthStr,
+                            monthName: date.toLocaleDateString('fr-FR', { month: 'short' }),
+                            amount: effectiveAmount,
+                            isExcluded,
+                            isOverride,
+                            hasReminder,
+                            isOutOfPeriod,
+                          });
+                        }
+
+                        return (
+                          <div className="mt-3 border-t border-slate-100 pt-3">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const newExpanded = new Set(expandedCharges);
+                                if (isExpanded) {
+                                  newExpanded.delete(charge.id);
+                                } else {
+                                  newExpanded.add(charge.id);
+                                }
+                                setExpandedCharges(newExpanded);
+                              }}
+                              className="w-full flex items-center justify-between text-left mb-2 hover:opacity-70"
+                            >
+                              <span className="text-[10px] font-medium text-slate-500">Calendrier prévisionnel (12 mois)</span>
+                              <svg
+                                className={`h-3 w-3 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
                               >
-                                <div className="text-[9px] text-center text-slate-500 mb-0.5 uppercase">
-                                  {monthName}
-                                </div>
-                                <div
-                                  className={`h-8 rounded text-[10px] font-semibold flex items-center justify-center relative ${
-                                    isExcluded
-                                      ? 'bg-amber-200 text-amber-900 line-through'
-                                      : isOverride
-                                      ? 'bg-green-500 text-white shadow-sm'
-                                      : 'bg-green-100 text-green-900'
-                                  }`}
-                                >
-                                  {isExcluded ? '—' : `${Math.round(amount)}€`}
-                                  {hasReminder && !isExcluded && (
-                                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full border border-white" />
-                                  )}
-                                </div>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+
+                            {isExpanded && (
+                              <div className="grid grid-cols-6 gap-1">
+                                {timeline.map(({ month, monthName, amount, isExcluded, isOverride, hasReminder, isOutOfPeriod }) => (
+                                  <div
+                                    key={month}
+                                    className="relative group"
+                                    title={`${monthName}: ${isOutOfPeriod ? 'Hors période' : isExcluded ? 'Suspendu' : formatCurrency(amount)}${isOverride ? ' (override)' : ''}${hasReminder ? ' [Rappel]' : ''}`}
+                                  >
+                                    <div className="text-[9px] text-center text-slate-500 mb-0.5 uppercase">
+                                      {monthName}
+                                    </div>
+                                    <div
+                                      className={`h-8 rounded text-[10px] font-semibold flex items-center justify-center relative ${
+                                        isOutOfPeriod
+                                          ? 'bg-slate-100 text-slate-400'
+                                          : isExcluded
+                                          ? 'bg-amber-200 text-amber-900 line-through'
+                                          : isOverride
+                                          ? 'bg-green-500 text-white shadow-sm'
+                                          : 'bg-green-100 text-green-900'
+                                      }`}
+                                    >
+                                      {isOutOfPeriod ? '—' : isExcluded ? '—' : `${Math.round(amount)}€`}
+                                      {hasReminder && !isExcluded && !isOutOfPeriod && (
+                                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full border border-white" />
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
-                            ));
-                          })()}
-                        </div>
-                      </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                     <div className="flex gap-2">
                       <button
