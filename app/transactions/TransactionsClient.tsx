@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
 import { formatCurrency } from '@/lib/format';
 
 type Transaction = {
@@ -15,6 +16,14 @@ type Transaction = {
   is_deferred: boolean;
   deferred_to: string | null;
   priority: number;
+  budget_id: string | null;
+};
+
+type Budget = {
+  id: string;
+  category: string;
+  amount: number;
+  period: 'MONTHLY' | 'ROLLING' | 'MULTI';
 };
 
 const formatDate = (dateStr: string) => {
@@ -32,6 +41,37 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Transaction>>({});
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [loadingBudgets, setLoadingBudgets] = useState(true);
+
+  // Charger les budgets au montage
+  useEffect(() => {
+    const fetchBudgets = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) return;
+
+        const { data, error: fetchError } = await supabase
+          .from('budgets')
+          .select('id, category, amount, period')
+          .eq('user_id', user.id)
+          .order('category', { ascending: true });
+
+        if (!fetchError && data) {
+          setBudgets(data as Budget[]);
+        }
+      } catch (err) {
+        console.error('Erreur lors du chargement des budgets:', err);
+      } finally {
+        setLoadingBudgets(false);
+      }
+    };
+
+    fetchBudgets();
+  }, []);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette transaction ?')) {
@@ -70,6 +110,7 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
       is_deferred: transaction.is_deferred,
       deferred_to: transaction.deferred_to,
       priority: transaction.priority,
+      budget_id: transaction.budget_id,
     });
   };
 
@@ -93,6 +134,7 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
           is_deferred: editForm.is_deferred,
           deferred_to: editForm.deferred_to,
           priority: editForm.priority,
+          budget_id: editForm.budget_id || null,
         }),
       });
 
@@ -128,6 +170,9 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">
                 Catégorie
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">
+                Budget
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">
                 Compte
@@ -176,6 +221,20 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
                         onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
                         className="w-full rounded border border-slate-300 px-2 py-1 text-sm"
                       />
+                    </td>
+                    <td className="px-4 py-4">
+                      <select
+                        value={editForm.budget_id || ''}
+                        onChange={(e) => setEditForm({ ...editForm, budget_id: e.target.value || null })}
+                        className="w-full rounded border border-slate-300 px-2 py-1 text-sm"
+                      >
+                        <option value="">Aucun budget</option>
+                        {budgets.map((budget) => (
+                          <option key={budget.id} value={budget.id}>
+                            {budget.category}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                     <td className="px-4 py-4">
                       <select
@@ -267,6 +326,15 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-600">
                     {transaction.category}
+                  </td>
+                  <td className="px-4 py-4 text-sm text-slate-600">
+                    {transaction.budget_id ? (
+                      <span className="inline-flex rounded-full bg-purple-100 px-2 py-1 text-xs font-semibold text-purple-800">
+                        {budgets.find((b) => b.id === transaction.budget_id)?.category || 'Budget'}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-4 text-sm">
                     <span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">

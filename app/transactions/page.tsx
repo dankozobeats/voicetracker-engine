@@ -3,6 +3,9 @@ import { serverSupabaseAdmin } from '@/lib/supabase/server';
 import { getAuthenticatedUser } from '@/lib/api/auth';
 import { TransactionsClient } from './TransactionsClient';
 
+// Cache cette page pendant 30 secondes (données modifiées plus fréquemment)
+export const revalidate = 30;
+
 type Transaction = {
   id: string;
   date: string;
@@ -14,6 +17,7 @@ type Transaction = {
   is_deferred: boolean;
   deferred_to: string | null;
   priority: number;
+  budget_id: string | null;
 };
 
 export default async function TransactionsPage() {
