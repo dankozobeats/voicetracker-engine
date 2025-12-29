@@ -10,9 +10,69 @@ import {
   supabaseBudgetsToEngine,
 } from '@/lib/adapters/supabase-to-engine';
 
+// =========================================
+// CACHE EN MÉMOIRE POUR OPTIMISER LES PERFORMANCES
+// =========================================
+
+interface CacheEntry {
+  data: EnginePayload;
+  timestamp: number;
+}
+
+const projectionCache = new Map<string, CacheEntry>();
+const CACHE_TTL = 60000; // 60 secondes
+
+/**
+ * Génère une clé de cache unique basée sur les paramètres de projection
+ */
+function getCacheKey(userId: string, account: Account, startMonth: string, months: number): string {
+  return `${userId}:${account}:${startMonth}:${months}`;
+}
+
+/**
+ * Récupère une entrée du cache si elle est encore valide
+ */
+function getCachedProjection(key: string): EnginePayload | null {
+  const cached = projectionCache.get(key);
+
+  if (!cached) {
+    return null;
+  }
+
+  const now = Date.now();
+  const isExpired = now - cached.timestamp > CACHE_TTL;
+
+  if (isExpired) {
+    projectionCache.delete(key);
+    return null;
+  }
+
+  return cached.data;
+}
+
+/**
+ * Stocke une projection dans le cache
+ */
+function setCachedProjection(key: string, data: EnginePayload): void {
+  projectionCache.set(key, {
+    data,
+    timestamp: Date.now(),
+  });
+
+  // Nettoyage automatique: limite à 100 entrées
+  if (projectionCache.size > 100) {
+    const firstKey = projectionCache.keys().next().value;
+    if (firstKey) {
+      projectionCache.delete(firstKey);
+    }
+  }
+}
+
 /**
  * Fetches and processes financial data using the production Engine.
  * This is the single source of truth for all financial calculations.
+ *
+ * OPTIMISATION: Utilise un cache en mémoire de 60s pour éviter les recalculs répétés.
  *
  * @param userId - The authenticated user's ID
  * @param account - The account to analyze (SG or FLOA)
@@ -26,6 +86,19 @@ export async function getEngineProjection(
   startMonth: string,
   months: number,
 ): Promise<EnginePayload> {
+  // =========================================
+  // 0. VÉRIFIER LE CACHE D'ABORD
+  // =========================================
+
+  const cacheKey = getCacheKey(userId, account, startMonth, months);
+  const cachedResult = getCachedProjection(cacheKey);
+
+  if (cachedResult) {
+    // Cache hit! Retour immédiat sans requêtes Supabase
+    return cachedResult;
+  }
+
+  // Cache miss: continuer avec le calcul complet
   const supabase = serverSupabaseAdmin();
 
   // =========================================
@@ -170,6 +243,12 @@ export async function getEngineProjection(
     trends: latestMonth?.trends ?? [],
     alertTexts,
   };
+
+  // =========================================
+  // 6. METTRE EN CACHE LE RÉSULTAT
+  // =========================================
+
+  setCachedProjection(cacheKey, payload);
 
   return payload;
 }
