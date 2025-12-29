@@ -1,6 +1,9 @@
 import React from 'react';
 import { BudgetsClient } from './BudgetsClient';
 
+// Cache cette page pendant 60 secondes
+export const revalidate = 60;
+
 export default function BudgetsPage() {
   return (
     <main className="page-shell">

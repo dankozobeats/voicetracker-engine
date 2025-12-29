@@ -2,6 +2,9 @@ import { BalanceProjection } from '@/components/projection/BalanceProjection';
 import { getAuthenticatedUser } from '@/lib/api/auth';
 import { getEngineProjection } from '@/lib/engine-service';
 
+// Cache cette page pendant 60 secondes (projection 12 mois = calcul lourd)
+export const revalidate = 60;
+
 async function getProjectionData() {
   const now = new Date();
   const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
