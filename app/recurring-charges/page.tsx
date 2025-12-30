@@ -878,17 +878,17 @@ export default function RecurringChargesPage() {
 
   return (
     <main className="page-shell">
-      <div className="mx-auto max-w-4xl space-y-8">
-        <header className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">Charges récurrentes</h1>
-            <p className="mt-2 text-slate-600">
+      <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 lg:space-y-8">
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Charges récurrentes</h1>
+            <p className="mt-1 sm:mt-2 text-sm sm:text-base text-slate-600">
               Gérez vos revenus et charges fixes mensuelles (salaire, loyer, abonnements, etc.)
             </p>
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            className="w-full sm:w-auto rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 whitespace-nowrap"
           >
             {showForm ? 'Annuler' : 'Ajouter'}
           </button>
@@ -901,30 +901,30 @@ export default function RecurringChargesPage() {
         )}
 
         {/* Panneau de statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="rounded-lg border border-slate-200 bg-white p-3 sm:p-4">
             <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Total</p>
-            <p className="mt-2 text-2xl font-bold text-slate-900">{stats.total}</p>
+            <p className="mt-1 sm:mt-2 text-xl sm:text-2xl font-bold text-slate-900">{stats.total}</p>
             <p className="mt-1 text-xs text-slate-600">
               {stats.income} revenus · {stats.expense} dépenses
             </p>
           </div>
 
-          <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+          <div className="rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
             <p className="text-xs font-medium uppercase tracking-wider text-green-700">Revenus mensuels</p>
-            <p className="mt-2 text-2xl font-bold text-green-600">+{formatCurrency(stats.totalIncome)}</p>
+            <p className="mt-1 sm:mt-2 text-xl sm:text-2xl font-bold text-green-600">+{formatCurrency(stats.totalIncome)}</p>
             <p className="mt-1 text-xs text-green-600">{stats.income} charge(s)</p>
           </div>
 
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 sm:p-4">
             <p className="text-xs font-medium uppercase tracking-wider text-red-700">Charges mensuelles</p>
-            <p className="mt-2 text-2xl font-bold text-red-600">-{formatCurrency(stats.totalExpense)}</p>
+            <p className="mt-1 sm:mt-2 text-xl sm:text-2xl font-bold text-red-600">-{formatCurrency(stats.totalExpense)}</p>
             <p className="mt-1 text-xs text-red-600">{stats.expense} charge(s)</p>
           </div>
 
-          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 sm:p-4">
             <p className="text-xs font-medium uppercase tracking-wider text-blue-700">Solde mensuel</p>
-            <p className={`mt-2 text-2xl font-bold ${stats.totalIncome - stats.totalExpense >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+            <p className={`mt-1 sm:mt-2 text-xl sm:text-2xl font-bold ${stats.totalIncome - stats.totalExpense >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
               {stats.totalIncome - stats.totalExpense >= 0 ? '+' : ''}{formatCurrency(stats.totalIncome - stats.totalExpense)}
             </p>
             <p className="mt-1 text-xs text-blue-600">
