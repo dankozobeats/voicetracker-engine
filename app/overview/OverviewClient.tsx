@@ -23,10 +23,11 @@ export default function OverviewClient() {
   const [data, setData] = useState<EnginePayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [projectionMonths, setProjectionMonths] = useState<3 | 6 | 12>(3);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [projectionMonths]);
 
   async function fetchData() {
     try {
@@ -34,7 +35,7 @@ export default function OverviewClient() {
       const now = new Date();
       const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-      const response = await fetch(`/api/engine/projection?account=SG&month=${month}&months=12`);
+      const response = await fetch(`/api/engine/projection?account=SG&month=${month}&months=${projectionMonths}`);
 
       if (!response.ok) {
         throw new Error('Erreur lors du chargement des données');
@@ -96,14 +97,29 @@ export default function OverviewClient() {
               Analyse complète de votre situation financière
             </p>
           </div>
-          <div className="text-sm text-slate-500">
-            Dernière mise à jour: {new Date().toLocaleDateString('fr-FR', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
+          <div className="flex items-center gap-4">
+            {/* Sélecteur de période */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-slate-700">Période:</label>
+              <select
+                value={projectionMonths}
+                onChange={(e) => setProjectionMonths(Number(e.target.value) as 3 | 6 | 12)}
+                className="px-3 py-2 border-2 border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:border-blue-400 focus:border-blue-500 focus:outline-none transition"
+              >
+                <option value={3}>3 mois (rapide)</option>
+                <option value={6}>6 mois</option>
+                <option value={12}>12 mois (complet)</option>
+              </select>
+            </div>
+            <div className="text-sm text-slate-500">
+              Dernière mise à jour: {new Date().toLocaleDateString('fr-FR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </div>
           </div>
         </div>
 
@@ -127,7 +143,7 @@ export default function OverviewClient() {
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            📈 Projection 12 Mois
+            📈 Projection {projectionMonths} Mois
           </button>
           <button
             onClick={() => setActiveTab('budgets')}

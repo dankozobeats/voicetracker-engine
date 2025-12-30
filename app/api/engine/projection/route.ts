@@ -14,6 +14,9 @@ import {
   supabaseBudgetsToEngine,
 } from '@/lib/adapters/supabase-to-engine';
 
+// Cache les résultats pendant 60 secondes pour améliorer les performances
+export const revalidate = 60;
+
 const jsonError = (message: string, status = 400) =>
   NextResponse.json({ error: message }, { status });
 

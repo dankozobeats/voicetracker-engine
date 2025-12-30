@@ -206,3 +206,4 @@ export const analyzeFinancialData = (transactions: SupabaseTransaction[]): Finan
   };
 };
 
+
