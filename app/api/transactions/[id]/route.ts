@@ -34,6 +34,7 @@ export async function PUT(
     if (payload.category !== undefined) updateData.category = String(payload.category);
     if (payload.account !== undefined) updateData.account = String(payload.account);
     if (payload.type !== undefined) updateData.type = String(payload.type);
+    if (payload.budget_id !== undefined) updateData.budget_id = payload.budget_id ? String(payload.budget_id) : null;
     if (payload.is_deferred !== undefined) {
       updateData.is_deferred = Boolean(payload.is_deferred);
       if (payload.is_deferred && payload.deferred_to) {

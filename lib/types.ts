@@ -132,6 +132,7 @@ export interface EmptyStateOutput {
 export type Account = 'SG' | 'FLOA';
 export type TransactionType = 'INCOME' | 'EXPENSE';
 export type BudgetPeriod = 'MONTHLY' | 'ROLLING' | 'MULTI';
+export type ChargePurpose = 'REGULAR' | 'SAVINGS' | 'EMERGENCY' | 'HEALTH' | 'DEBT';
 
 /**
  * Transaction record from Supabase
@@ -178,6 +179,12 @@ export interface SupabaseRecurringChargeRecord {
   excluded_months?: string[]; // Array of YYYY-MM months to skip
   monthly_overrides?: Record<string, number>; // Custom amounts for specific months {"2025-12": 150}
   reminders?: RecurringChargeReminder[]; // Reminders to update this charge
+  purpose: ChargePurpose; // Type d'usage: REGULAR, SAVINGS, EMERGENCY, HEALTH, DEBT
+  // Champs spécifiques aux dettes (purpose=DEBT uniquement)
+  initial_balance?: number | null; // Capital initial emprunté
+  remaining_balance?: number | null; // Capital restant à rembourser
+  interest_rate?: number | null; // Taux d'intérêt annuel en % (ex: 5.5)
+  debt_start_date?: string | null; // Date de début de la dette (YYYY-MM-DD)
   created_at?: string;
 }
 
@@ -222,4 +229,25 @@ export interface SupabaseAccountBalanceRecord {
   month: string; // YYYY-MM
   opening_balance: number;
   created_at?: string;
+}
+
+/**
+ * Debt record from Supabase (dedicated debts table)
+ */
+export interface SupabaseDebtRecord {
+  id: string;
+  user_id: string;
+  label: string;
+  account: Account;
+  monthly_payment: number;
+  remaining_balance: number;
+  initial_balance?: number | null;
+  interest_rate?: number | null;
+  debt_start_date?: string | null;
+  start_month: string; // YYYY-MM
+  end_month?: string | null; // YYYY-MM
+  excluded_months?: string[];
+  monthly_overrides?: Record<string, number>;
+  created_at?: string;
+  updated_at?: string;
 }

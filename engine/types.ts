@@ -2,6 +2,8 @@ export type Account = 'SG' | 'FLOA';
 
 export type TransactionType = 'INCOME' | 'EXPENSE';
 
+export type ChargePurpose = 'REGULAR' | 'SAVINGS' | 'EMERGENCY' | 'HEALTH' | 'DEBT';
+
 export interface Transaction {
   id: string;
   account: Account;
@@ -25,6 +27,12 @@ export interface RecurringCharge {
   endMonth?: string; // YYYY-MM
   excludedMonths?: string[]; // Array of YYYY-MM months to skip
   monthlyOverrides?: Record<string, number>; // Custom amounts for specific months {"2025-12": 150}
+  purpose?: ChargePurpose; // Type d'usage: REGULAR, SAVINGS, EMERGENCY, HEALTH, DEBT
+  // Champs spécifiques aux dettes (purpose=DEBT uniquement)
+  initialBalance?: number; // Capital initial emprunté
+  remainingBalance?: number; // Capital restant à rembourser
+  interestRate?: number; // Taux d'intérêt annuel en % (ex: 5.5)
+  debtStartDate?: string; // Date de début de la dette (YYYY-MM-DD)
 }
 
 export interface CeilingRule {

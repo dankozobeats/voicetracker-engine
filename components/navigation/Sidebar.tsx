@@ -9,8 +9,7 @@ const SECTIONS = [
   {
     label: 'Analyse',
     items: [
-      { label: 'Dashboard', href: '/dashboard' },
-      { label: 'Analyse mensuelle', href: '/analysis' },
+      { label: 'Vue Financière', href: '/overview' },
       { label: 'Projection de solde', href: '/projection' },
     ],
   },
@@ -21,6 +20,7 @@ const SECTIONS = [
       { label: 'Charges récurrentes', href: '/recurring-charges' },
       { label: 'Règles de plafond', href: '/ceiling-rules' },
       { label: 'Soldes d\'ouverture', href: '/account-balances' },
+      { label: 'Suivi des dettes', href: '/debts' },
       { label: 'Checklist d\'import', href: '/import-checklist' },
     ],
   },

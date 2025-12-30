@@ -55,6 +55,12 @@ export const supabaseRecurringChargeToEngine = (
   endMonth: record.end_month ?? undefined,
   excludedMonths: record.excluded_months ?? undefined,
   monthlyOverrides: record.monthly_overrides ?? undefined,
+  purpose: record.purpose ?? 'REGULAR',
+  // Champs spécifiques aux dettes
+  initialBalance: record.initial_balance ?? undefined,
+  remainingBalance: record.remaining_balance ?? undefined,
+  interestRate: record.interest_rate ?? undefined,
+  debtStartDate: record.debt_start_date ?? undefined,
 });
 
 /**

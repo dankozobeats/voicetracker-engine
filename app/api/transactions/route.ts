@@ -15,7 +15,7 @@ import {
   parseJsonBody,
 } from '@/lib/api/validators';
 
-const SELECT_COLUMNS = 'id,user_id,date,label,amount,category,account,type,is_deferred,deferred_to,deferred_until,max_deferral_months,priority';
+const SELECT_COLUMNS = 'id,user_id,date,label,amount,category,account,type,is_deferred,deferred_to,deferred_until,max_deferral_months,priority,budget_id';
 
 const jsonError = (message: string, status = 400) => NextResponse.json({ error: message }, { status });
 
@@ -33,6 +33,7 @@ const toTransactionResponse = (record: Record<string, unknown>) => ({
   deferred_until: record.deferred_until,
   max_deferral_months: record.max_deferral_months,
   priority: record.priority,
+  budget_id: record.budget_id,
 });
 
 export async function GET(request: NextRequest) {
@@ -106,6 +107,7 @@ export async function POST(request: NextRequest) {
     const deferredUntil = isDeferred && payload.deferred_until ? String(payload.deferred_until) : null;
     const maxDeferralMonths = isDeferred && payload.max_deferral_months ? Number(payload.max_deferral_months) : null;
     const priority = payload.priority ? Number(payload.priority) : 9;
+    const budgetId = payload.budget_id ? String(payload.budget_id) : null;
 
     // Validate deferred fields if transaction is deferred
     if (isDeferred && !deferredTo) {
@@ -131,6 +133,7 @@ export async function POST(request: NextRequest) {
         deferred_until: deferredUntil,
         max_deferral_months: maxDeferralMonths,
         priority,
+        budget_id: budgetId,
       })
       .select(SELECT_COLUMNS)
       .single();

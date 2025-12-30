@@ -334,7 +334,7 @@ export const BalanceProjection = ({ projections }: BalanceProjectionProps) => {
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase sticky left-0 bg-slate-50 z-10">Mois</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase sticky left-0 bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] min-w-[140px]">Mois</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Ouverture</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Revenus</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Différé</th>
@@ -353,7 +353,7 @@ export const BalanceProjection = ({ projections }: BalanceProjectionProps) => {
 
                 return (
                   <tr key={m.month} className={isCurrentMonth ? 'bg-blue-50' : 'hover:bg-slate-50'}>
-                    <td className="px-4 py-3 text-sm font-medium text-slate-900 sticky left-0 bg-inherit z-10">
+                    <td className="px-4 py-3 text-sm font-medium text-slate-900 sticky left-0 bg-inherit z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] min-w-[140px] whitespace-nowrap">
                       {formatMonthLabel(m.month)}
                       {isCurrentMonth && <span className="ml-2 text-xs text-blue-600">(actuel)</span>}
                     </td>
@@ -401,7 +401,7 @@ export const BalanceProjection = ({ projections }: BalanceProjectionProps) => {
             {/* Summary row */}
             <tfoot className="bg-slate-100 border-t-2 border-slate-300">
               <tr>
-                <td className="px-4 py-3 text-sm font-bold text-slate-900 sticky left-0 bg-slate-100 z-10">TOTAL</td>
+                <td className="px-4 py-3 text-sm font-bold text-slate-900 sticky left-0 bg-slate-100 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] min-w-[140px]">TOTAL</td>
                 <td className="px-4 py-3 text-sm text-slate-600 text-right"></td>
                 <td className="px-4 py-3 text-sm font-bold text-green-600 text-right tabular-nums">
                   +{formatCurrency(metrics.reduce((sum, m) => sum + m.income, 0))}

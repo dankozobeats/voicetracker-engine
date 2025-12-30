@@ -37,9 +37,22 @@ interface RecurringCharge {
   type: string;
 }
 
+interface Transaction {
+  id: string;
+  label: string;
+  amount: number;
+  date: string;
+  category: string;
+  account: string;
+  type: string;
+}
+
 interface BudgetWithCharges extends Budget {
   charges: RecurringCharge[];
+  transactions: Transaction[];
   totalCharges: number;
+  totalTransactions: number;
+  totalSpent: number;
   remainingBudget: number;
 }
 
@@ -68,6 +81,12 @@ export default function ManageBudgetsPage() {
   const [assigning, setAssigning] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // État pour le mois sélectionné (format YYYY-MM)
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+
   const [formData, setFormData] = useState<BudgetFormData>({
     category: '',
     amount: 0,
@@ -95,7 +114,7 @@ export default function ManageBudgetsPage() {
     return 'Multi-mois';
   };
 
-  const fetchBudgets = async () => {
+  const fetchBudgets = async (month: string = selectedMonth) => {
     try {
       setLoading(true);
       const response = await fetch('/api/budgets/manage');
@@ -103,20 +122,32 @@ export default function ManageBudgetsPage() {
 
       if (!response.ok) throw new Error(data.error || 'Erreur lors du chargement');
 
-      // Pour chaque budget, récupérer les charges affectées
+      // Pour chaque budget, récupérer les charges ET les transactions
       const budgetsWithCharges = await Promise.all(
         data.budgets.map(async (budget: Budget) => {
+          // Récupérer les charges récurrentes
           const chargesResponse = await fetch(`/api/budgets/${budget.id}/charges`);
           const chargesData = await chargesResponse.json();
-
           const charges = chargesData.charges || [];
           const totalCharges = charges.reduce((sum: number, c: RecurringCharge) => sum + c.amount, 0);
-          const remainingBudget = budget.amount - totalCharges;
+
+          // Récupérer les transactions ponctuelles FILTRÉES PAR MOIS
+          const transactionsResponse = await fetch(`/api/budgets/${budget.id}/transactions?month=${month}`);
+          const transactionsData = await transactionsResponse.json();
+          const transactions = transactionsData.transactions || [];
+          const totalTransactions = transactions.reduce((sum: number, t: Transaction) => sum + t.amount, 0);
+
+          // Total dépensé = charges récurrentes + transactions ponctuelles
+          const totalSpent = totalCharges + totalTransactions;
+          const remainingBudget = budget.amount - totalSpent;
 
           return {
             ...budget,
             charges,
+            transactions,
             totalCharges,
+            totalTransactions,
+            totalSpent,
             remainingBudget,
           };
         })
@@ -131,8 +162,9 @@ export default function ManageBudgetsPage() {
   };
 
   useEffect(() => {
-    fetchBudgets();
-  }, []);
+    fetchBudgets(selectedMonth);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMonth]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -322,6 +354,65 @@ export default function ManageBudgetsPage() {
 
   const selectedBudget = budgets.find(b => b.id === selectedBudgetId);
 
+  // Fonctions de navigation de mois
+  const goToPreviousMonth = () => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const date = new Date(year, month - 1, 1);
+    date.setMonth(date.getMonth() - 1);
+    setSelectedMonth(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
+  };
+
+  const goToNextMonth = () => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const date = new Date(year, month - 1, 1);
+    date.setMonth(date.getMonth() + 1);
+    setSelectedMonth(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
+  };
+
+  const goToCurrentMonth = () => {
+    const now = new Date();
+    setSelectedMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
+  };
+
+  // Formater le mois pour l'affichage
+  const formatMonthDisplay = (month: string) => {
+    const [year, monthNum] = month.split('-').map(Number);
+    const date = new Date(year, monthNum - 1, 1);
+    return date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  };
+
+  const isCurrentMonth = () => {
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return selectedMonth === currentMonth;
+  };
+
+  // Vérifier si un budget est valide pour le mois sélectionné
+  const isBudgetValidForMonth = (budget: Budget, month: string): boolean => {
+    if (budget.period === 'MONTHLY') {
+      // Budget mensuel: vérifier si start_date <= month
+      if (!budget.start_date) return true; // Pas de date de début = toujours valide
+      return budget.start_date <= month;
+    }
+
+    if (budget.period === 'ROLLING') {
+      // Budget glissant: vérifier si start_date <= month
+      if (!budget.start_date) return true;
+      return budget.start_date <= month;
+    }
+
+    if (budget.period === 'MULTI') {
+      // Budget multi-mois: vérifier si month est dans [period_start, period_end]
+      if (!budget.period_start || !budget.period_end) return true;
+      return month >= budget.period_start && month <= budget.period_end;
+    }
+
+    return true;
+  };
+
+  // Filtrer les budgets valides pour le mois sélectionné
+  const validBudgets = budgets.filter(budget => isBudgetValidForMonth(budget, selectedMonth));
+
   return (
     <main className="container mx-auto p-6 max-w-6xl">
       <section className="mb-8">
@@ -338,6 +429,40 @@ export default function ManageBudgetsPage() {
           >
             Voir les résultats
           </Link>
+        </div>
+
+        {/* Sélecteur de mois */}
+        <div className="mt-6 flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-slate-700">Période affichée:</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={goToPreviousMonth}
+                className="rounded-md px-2 py-1 text-slate-600 hover:bg-slate-200"
+                title="Mois précédent"
+              >
+                ←
+              </button>
+              <span className="min-w-[180px] text-center text-lg font-semibold text-slate-900 capitalize">
+                {formatMonthDisplay(selectedMonth)}
+              </span>
+              <button
+                onClick={goToNextMonth}
+                className="rounded-md px-2 py-1 text-slate-600 hover:bg-slate-200"
+                title="Mois suivant"
+              >
+                →
+              </button>
+            </div>
+          </div>
+          {!isCurrentMonth() && (
+            <button
+              onClick={goToCurrentMonth}
+              className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              Revenir au mois actuel
+            </button>
+          )}
         </div>
       </section>
 
@@ -490,16 +615,21 @@ export default function ManageBudgetsPage() {
       {/* Liste des budgets */}
       <section>
         <h2 className="mb-4 text-lg font-semibold text-slate-900">
-          Budgets configurés ({budgets.length})
+          Budgets valides pour {formatMonthDisplay(selectedMonth)} ({validBudgets.length})
         </h2>
 
-        {budgets.length === 0 ? (
+        {validBudgets.length === 0 ? (
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-8 text-center">
-            <p className="text-slate-600">Aucun budget configuré. Créez votre premier budget ci-dessus.</p>
+            <p className="text-slate-600">
+              {budgets.length === 0
+                ? "Aucun budget configuré. Créez votre premier budget ci-dessus."
+                : `Aucun budget valide pour ${formatMonthDisplay(selectedMonth)}. Les budgets existants ne couvrent pas cette période.`
+              }
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {budgets.map((budget) => (
+            {validBudgets.map((budget) => (
               <div
                 key={budget.id}
                 className="rounded-lg border border-slate-200 bg-white p-6 space-y-4"
@@ -521,6 +651,14 @@ export default function ManageBudgetsPage() {
                       <div>
                         <p className="text-xs text-slate-500">Charges fixes</p>
                         <p className="text-lg font-semibold text-orange-600">{formatCurrency(budget.totalCharges)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Transactions</p>
+                        <p className="text-lg font-semibold text-purple-600">{formatCurrency(budget.totalTransactions)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Total dépensé</p>
+                        <p className="text-lg font-semibold text-slate-900">{formatCurrency(budget.totalSpent)}</p>
                       </div>
                       <div>
                         <p className="text-xs text-slate-500">Reste disponible</p>
@@ -567,20 +705,57 @@ export default function ManageBudgetsPage() {
                       {budget.charges.map((charge) => (
                         <div
                           key={charge.id}
-                          className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"
+                          className="flex items-center justify-between rounded-lg bg-orange-50 px-3 py-2"
                         >
                           <div className="flex items-center gap-3">
                             <span className="font-medium text-slate-900">{charge.label}</span>
                             <span className="text-xs text-slate-500">{charge.account}</span>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="font-semibold text-slate-900">{formatCurrency(charge.amount)}</span>
+                            <span className="font-semibold text-orange-700">{formatCurrency(charge.amount)}</span>
                             <button
                               onClick={() => handleRemoveCharge(budget.id, charge.id)}
                               className="text-red-600 hover:text-red-700 text-sm font-medium"
                             >
                               ✕
                             </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Transactions ponctuelles */}
+                <div className="pt-4 border-t border-slate-100">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-medium text-slate-700">
+                      Transactions ponctuelles liées ({budget.transactions.length})
+                    </h4>
+                  </div>
+
+                  {budget.transactions.length === 0 ? (
+                    <p className="text-sm text-slate-500 italic">Aucune transaction liée à ce budget</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {budget.transactions.map((transaction) => (
+                        <div
+                          key={transaction.id}
+                          className="flex items-center justify-between rounded-lg bg-purple-50 px-3 py-2"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="font-medium text-slate-900">{transaction.label}</span>
+                            <span className="text-xs text-slate-500">{transaction.account}</span>
+                            <span className="text-xs text-slate-400">
+                              {new Date(transaction.date).toLocaleDateString('fr-FR', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric'
+                              })}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="font-semibold text-purple-700">{formatCurrency(transaction.amount)}</span>
                           </div>
                         </div>
                       ))}

@@ -45,7 +45,7 @@ export default async function TransactionsPage() {
   }
 
   return (
-    <main className="page-shell">
+    <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
         <header className="flex items-center justify-between">
           <div>

@@ -8,29 +8,27 @@ import {
   parseJsonBody,
 } from '@/lib/api/validators';
 
-const SELECT_COLUMNS = 'id,user_id,label,amount,account,type,purpose,start_month,end_month,excluded_months,monthly_overrides,reminders,initial_balance,remaining_balance,interest_rate,debt_start_date,created_at';
+const SELECT_COLUMNS = 'id,user_id,label,account,monthly_payment,remaining_balance,initial_balance,interest_rate,debt_start_date,start_month,end_month,excluded_months,monthly_overrides,created_at,updated_at';
 
 const jsonError = (message: string, status = 400) =>
   NextResponse.json({ error: message }, { status });
 
-const sanitizeRecurringCharge = (record: Record<string, unknown>) => ({
+const sanitizeDebt = (record: Record<string, unknown>) => ({
   id: record.id,
   user_id: record.user_id,
   label: record.label,
-  amount: record.amount,
   account: record.account,
-  type: record.type,
-  purpose: record.purpose ?? 'REGULAR',
-  start_date: record.start_month,
-  end_date: record.end_month,
-  excluded_months: record.excluded_months ?? [],
-  monthly_overrides: record.monthly_overrides ?? {},
-  reminders: record.reminders ?? [],
+  monthly_payment: record.monthly_payment,
+  remaining_balance: record.remaining_balance,
   initial_balance: record.initial_balance ?? null,
-  remaining_balance: record.remaining_balance ?? null,
   interest_rate: record.interest_rate ?? null,
   debt_start_date: record.debt_start_date ?? null,
+  start_month: record.start_month,
+  end_month: record.end_month ?? null,
+  excluded_months: record.excluded_months ?? [],
+  monthly_overrides: record.monthly_overrides ?? {},
   created_at: record.created_at,
+  updated_at: record.updated_at,
 });
 
 /* -------------------------------------------------------------------------- */
@@ -43,24 +41,24 @@ export async function GET() {
     const supabase = serverSupabaseAdmin();
 
     const { data, error } = await supabase
-      .from('recurring_charges')
+      .from('debts')
       .select(SELECT_COLUMNS)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('[recurring-charges][GET]', error);
-      return jsonError('Failed to load recurring charges', 500);
+      console.error('[debts][GET]', error);
+      return jsonError('Failed to load debts', 500);
     }
 
     return NextResponse.json({
-      recurringCharges: (data ?? []).map(sanitizeRecurringCharge),
+      debts: (data ?? []).map(sanitizeDebt),
     });
   } catch (err) {
     if ((err as Error).message === 'Unauthorized') {
       return unauthorized();
     }
-    console.error('[recurring-charges][GET][FATAL]', err);
+    console.error('[debts][GET][FATAL]', err);
     return jsonError('Internal server error', 500);
   }
 }
@@ -75,7 +73,7 @@ export async function POST(request: NextRequest) {
   try {
     payload = await parseJsonBody(request);
   } catch (err) {
-    console.error('[recurring-charges][POST][JSON_PARSE]', err);
+    console.error('[debts][POST][JSON_PARSE]', err);
     return jsonError((err as Error).message, 400);
   }
 
@@ -83,102 +81,93 @@ export async function POST(request: NextRequest) {
     const user = await getAuthenticatedUser();
     const supabase = serverSupabaseAdmin();
 
-    console.log('[recurring-charges][POST] Payload:', payload);
+    console.log('[debts][POST] Payload:', payload);
 
     // Validation
     const label = normalizeStringField(payload.label, 'label');
-    const amount = normalizeNumberField(payload.amount, 'amount');
+    const monthlyPayment = normalizeNumberField(payload.monthly_payment, 'monthly_payment');
+    const remainingBalance = normalizeNumberField(payload.remaining_balance, 'remaining_balance');
     const account = (payload.account as string) || 'SG';
-    const type = (payload.type as string) || 'EXPENSE';
-    const purpose = (payload.purpose as string) || 'REGULAR';
-    const startMonth = normalizeOptionalMonth(payload.start_date, 'start_date');
-    const endMonth = normalizeOptionalMonth(payload.end_date, 'end_date');
-    const excludedMonths = (payload.excluded_months as string[]) || [];
-    const monthlyOverrides = (payload.monthly_overrides as Record<string, number>) || {};
-    const reminders = (payload.reminders as Array<Record<string, unknown>>) || [];
+    const startMonth = normalizeOptionalMonth(payload.start_month, 'start_month');
+    const endMonth = normalizeOptionalMonth(payload.end_month, 'end_month');
 
-    // Debt-specific fields
+    // Optional fields
     const initialBalance = payload.initial_balance ? Number(payload.initial_balance) : null;
-    const remainingBalance = payload.remaining_balance ? Number(payload.remaining_balance) : null;
     const interestRate = payload.interest_rate ? Number(payload.interest_rate) : null;
     const debtStartDate = payload.debt_start_date ? String(payload.debt_start_date) : null;
+    const excludedMonths = (payload.excluded_months as string[]) || [];
+    const monthlyOverrides = (payload.monthly_overrides as Record<string, number>) || {};
 
-    console.log('[recurring-charges][POST] Validated:', {
+    console.log('[debts][POST] Validated:', {
       label,
-      amount,
+      monthlyPayment,
+      remainingBalance,
       account,
-      type,
-      purpose,
       startMonth,
       endMonth,
-      excludedMonths,
-      monthlyOverrides,
-      reminders,
       initialBalance,
-      remainingBalance,
       interestRate,
       debtStartDate,
+      excludedMonths,
+      monthlyOverrides,
     });
 
+    // Validation rules
     if (!['SG', 'FLOA'].includes(account)) {
       return jsonError('account must be SG or FLOA', 400);
     }
 
-    if (!['INCOME', 'EXPENSE'].includes(type)) {
-      return jsonError('type must be INCOME or EXPENSE', 400);
+    if (monthlyPayment <= 0) {
+      return jsonError('monthly_payment must be greater than 0', 400);
     }
 
-    if (amount <= 0) {
-      return jsonError('amount must be greater than 0', 400);
+    if (remainingBalance < 0) {
+      return jsonError('remaining_balance must be greater than or equal to 0', 400);
     }
 
     if (!startMonth) {
-      return jsonError('start_date is required', 400);
+      return jsonError('start_month is required', 400);
     }
 
     if (endMonth && endMonth < startMonth) {
-      return jsonError('end_date must be after start_date', 400);
+      return jsonError('end_month must be after start_month', 400);
     }
 
-    // Validate purpose
-    if (!['REGULAR', 'SAVINGS', 'EMERGENCY', 'HEALTH', 'DEBT'].includes(purpose)) {
-      return jsonError('purpose must be REGULAR, SAVINGS, EMERGENCY, HEALTH, or DEBT', 400);
+    if (interestRate !== null && interestRate < 0) {
+      return jsonError('interest_rate must be greater than or equal to 0', 400);
     }
 
     // Insert
     const { data, error } = await supabase
-      .from('recurring_charges')
+      .from('debts')
       .insert({
         user_id: user.id,
         label,
-        amount,
         account,
-        type,
-        purpose,
+        monthly_payment: monthlyPayment,
+        remaining_balance: remainingBalance,
+        initial_balance: initialBalance,
+        interest_rate: interestRate,
+        debt_start_date: debtStartDate,
         start_month: startMonth,
         end_month: endMonth,
         excluded_months: excludedMonths,
         monthly_overrides: monthlyOverrides,
-        reminders,
-        initial_balance: initialBalance,
-        remaining_balance: remainingBalance,
-        interest_rate: interestRate,
-        debt_start_date: debtStartDate,
       })
       .select(SELECT_COLUMNS)
       .single();
 
     if (error) {
-      console.error('[recurring-charges][POST]', error);
-      return jsonError(error.message ?? 'Failed to save recurring charge', 500);
+      console.error('[debts][POST]', error);
+      return jsonError(error.message ?? 'Failed to save debt', 500);
     }
 
     return NextResponse.json(
-      { recurringCharge: sanitizeRecurringCharge(data as Record<string, unknown>) },
+      { debt: sanitizeDebt(data as Record<string, unknown>) },
       { status: 201 }
     );
   } catch (err) {
-    console.error('[recurring-charges][POST][FATAL]', err);
+    console.error('[debts][POST][FATAL]', err);
     return jsonError('Internal server error', 500);
   }
 }
@@ -200,7 +189,7 @@ export async function PUT(request: NextRequest) {
   try {
     payload = await parseJsonBody(request);
   } catch (err) {
-    console.error('[recurring-charges][PUT][JSON_PARSE]', err);
+    console.error('[debts][PUT][JSON_PARSE]', err);
     return jsonError((err as Error).message, 400);
   }
 
@@ -208,86 +197,77 @@ export async function PUT(request: NextRequest) {
     const user = await getAuthenticatedUser();
     const supabase = serverSupabaseAdmin();
 
-    console.log('[recurring-charges][PUT] Payload:', payload);
+    console.log('[debts][PUT] Payload:', payload);
 
     // Validation
     const label = normalizeStringField(payload.label, 'label');
-    const amount = normalizeNumberField(payload.amount, 'amount');
+    const monthlyPayment = normalizeNumberField(payload.monthly_payment, 'monthly_payment');
+    const remainingBalance = normalizeNumberField(payload.remaining_balance, 'remaining_balance');
     const account = (payload.account as string) || 'SG';
-    const type = (payload.type as string) || 'EXPENSE';
-    const purpose = (payload.purpose as string) || 'REGULAR';
-    const startMonth = normalizeOptionalMonth(payload.start_date, 'start_date');
-    const endMonth = normalizeOptionalMonth(payload.end_date, 'end_date');
-    const excludedMonths = (payload.excluded_months as string[]) || [];
-    const monthlyOverrides = (payload.monthly_overrides as Record<string, number>) || {};
-    const reminders = (payload.reminders as Array<Record<string, unknown>>) || [];
+    const startMonth = normalizeOptionalMonth(payload.start_month, 'start_month');
+    const endMonth = normalizeOptionalMonth(payload.end_month, 'end_month');
 
-    // Debt-specific fields
+    // Optional fields
     const initialBalance = payload.initial_balance ? Number(payload.initial_balance) : null;
-    const remainingBalance = payload.remaining_balance ? Number(payload.remaining_balance) : null;
     const interestRate = payload.interest_rate ? Number(payload.interest_rate) : null;
     const debtStartDate = payload.debt_start_date ? String(payload.debt_start_date) : null;
+    const excludedMonths = (payload.excluded_months as string[]) || [];
+    const monthlyOverrides = (payload.monthly_overrides as Record<string, number>) || {};
 
-    console.log('[recurring-charges][PUT] Validated:', {
+    console.log('[debts][PUT] Validated:', {
       label,
-      amount,
+      monthlyPayment,
+      remainingBalance,
       account,
-      type,
-      purpose,
       startMonth,
       endMonth,
-      excludedMonths,
-      monthlyOverrides,
-      reminders,
       initialBalance,
-      remainingBalance,
       interestRate,
       debtStartDate,
+      excludedMonths,
+      monthlyOverrides,
     });
 
+    // Validation rules
     if (!['SG', 'FLOA'].includes(account)) {
       return jsonError('account must be SG or FLOA', 400);
     }
 
-    if (!['INCOME', 'EXPENSE'].includes(type)) {
-      return jsonError('type must be INCOME or EXPENSE', 400);
+    if (monthlyPayment <= 0) {
+      return jsonError('monthly_payment must be greater than 0', 400);
     }
 
-    if (amount <= 0) {
-      return jsonError('amount must be greater than 0', 400);
+    if (remainingBalance < 0) {
+      return jsonError('remaining_balance must be greater than or equal to 0', 400);
     }
 
     if (!startMonth) {
-      return jsonError('start_date is required', 400);
+      return jsonError('start_month is required', 400);
     }
 
     if (endMonth && endMonth < startMonth) {
-      return jsonError('end_date must be after start_date', 400);
+      return jsonError('end_month must be after start_month', 400);
     }
 
-    // Validate purpose
-    if (!['REGULAR', 'SAVINGS', 'EMERGENCY', 'HEALTH', 'DEBT'].includes(purpose)) {
-      return jsonError('purpose must be REGULAR, SAVINGS, EMERGENCY, HEALTH, or DEBT', 400);
+    if (interestRate !== null && interestRate < 0) {
+      return jsonError('interest_rate must be greater than or equal to 0', 400);
     }
 
     // Update
-    const { data, error} = await supabase
-      .from('recurring_charges')
+    const { data, error } = await supabase
+      .from('debts')
       .update({
         label,
-        amount,
         account,
-        type,
-        purpose,
+        monthly_payment: monthlyPayment,
+        remaining_balance: remainingBalance,
+        initial_balance: initialBalance,
+        interest_rate: interestRate,
+        debt_start_date: debtStartDate,
         start_month: startMonth,
         end_month: endMonth,
         excluded_months: excludedMonths,
         monthly_overrides: monthlyOverrides,
-        reminders,
-        initial_balance: initialBalance,
-        remaining_balance: remainingBalance,
-        interest_rate: interestRate,
-        debt_start_date: debtStartDate,
       })
       .eq('id', id)
       .eq('user_id', user.id)
@@ -295,16 +275,16 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('[recurring-charges][PUT]', error);
-      return jsonError(error.message ?? 'Failed to update recurring charge', 500);
+      console.error('[debts][PUT]', error);
+      return jsonError(error.message ?? 'Failed to update debt', 500);
     }
 
-    return NextResponse.json({ recurringCharge: sanitizeRecurringCharge(data as Record<string, unknown>) });
+    return NextResponse.json({ debt: sanitizeDebt(data as Record<string, unknown>) });
   } catch (err) {
     if ((err as Error).message === 'Unauthorized') {
       return unauthorized();
     }
-    console.error('[recurring-charges][PUT][FATAL]', err);
+    console.error('[debts][PUT][FATAL]', err);
     return jsonError('Internal server error', 500);
   }
 }
@@ -326,14 +306,14 @@ export async function DELETE(request: NextRequest) {
     const supabase = serverSupabaseAdmin();
 
     const { error } = await supabase
-      .from('recurring_charges')
+      .from('debts')
       .delete()
       .eq('id', id)
       .eq('user_id', user.id);
 
     if (error) {
-      console.error('[recurring-charges][DELETE]', error);
-      return jsonError(error.message ?? 'Failed to delete recurring charge', 500);
+      console.error('[debts][DELETE]', error);
+      return jsonError(error.message ?? 'Failed to delete debt', 500);
     }
 
     return NextResponse.json({ success: true });
@@ -341,7 +321,7 @@ export async function DELETE(request: NextRequest) {
     if ((err as Error).message === 'Unauthorized') {
       return unauthorized();
     }
-    console.error('[recurring-charges][DELETE][FATAL]', err);
+    console.error('[debts][DELETE][FATAL]', err);
     return jsonError('Internal server error', 500);
   }
 }

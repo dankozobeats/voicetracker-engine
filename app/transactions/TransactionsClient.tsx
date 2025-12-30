@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { formatCurrency } from '@/lib/format';
@@ -43,6 +43,73 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
   const [editForm, setEditForm] = useState<Partial<Transaction>>({});
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loadingBudgets, setLoadingBudgets] = useState(true);
+  const [verifiedTransactions, setVerifiedTransactions] = useState<Set<string>>(new Set());
+  const [isHydrated, setIsHydrated] = useState(false);
+  const isFirstRender = useRef(true);
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [loading, setLoading] = useState(false);
+
+  // Charger les données après l'hydratation pour éviter le mismatch
+  useEffect(() => {
+    const stored = localStorage.getItem('verifiedTransactions');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setVerifiedTransactions(new Set(parsed));
+      } catch (err) {
+        console.error('Erreur lors du chargement des transactions vérifiées:', err);
+      }
+    }
+    setIsHydrated(true);
+    isFirstRender.current = false;
+  }, []);
+
+  // Sauvegarder les transactions vérifiées dans localStorage
+  useEffect(() => {
+    // Ne pas sauvegarder au premier rendu
+    if (!isFirstRender.current) {
+      localStorage.setItem('verifiedTransactions', JSON.stringify(Array.from(verifiedTransactions)));
+    }
+  }, [verifiedTransactions]);
+
+  // Charger les transactions filtrées par mois
+  const fetchTransactionsByMonth = async (month: string) => {
+    setLoading(true);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      // Calculer le début et la fin du mois
+      const [year, monthNum] = month.split('-').map(Number);
+      const startDate = new Date(year, monthNum - 1, 1);
+      const endDate = new Date(year, monthNum, 0);
+
+      const start = startDate.toISOString().split('T')[0];
+      const end = endDate.toISOString().split('T')[0];
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('date', start)
+        .lte('date', end)
+        .order('date', { ascending: false });
+
+      if (!error && data) {
+        setTransactions(data as Transaction[]);
+      }
+    } catch (err) {
+      console.error('Erreur lors du chargement des transactions:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Charger les budgets au montage
   useEffect(() => {
@@ -73,6 +140,22 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
     fetchBudgets();
   }, []);
 
+  // Recharger les transactions quand le mois change
+  useEffect(() => {
+    fetchTransactionsByMonth(selectedMonth);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMonth]);
+
+  const toggleVerified = (id: string) => {
+    const newSet = new Set(verifiedTransactions);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setVerifiedTransactions(newSet);
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette transaction ?')) {
       return;
@@ -91,6 +174,11 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
 
       // Retirer la transaction de la liste
       setTransactions(transactions.filter((t) => t.id !== id));
+
+      // Retirer aussi de la liste des vérifiées
+      const newSet = new Set(verifiedTransactions);
+      newSet.delete(id);
+      setVerifiedTransactions(newSet);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Une erreur est survenue');
     } finally {
@@ -156,12 +244,90 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
     }
   };
 
+  // Fonctions de navigation de mois
+  const goToPreviousMonth = () => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const date = new Date(year, month - 1, 1);
+    date.setMonth(date.getMonth() - 1);
+    setSelectedMonth(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
+  };
+
+  const goToNextMonth = () => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const date = new Date(year, month - 1, 1);
+    date.setMonth(date.getMonth() + 1);
+    setSelectedMonth(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
+  };
+
+  const goToCurrentMonth = () => {
+    const now = new Date();
+    setSelectedMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
+  };
+
+  const formatMonthDisplay = (month: string) => {
+    const [year, monthNum] = month.split('-').map(Number);
+    const date = new Date(year, monthNum - 1, 1);
+    return date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  };
+
+  const isCurrentMonth = () => {
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return selectedMonth === currentMonth;
+  };
+
   return (
-    <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <div className="overflow-x-auto">
+    <div className="space-y-6">
+      {/* Sélecteur de mois */}
+      <div className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-slate-700">Période affichée:</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={goToPreviousMonth}
+              className="rounded-md px-2 py-1 text-slate-600 hover:bg-slate-200"
+              title="Mois précédent"
+            >
+              ←
+            </button>
+            <span className="min-w-[180px] text-center text-lg font-semibold text-slate-900 capitalize">
+              {formatMonthDisplay(selectedMonth)}
+            </span>
+            <button
+              onClick={goToNextMonth}
+              className="rounded-md px-2 py-1 text-slate-600 hover:bg-slate-200"
+              title="Mois suivant"
+            >
+              →
+            </button>
+          </div>
+        </div>
+        {!isCurrentMonth() && (
+          <button
+            onClick={goToCurrentMonth}
+            className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Revenir au mois actuel
+          </button>
+        )}
+      </div>
+
+      {/* Indicateur de chargement */}
+      {loading && (
+        <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-center">
+          <p className="text-sm text-blue-800">Chargement des transactions...</p>
+        </div>
+      )}
+
+      {/* Tableau des transactions */}
+      <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
             <tr>
+              <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-slate-700">
+                ✓
+              </th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">
                 Date
               </th>
@@ -194,10 +360,19 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
           <tbody className="divide-y divide-slate-200 bg-white">
             {transactions.map((transaction) => {
               const isEditing = editingId === transaction.id;
+              const isVerified = verifiedTransactions.has(transaction.id);
 
               if (isEditing) {
                 return (
                   <tr key={transaction.id} className="bg-blue-50">
+                    <td className="px-4 py-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isVerified}
+                        onChange={() => toggleVerified(transaction.id)}
+                        className="h-4 w-4 rounded border-slate-300 text-green-600 focus:ring-green-500"
+                      />
+                    </td>
                     <td className="px-4 py-4">
                       <input
                         type="date"
@@ -317,7 +492,18 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
               }
 
               return (
-                <tr key={transaction.id} className="hover:bg-slate-50">
+                <tr
+                  key={transaction.id}
+                  className={`${isHydrated && isVerified ? 'bg-slate-100 opacity-60' : 'hover:bg-slate-50'}`}
+                >
+                  <td className="px-4 py-4 text-center">
+                    <input
+                      type="checkbox"
+                      checked={isVerified}
+                      onChange={() => toggleVerified(transaction.id)}
+                      className="h-4 w-4 rounded border-slate-300 text-green-600 focus:ring-green-500"
+                    />
+                  </td>
                   <td className="whitespace-nowrap px-4 py-4 text-sm text-slate-900">
                     {formatDate(transaction.date)}
                   </td>
@@ -395,13 +581,14 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
         </table>
       </div>
 
-      {transactions.length > 0 && (
-        <div className="border-t border-slate-200 bg-slate-50 px-4 py-3">
-          <p className="text-sm text-slate-600">
-            Total: {transactions.length} transaction{transactions.length > 1 ? 's' : ''}
-          </p>
-        </div>
-      )}
+        {transactions.length > 0 && (
+          <div className="border-t border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-sm text-slate-600">
+              Total: {transactions.length} transaction{transactions.length > 1 ? 's' : ''}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
