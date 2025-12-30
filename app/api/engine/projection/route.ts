@@ -5,6 +5,7 @@ import { normalizeMonth } from '@/lib/api/validators';
 import { calculateProjection } from '@/engine/calculator';
 import { generateAdvancedAlerts } from '@/engine/alerts/advanced-alerts';
 import { alertTextConsumer } from '@/analysis/consumers/alert-text.consumer';
+import { rateLimiter, RATE_LIMITS } from '@/lib/rate-limiter';
 import type { Account, SupabaseTransactionRecord, SupabaseRecurringChargeRecord, SupabaseCeilingRuleRecord, SupabaseBudgetRecord, SupabaseAccountBalanceRecord } from '@/lib/types';
 import {
   supabaseTransactionsToEngine,
@@ -36,6 +37,42 @@ const jsonError = (message: string, status = 400) =>
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser();
+
+    // =========================================
+    // RATE LIMITING (Phase 2 Security)
+    // =========================================
+    // Limit: 20 requests per minute for expensive projection calculations
+    // This prevents abuse and ensures fair resource usage
+    try {
+      const isLimited = rateLimiter.check(
+        user.id,
+        'api:projection',
+        RATE_LIMITS.API_EXPENSIVE
+      );
+
+      if (isLimited) {
+        const resetTime = rateLimiter.getResetTime(user.id, 'api:projection');
+        return NextResponse.json(
+          {
+            error: 'Rate limit exceeded',
+            message: `Too many projection requests. Please try again in ${resetTime} seconds.`,
+            limit: RATE_LIMITS.API_EXPENSIVE,
+            retryAfter: resetTime,
+          },
+          {
+            status: 429,
+            headers: {
+              'Retry-After': resetTime.toString(),
+            },
+          }
+        );
+      }
+    } catch (rateLimitError) {
+      // Fail-open: If rate limiter fails, allow the request to continue
+      console.error('[RATE_LIMIT] Error checking rate limit:', rateLimitError);
+      // Continue processing the request
+    }
+
     const supabase = serverSupabaseAdmin();
     const { searchParams } = request.nextUrl;
 
