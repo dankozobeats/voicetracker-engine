@@ -21,6 +21,18 @@ export async function GET(
 
     const { id: budgetId } = await params;
 
+    // SECURITY: Verify budget ownership before returning charges
+    const { data: budget, error: budgetError } = await supabase
+      .from('budgets')
+      .select('id')
+      .eq('id', budgetId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (budgetError || !budget) {
+      return NextResponse.json({ error: 'Budget non trouvé ou accès non autorisé' }, { status: 404 });
+    }
+
     // Récupérer les charges récurrentes liées à ce budget
     const { data: links, error: linksError } = await supabase
       .from('budget_recurring_charges')
