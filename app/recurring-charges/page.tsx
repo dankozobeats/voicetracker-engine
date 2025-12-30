@@ -878,7 +878,7 @@ export default function RecurringChargesPage() {
 
   return (
     <main className="page-shell">
-      <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 lg:space-y-8">
+      <div className="space-y-4 sm:space-y-6 lg:space-y-8">
         <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Charges récurrentes</h1>
