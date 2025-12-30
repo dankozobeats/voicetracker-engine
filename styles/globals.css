@@ -455,11 +455,7 @@ body {
   font-weight: 600;
 }
 
-@media (max-width: 600px) {
-  .page-shell {
-    padding: 2.5rem 1rem;
-  }
-
+@media (max-width: 640px) {
   .alert-item {
     flex-direction: column;
   }
