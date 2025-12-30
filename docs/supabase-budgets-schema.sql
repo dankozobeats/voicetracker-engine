@@ -37,3 +37,4 @@ CREATE INDEX IF NOT EXISTS budgets_user_id_idx ON budgets(user_id);
 CREATE INDEX IF NOT EXISTS budgets_category_idx ON budgets(category);
 CREATE INDEX IF NOT EXISTS budgets_period_idx ON budgets(period);
 
+

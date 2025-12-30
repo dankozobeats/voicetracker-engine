@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import Link from 'next/link';
 import LoginClient from './LoginClient';
 
 const LoginPage = () => {
@@ -20,6 +21,18 @@ const LoginPage = () => {
           <LoginClient />
         </Suspense>
       </section>
+
+      <div className="mt-6 text-center">
+        <p className="text-sm text-gray-600">
+          Don't have an account?{' '}
+          <Link
+            href="/auth/register"
+            className="font-medium text-blue-600 hover:text-blue-500"
+          >
+            Create an account
+          </Link>
+        </p>
+      </div>
     </main>
   );
 };
