@@ -22,7 +22,6 @@ const SECTIONS = [
       { label: 'Règles de plafond', href: '/ceiling-rules' },
       { label: 'Soldes d\'ouverture', href: '/account-balances' },
       { label: 'Suivi des dettes', href: '/debts' },
-      { label: 'Checklist d\'import', href: '/import-checklist' },
     ],
   },
   {
