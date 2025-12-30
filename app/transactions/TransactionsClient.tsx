@@ -277,12 +277,12 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Sélecteur de mois */}
-      <div className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-slate-700">Période affichée:</span>
-          <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-lg bg-slate-50 border border-slate-200 px-3 sm:px-4 py-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <span className="text-xs sm:text-sm font-medium text-slate-700">Période:</span>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               onClick={goToPreviousMonth}
               className="rounded-md px-2 py-1 text-slate-600 hover:bg-slate-200"
@@ -290,7 +290,7 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
             >
               ←
             </button>
-            <span className="min-w-[180px] text-center text-lg font-semibold text-slate-900 capitalize">
+            <span className="flex-1 sm:min-w-[180px] text-center text-base sm:text-lg font-semibold text-slate-900 capitalize">
               {formatMonthDisplay(selectedMonth)}
             </span>
             <button
@@ -305,9 +305,9 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
         {!isCurrentMonth() && (
           <button
             onClick={goToCurrentMonth}
-            className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+            className="w-full sm:w-auto rounded-lg bg-blue-600 px-3 py-1.5 text-xs sm:text-sm font-medium text-white hover:bg-blue-700"
           >
-            Revenir au mois actuel
+            Mois actuel
           </button>
         )}
       </div>
@@ -319,8 +319,8 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
         </div>
       )}
 
-      {/* Tableau des transactions */}
-      <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+      {/* Tableau des transactions - Desktop uniquement */}
+      <div className="hidden lg:block rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
@@ -585,6 +585,100 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
           <div className="border-t border-slate-200 bg-slate-50 px-4 py-3">
             <p className="text-sm text-slate-600">
               Total: {transactions.length} transaction{transactions.length > 1 ? 's' : ''}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Cards pour mobile - Affichage mobile uniquement */}
+      <div className="lg:hidden space-y-3">
+        {transactions.map((transaction) => {
+          const isVerified = verifiedTransactions.has(transaction.id);
+          const isEditing = editingId === transaction.id;
+
+          return (
+            <div
+              key={transaction.id}
+              className={`rounded-lg border border-slate-200 bg-white p-3 shadow-sm ${
+                isHydrated && isVerified ? 'opacity-60 bg-slate-50' : ''
+              }`}
+            >
+              {/* Header de la card */}
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex items-start gap-2 flex-1 min-w-0">
+                  <input
+                    type="checkbox"
+                    checked={isVerified}
+                    onChange={() => toggleVerified(transaction.id)}
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-green-600 focus:ring-green-500 flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-slate-900 text-sm truncate">{transaction.label}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{formatDate(transaction.date)}</p>
+                  </div>
+                </div>
+                <span
+                  className={`text-sm font-semibold whitespace-nowrap ${
+                    transaction.type === 'INCOME' ? 'text-green-600' : 'text-red-600'
+                  }`}
+                >
+                  {transaction.type === 'INCOME' ? '+' : '-'}
+                  {formatCurrency(transaction.amount)}
+                </span>
+              </div>
+
+              {/* Détails */}
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs mt-2 pt-2 border-t border-slate-100">
+                <div>
+                  <span className="text-slate-500">Catégorie:</span>
+                  <p className="text-slate-900 font-medium truncate">{transaction.category}</p>
+                </div>
+                <div>
+                  <span className="text-slate-500">Compte:</span>
+                  <p className="text-slate-900 font-medium">{transaction.account}</p>
+                </div>
+                {transaction.budget_id && (
+                  <div className="col-span-2">
+                    <span className="text-slate-500">Budget:</span>
+                    <p className="text-purple-700 font-medium truncate">
+                      {budgets.find((b) => b.id === transaction.budget_id)?.category || 'Budget'}
+                    </p>
+                  </div>
+                )}
+                {transaction.is_deferred && (
+                  <div className="col-span-2">
+                    <span className="text-slate-500">Différé:</span>
+                    <p className="text-amber-700 font-medium">
+                      {transaction.deferred_to} (Priorité: {transaction.priority})
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 mt-3 pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => startEdit(transaction)}
+                  className="flex-1 text-xs font-medium text-blue-600 hover:text-blue-900 py-1.5 px-3 rounded border border-blue-200 hover:bg-blue-50"
+                >
+                  Modifier
+                </button>
+                <button
+                  onClick={() => handleDelete(transaction.id)}
+                  disabled={deletingId === transaction.id}
+                  className="flex-1 text-xs font-medium text-red-600 hover:text-red-900 py-1.5 px-3 rounded border border-red-200 hover:bg-red-50 disabled:opacity-50"
+                >
+                  {deletingId === transaction.id ? 'Suppression...' : 'Supprimer'}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+
+        {transactions.length > 0 && (
+          <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-center">
+            <p className="text-xs text-slate-600">
+              {transactions.length} transaction{transactions.length > 1 ? 's' : ''}
             </p>
           </div>
         )}
