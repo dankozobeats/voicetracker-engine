@@ -46,6 +46,7 @@ export const Sidebar = () => {
   );
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Get current user
@@ -80,7 +81,40 @@ export const Sidebar = () => {
   };
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+    <>
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-slate-900 text-white rounded-md shadow-lg"
+        aria-label="Toggle menu"
+      >
+        {mobileMenuOpen ? (
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        ) : (
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        )}
+      </button>
+
+      {/* Overlay for mobile */}
+      {mobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`
+        fixed lg:static inset-y-0 left-0 z-40
+        w-64 bg-slate-900 text-slate-100 min-h-screen flex flex-col
+        transform transition-transform duration-300 ease-in-out
+        lg:translate-x-0
+        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
       {/* Brand */}
       <div className="p-6 border-b border-slate-800">
         <h1 className="text-xl font-bold text-white">Voicetracker</h1>
@@ -113,6 +147,7 @@ export const Sidebar = () => {
                     <li key={`${section.label}-${item.label}`}>
                       <Link
                         href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
                         className={`
                           block px-3 py-2 rounded-md text-sm transition-colors
                           ${
@@ -182,5 +217,6 @@ export const Sidebar = () => {
         </div>
       )}
     </aside>
+    </>
   );
 };

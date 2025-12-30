@@ -88,34 +88,34 @@ export default function OverviewClient() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="max-w-7xl mx-auto p-8 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
+        {/* Header - Mobile Responsive */}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Vue Financière</h1>
-            <p className="text-slate-600 mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Vue Financière</h1>
+            <p className="text-sm sm:text-base text-slate-600 mt-1">
               Analyse complète de votre situation financière
             </p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             {/* Sélecteur de période */}
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-slate-700">Période:</label>
+              <label className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap">Période:</label>
               <select
                 value={projectionMonths}
                 onChange={(e) => setProjectionMonths(Number(e.target.value) as 3 | 6 | 12)}
-                className="px-3 py-2 border-2 border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:border-blue-400 focus:border-blue-500 focus:outline-none transition"
+                className="w-full sm:w-auto px-2 sm:px-3 py-2 border-2 border-slate-200 rounded-lg text-xs sm:text-sm font-medium text-slate-700 hover:border-blue-400 focus:border-blue-500 focus:outline-none transition"
               >
                 <option value={3}>3 mois (rapide)</option>
                 <option value={6}>6 mois</option>
                 <option value={12}>12 mois (complet)</option>
               </select>
             </div>
-            <div className="text-sm text-slate-500">
-              Dernière mise à jour: {new Date().toLocaleDateString('fr-FR', {
+            {/* Timestamp - caché sur mobile/tablette, visible desktop */}
+            <div className="hidden lg:block text-sm text-slate-500 whitespace-nowrap">
+              MAJ: {new Date().toLocaleDateString('fr-FR', {
                 day: 'numeric',
-                month: 'long',
-                year: 'numeric',
+                month: 'short',
                 hour: '2-digit',
                 minute: '2-digit'
               })}
@@ -123,45 +123,48 @@ export default function OverviewClient() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white rounded-lg border-2 border-slate-200 p-1 flex gap-1">
+        {/* Tabs - Mobile Responsive */}
+        <div className="bg-white rounded-lg border-2 border-slate-200 p-1 flex gap-1 overflow-x-auto">
           <button
             onClick={() => setActiveTab('current')}
-            className={`flex-1 px-4 py-3 rounded-md font-medium transition ${
+            className={`flex-1 min-w-[100px] px-3 sm:px-4 py-2 sm:py-3 rounded-md text-sm sm:text-base font-medium transition ${
               activeTab === 'current'
                 ? 'bg-blue-600 text-white'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            📅 Mois Actuel
+            <span className="hidden sm:inline">📅 Mois Actuel</span>
+            <span className="sm:hidden">📅 Actuel</span>
           </button>
           <button
             onClick={() => setActiveTab('projection')}
-            className={`flex-1 px-4 py-3 rounded-md font-medium transition ${
+            className={`flex-1 min-w-[120px] px-3 sm:px-4 py-2 sm:py-3 rounded-md text-sm sm:text-base font-medium transition whitespace-nowrap ${
               activeTab === 'projection'
                 ? 'bg-blue-600 text-white'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            📈 Projection {projectionMonths} Mois
+            <span className="hidden sm:inline">📈 Projection {projectionMonths} Mois</span>
+            <span className="sm:hidden">📈 {projectionMonths}M</span>
           </button>
           <button
             onClick={() => setActiveTab('budgets')}
-            className={`flex-1 px-4 py-3 rounded-md font-medium transition ${
+            className={`flex-1 min-w-[100px] px-3 sm:px-4 py-2 sm:py-3 rounded-md text-sm sm:text-base font-medium transition ${
               activeTab === 'budgets'
                 ? 'bg-blue-600 text-white'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            🎯 Performance Budgets
+            <span className="hidden sm:inline">🎯 Performance Budgets</span>
+            <span className="sm:hidden">🎯 Budgets</span>
           </button>
         </div>
 
         {/* Tab Content */}
         {activeTab === 'current' && (
           <div className="space-y-6">
-            {/* KPIs du mois */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* KPIs du mois - Responsive Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <div className="bg-white rounded-lg border-2 border-slate-200 p-6">
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
                   Solde Début
