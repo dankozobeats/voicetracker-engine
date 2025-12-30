@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { ChevronDown, ChevronRight, Plus, User, LogOut } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
 
 const SECTIONS = [
   {
@@ -39,12 +40,43 @@ const SECTIONS = [
 
 export const Sidebar = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>
     SECTIONS.reduce((acc, section) => ({ ...acc, [section.label]: true }), {})
   );
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  useEffect(() => {
+    // Get current user
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserEmail(user?.email || null);
+    };
+    getUser();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUserEmail(session?.user?.email || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const toggle = (label: string) => {
     setOpenSections((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await supabase.auth.signOut();
+      router.push('/auth/login');
+      router.refresh();
+    } catch (error) {
+      console.error('Logout error:', error);
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -118,6 +150,37 @@ export const Sidebar = () => {
           <span>Créer un budget</span>
         </Link>
       </div>
+
+      {/* User Profile & Logout */}
+      {userEmail && (
+        <div className="p-4 border-t border-slate-800 space-y-2">
+          {/* User Info */}
+          <Link
+            href="/profile"
+            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors"
+          >
+            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
+              <User className="w-4 h-4 text-slate-300" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-slate-200 truncate">
+                {userEmail}
+              </p>
+              <p className="text-xs text-slate-400">Voir le profil</p>
+            </div>
+          </Link>
+
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="flex items-center gap-2 w-full px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>{isLoggingOut ? 'Déconnexion...' : 'Se déconnecter'}</span>
+          </button>
+        </div>
+      )}
     </aside>
   );
 };

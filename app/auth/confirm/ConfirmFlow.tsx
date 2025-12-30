@@ -39,7 +39,7 @@ const ConfirmFlow = ({ accessToken, refreshToken }: ConfirmFlowProps) => {
       }
 
       setStatus('success');
-      router.replace('/dashboard');
+      router.replace('/overview');
     };
 
     completeConfirmation();

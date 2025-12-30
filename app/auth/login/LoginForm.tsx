@@ -31,7 +31,7 @@ const LoginForm = ({ redirect }: LoginFormProps) => {
       }
 
       const safeRedirect =
-        redirect && redirect.startsWith('/') ? redirect : '/dashboard';
+        redirect && redirect.startsWith('/') ? redirect : '/overview';
 
       router.replace(safeRedirect);
     });

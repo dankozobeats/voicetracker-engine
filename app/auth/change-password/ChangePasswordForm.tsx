@@ -33,7 +33,7 @@ export const ChangePasswordForm = () => {
         return;
       }
 
-      router.replace('/dashboard');
+      router.replace('/overview');
     });
   };
 

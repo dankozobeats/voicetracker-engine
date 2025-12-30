@@ -6,6 +6,8 @@ console.log('[API ENV CHECK]', {
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabaseAdmin } from '@/lib/supabase/server';
 import { getAuthenticatedUser, unauthorized } from '@/lib/api/auth';
+import { rateLimiter, RATE_LIMITS } from '@/lib/rate-limiter';
+import { auditLog } from '@/lib/audit-logger';
 import {
   buildMonthBounds,
   normalizeDate,
@@ -83,6 +85,21 @@ export async function POST(request: NextRequest) {
 
   try {
     const user = await getAuthenticatedUser();
+
+    // Rate limiting for write operations (50 req/min)
+    try {
+      const isLimited = rateLimiter.check(user.id, 'api:transactions:write', RATE_LIMITS.API_WRITE);
+      if (isLimited) {
+        const resetTime = rateLimiter.getResetTime(user.id, 'api:transactions:write');
+        return NextResponse.json(
+          { error: 'Too many requests. Please try again later.', retryAfter: resetTime },
+          { status: 429, headers: { 'Retry-After': resetTime.toString() } }
+        );
+      }
+    } catch (rateLimitError) {
+      console.error('[RATE_LIMIT] Error:', rateLimitError);
+    }
+
     const supabase = serverSupabaseAdmin(); // server client ensures service credentials stay offline
 
     // Validate required fields
@@ -142,6 +159,16 @@ export async function POST(request: NextRequest) {
       console.error('[transactions][POST]', error);
       return jsonError(error.message ?? 'Failed to save transaction', 500);
     }
+
+    // Audit logging (non-blocking)
+    auditLog({
+      userId: user.id,
+      action: 'transaction.create',
+      resourceType: 'transaction',
+      resourceId: (data as Record<string, unknown>).id as string,
+      details: { amount, category, account, type, label },
+      request,
+    }).catch(err => console.error('[AUDIT_LOG] Failed:', err));
 
     return NextResponse.json({ transaction: toTransactionResponse(data as Record<string, unknown>) }, { status: 201 });
   } catch (error) {
