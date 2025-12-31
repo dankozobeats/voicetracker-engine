@@ -30,6 +30,9 @@ const LoginForm = ({ redirect }: LoginFormProps) => {
         return;
       }
 
+      // Refresh the router to sync server-side session
+      router.refresh();
+
       const safeRedirect =
         redirect && redirect.startsWith('/') ? redirect : '/overview';
 

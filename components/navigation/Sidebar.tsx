@@ -41,7 +41,7 @@ export const Sidebar = () => {
   const pathname = usePathname();
   const router = useRouter();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>
-    SECTIONS.reduce((acc, section) => ({ ...acc, [section.label]: true }), {})
+    SECTIONS.reduce((acc, section) => ({ ...acc, [section.label]: false }), {})
   );
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -64,7 +64,15 @@ export const Sidebar = () => {
   }, []);
 
   const toggle = (label: string) => {
-    setOpenSections((prev) => ({ ...prev, [label]: !prev[label] }));
+    setOpenSections((prev) => {
+      // Si la section est déjà ouverte, on la ferme
+      if (prev[label]) {
+        return { ...prev, [label]: false };
+      }
+      // Sinon, on ferme toutes les sections et on ouvre celle-ci
+      const allClosed = SECTIONS.reduce((acc, section) => ({ ...acc, [section.label]: false }), {});
+      return { ...allClosed, [label]: true };
+    });
   };
 
   const handleLogout = async () => {
@@ -109,19 +117,18 @@ export const Sidebar = () => {
       {/* Sidebar */}
       <aside className={`
         fixed lg:static inset-y-0 left-0 z-40
-        w-64 bg-slate-900 text-slate-100 min-h-screen flex flex-col
+        w-64 bg-slate-900 text-slate-100 h-screen flex flex-col overflow-y-auto
         transform transition-transform duration-300 ease-in-out
         lg:translate-x-0
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
       {/* Brand */}
-      <div className="p-6 border-b border-slate-800">
+      <div className="p-6 border-b border-slate-800 flex-shrink-0">
         <h1 className="text-xl font-bold text-white">Voicetracker</h1>
-        <p className="text-xs text-slate-400 mt-1">Lecture seule</p>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {SECTIONS.map((section) => (
           <div key={section.label} className="mb-4">
             {/* Section Header */}
@@ -168,9 +175,10 @@ export const Sidebar = () => {
       </nav>
 
       {/* Actions */}
-      <div className="p-4 border-t border-slate-800 space-y-2">
+      <div className="p-4 border-t border-slate-800 space-y-2 flex-shrink-0">
         <Link
           href="/transactions/new"
+          onClick={() => setMobileMenuOpen(false)}
           className="flex items-center gap-2 w-full px-4 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium text-sm transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -178,6 +186,7 @@ export const Sidebar = () => {
         </Link>
         <Link
           href="/budgets/new"
+          onClick={() => setMobileMenuOpen(false)}
           className="flex items-center gap-2 w-full px-4 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium text-sm transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -187,7 +196,7 @@ export const Sidebar = () => {
 
       {/* User Profile & Logout */}
       {userEmail && (
-        <div className="p-4 border-t border-slate-800 space-y-2">
+        <div className="p-4 border-t border-slate-800 space-y-2 flex-shrink-0">
           {/* User Info */}
           <Link
             href="/profile"

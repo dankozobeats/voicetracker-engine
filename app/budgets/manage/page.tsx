@@ -414,28 +414,28 @@ export default function ManageBudgetsPage() {
   const validBudgets = budgets.filter(budget => isBudgetValidForMonth(budget, selectedMonth));
 
   return (
-    <main className="container mx-auto p-6 max-w-6xl">
-      <section className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">Gérer mes budgets</h1>
-            <p className="text-slate-600 mt-1">
+    <main className="container mx-auto p-3 sm:p-4 lg:p-6 max-w-6xl">
+      <section className="mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Gérer mes budgets</h1>
+            <p className="text-sm sm:text-base text-slate-600 mt-1">
               Définissez vos budgets et affectez-y vos charges récurrentes
             </p>
           </div>
           <Link
             href="/budgets"
-            className="rounded-lg bg-slate-100 px-4 py-2 font-medium text-slate-700 hover:bg-slate-200"
+            className="w-full sm:w-auto rounded-lg bg-slate-100 px-3 sm:px-4 py-2 text-sm sm:text-base font-medium text-slate-700 hover:bg-slate-200 text-center whitespace-nowrap"
           >
             Voir les résultats
           </Link>
         </div>
 
         {/* Sélecteur de mois */}
-        <div className="mt-6 flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-slate-700">Période affichée:</span>
-            <div className="flex items-center gap-2">
+        <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-between gap-3 rounded-lg bg-slate-50 border border-slate-200 px-3 sm:px-4 py-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+            <span className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap">Période affichée:</span>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
                 onClick={goToPreviousMonth}
                 className="rounded-md px-2 py-1 text-slate-600 hover:bg-slate-200"
@@ -443,7 +443,7 @@ export default function ManageBudgetsPage() {
               >
                 ←
               </button>
-              <span className="min-w-[180px] text-center text-lg font-semibold text-slate-900 capitalize">
+              <span className="flex-1 sm:min-w-[180px] text-center text-base sm:text-lg font-semibold text-slate-900 capitalize">
                 {formatMonthDisplay(selectedMonth)}
               </span>
               <button
@@ -458,7 +458,7 @@ export default function ManageBudgetsPage() {
           {!isCurrentMonth() && (
             <button
               onClick={goToCurrentMonth}
-              className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+              className="w-full sm:w-auto rounded-lg bg-blue-600 px-3 py-1.5 text-xs sm:text-sm font-medium text-white hover:bg-blue-700 whitespace-nowrap"
             >
               Revenir au mois actuel
             </button>
@@ -632,52 +632,52 @@ export default function ManageBudgetsPage() {
             {validBudgets.map((budget) => (
               <div
                 key={budget.id}
-                className="rounded-lg border border-slate-200 bg-white p-6 space-y-4"
+                className="rounded-lg border border-slate-200 bg-white p-3 sm:p-4 lg:p-6 space-y-4"
               >
                 {/* Header */}
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-semibold text-slate-900">{budget.category}</h3>
-                      <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                <div className="flex flex-col sm:flex-row items-start gap-3 sm:justify-between">
+                  <div className="flex-1 min-w-0 w-full">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-base sm:text-lg font-semibold text-slate-900 break-words">{budget.category}</h3>
+                      <span className="rounded-full bg-blue-100 px-2 sm:px-2.5 py-0.5 text-xs font-medium text-blue-800 whitespace-nowrap">
                         {formatPeriodLabel(budget)}
                       </span>
                     </div>
-                    <div className="mt-2 flex items-baseline gap-4">
-                      <div>
-                        <p className="text-xs text-slate-500">Budget total</p>
-                        <p className="text-xl font-bold text-slate-900">{formatCurrency(budget.amount)}</p>
+                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:flex lg:items-baseline gap-3 sm:gap-4">
+                      <div className="min-w-0">
+                        <p className="text-xs text-slate-500 truncate">Budget total</p>
+                        <p className="text-base sm:text-lg lg:text-xl font-bold text-slate-900 truncate">{formatCurrency(budget.amount)}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-slate-500">Charges fixes</p>
-                        <p className="text-lg font-semibold text-orange-600">{formatCurrency(budget.totalCharges)}</p>
+                      <div className="min-w-0">
+                        <p className="text-xs text-slate-500 truncate">Charges fixes</p>
+                        <p className="text-sm sm:text-base lg:text-lg font-semibold text-orange-600 truncate">{formatCurrency(budget.totalCharges)}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-slate-500">Transactions</p>
-                        <p className="text-lg font-semibold text-purple-600">{formatCurrency(budget.totalTransactions)}</p>
+                      <div className="min-w-0">
+                        <p className="text-xs text-slate-500 truncate">Transactions</p>
+                        <p className="text-sm sm:text-base lg:text-lg font-semibold text-purple-600 truncate">{formatCurrency(budget.totalTransactions)}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-slate-500">Total dépensé</p>
-                        <p className="text-lg font-semibold text-slate-900">{formatCurrency(budget.totalSpent)}</p>
+                      <div className="min-w-0">
+                        <p className="text-xs text-slate-500 truncate">Total dépensé</p>
+                        <p className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900 truncate">{formatCurrency(budget.totalSpent)}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-slate-500">Reste disponible</p>
-                        <p className={`text-lg font-semibold ${budget.remainingBudget < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      <div className="min-w-0">
+                        <p className="text-xs text-slate-500 truncate">Reste disponible</p>
+                        <p className={`text-sm sm:text-base lg:text-lg font-semibold truncate ${budget.remainingBudget < 0 ? 'text-red-600' : 'text-green-600'}`}>
                           {formatCurrency(budget.remainingBudget)}
                         </p>
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 flex-shrink-0 w-full sm:w-auto">
                     <button
                       onClick={() => handleEdit(budget)}
-                      className="rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100"
+                      className="rounded-lg bg-blue-50 px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-blue-700 hover:bg-blue-100 whitespace-nowrap"
                     >
                       Modifier
                     </button>
                     <button
                       onClick={() => handleDelete(budget.id)}
-                      className="rounded-lg bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100"
+                      className="rounded-lg bg-red-50 px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-red-700 hover:bg-red-100 whitespace-nowrap"
                     >
                       Supprimer
                     </button>
@@ -686,13 +686,13 @@ export default function ManageBudgetsPage() {
 
                 {/* Charges affectées */}
                 <div className="pt-4 border-t border-slate-100">
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-2 mb-3">
                     <h4 className="text-sm font-medium text-slate-700">
                       Charges récurrentes affectées ({budget.charges.length})
                     </h4>
                     <button
                       onClick={() => openAssignChargesModal(budget.id)}
-                      className="rounded-lg bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-100"
+                      className="w-full sm:w-auto rounded-lg bg-green-50 px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-green-700 hover:bg-green-100 whitespace-nowrap"
                     >
                       + Affecter une charge
                     </button>
@@ -705,14 +705,14 @@ export default function ManageBudgetsPage() {
                       {budget.charges.map((charge) => (
                         <div
                           key={charge.id}
-                          className="flex items-center justify-between rounded-lg bg-orange-50 px-3 py-2"
+                          className="flex items-center justify-between gap-2 rounded-lg bg-orange-50 px-2 sm:px-3 py-2"
                         >
-                          <div className="flex items-center gap-3">
-                            <span className="font-medium text-slate-900">{charge.label}</span>
-                            <span className="text-xs text-slate-500">{charge.account}</span>
+                          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                            <span className="font-medium text-slate-900 text-sm sm:text-base truncate">{charge.label}</span>
+                            <span className="text-xs text-slate-500 whitespace-nowrap">{charge.account}</span>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <span className="font-semibold text-orange-700">{formatCurrency(charge.amount)}</span>
+                          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                            <span className="font-semibold text-orange-700 text-sm sm:text-base whitespace-nowrap">{formatCurrency(charge.amount)}</span>
                             <button
                               onClick={() => handleRemoveCharge(budget.id, charge.id)}
                               className="text-red-600 hover:text-red-700 text-sm font-medium"
@@ -741,12 +741,12 @@ export default function ManageBudgetsPage() {
                       {budget.transactions.map((transaction) => (
                         <div
                           key={transaction.id}
-                          className="flex items-center justify-between rounded-lg bg-purple-50 px-3 py-2"
+                          className="flex items-center justify-between gap-2 rounded-lg bg-purple-50 px-2 sm:px-3 py-2"
                         >
-                          <div className="flex items-center gap-3">
-                            <span className="font-medium text-slate-900">{transaction.label}</span>
-                            <span className="text-xs text-slate-500">{transaction.account}</span>
-                            <span className="text-xs text-slate-400">
+                          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 flex-wrap">
+                            <span className="font-medium text-slate-900 text-sm sm:text-base truncate">{transaction.label}</span>
+                            <span className="text-xs text-slate-500 whitespace-nowrap">{transaction.account}</span>
+                            <span className="text-xs text-slate-400 whitespace-nowrap">
                               {new Date(transaction.date).toLocaleDateString('fr-FR', {
                                 day: '2-digit',
                                 month: 'short',
@@ -754,8 +754,8 @@ export default function ManageBudgetsPage() {
                               })}
                             </span>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <span className="font-semibold text-purple-700">{formatCurrency(transaction.amount)}</span>
+                          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                            <span className="font-semibold text-purple-700 text-sm sm:text-base whitespace-nowrap">{formatCurrency(transaction.amount)}</span>
                           </div>
                         </div>
                       ))}

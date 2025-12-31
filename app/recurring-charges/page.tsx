@@ -517,12 +517,12 @@ export default function RecurringChargesPage() {
     return (
       <div
         key={charge.id}
-        className="rounded-lg border border-slate-200 bg-white p-4 space-y-3"
+        className="rounded-lg border border-slate-200 bg-white p-3 sm:p-4 space-y-3"
       >
         {/* Header - Always visible */}
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-2">
           <div
-            className="flex-1 cursor-pointer"
+            className="flex-1 cursor-pointer min-w-0"
             onClick={() => {
               const newExpanded = new Set(expandedCharges);
               if (isExpanded) {
@@ -533,8 +533,8 @@ export default function RecurringChargesPage() {
               setExpandedCharges(newExpanded);
             }}
           >
-            <div className="flex items-center gap-2">
-              <h3 className="font-medium text-slate-900">{charge.label}</h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-medium text-slate-900 break-words">{charge.label}</h3>
               {!groupByType && (
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                   charge.type === 'INCOME'
@@ -697,16 +697,16 @@ export default function RecurringChargesPage() {
               );
             })()}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 flex-shrink-0">
             <button
               onClick={() => startEdit(charge)}
-              className="rounded-md px-3 py-1 text-sm font-medium text-blue-600 hover:bg-blue-50"
+              className="rounded-md px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium text-blue-600 hover:bg-blue-50 whitespace-nowrap"
             >
               Modifier
             </button>
             <button
               onClick={() => handleDelete(charge.id)}
-              className="rounded-md px-3 py-1 text-sm font-medium text-red-600 hover:bg-red-50"
+              className="rounded-md px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium text-red-600 hover:bg-red-50 whitespace-nowrap"
             >
               Supprimer
             </button>
