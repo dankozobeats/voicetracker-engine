@@ -116,8 +116,8 @@ export const Sidebar = () => {
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:static inset-y-0 left-0 z-40
-        w-64 bg-slate-900 text-slate-100 h-screen flex flex-col overflow-y-auto
+        fixed inset-y-0 left-0 z-40
+        w-64 bg-slate-900 text-slate-100 h-screen flex flex-col
         transform transition-transform duration-300 ease-in-out
         lg:translate-x-0
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
