@@ -140,6 +140,21 @@ export async function GET(request: NextRequest) {
       throw new Error(`Failed to load budgets: ${budgetsError.message}`);
     }
 
+    // Fetch budget-charge links
+    // Note: We need to filter by budgets that belong to the user.
+    // Since we already fetched the user's budgets, we can filter by those IDs
+    // or rely on RLS if configured correctly (docs say checks budget ownership).
+    // Safer to join or use in filter, but simpler query for now:
+    const { data: budgetLinks, error: linksError } = await supabase
+      .from('budget_recurring_charges')
+      .select('budget_id, recurring_charge_id')
+      .in('budget_id', (budgets || []).map(b => b.id));
+
+    if (linksError) {
+      console.warn('Failed to load budget links:', linksError);
+      // Continue without links rather than crashing
+    }
+
     // Fetch opening balance for this account/month
     const { data: balanceRecord, error: balanceError } = await supabase
       .from('account_balances')
@@ -170,7 +185,10 @@ export async function GET(request: NextRequest) {
     );
 
     const { categoryBudgets, rollingBudgets, multiMonthBudgets } =
-      supabaseBudgetsToEngine((budgets ?? []) as SupabaseBudgetRecord[]);
+      supabaseBudgetsToEngine(
+        (budgets ?? []) as SupabaseBudgetRecord[],
+        (budgetLinks ?? []) as Array<{ budget_id: string; recurring_charge_id: string }>
+      );
 
     const initialBalance = (balanceRecord as SupabaseAccountBalanceRecord | null)?.opening_balance ?? 0;
 
