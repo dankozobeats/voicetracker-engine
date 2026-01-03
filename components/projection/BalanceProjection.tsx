@@ -2,6 +2,63 @@
 
 import React, { useState } from 'react';
 import type { MonthProjection } from '@/lib/types';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine
+} from 'recharts';
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+  formatCurrency: (val: number) => string;
+  formatPercent: (val: number) => string;
+  formatMonthLabel: (val: string) => string;
+}
+
+const CustomTooltip = ({ active, payload, label, formatCurrency, formatPercent, formatMonthLabel }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-slate-900 text-white text-xs rounded-lg px-4 py-3 shadow-2xl min-w-[200px] z-50">
+        <p className="font-bold text-sm mb-2">{formatMonthLabel(data.month)}</p>
+        <div className="space-y-1">
+          <div className="flex justify-between gap-4">
+            <span className="text-slate-400">Solde:</span>
+            <span className={`font-semibold ${data.endingBalance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {formatCurrency(data.endingBalance)}
+            </span>
+          </div>
+          <div className="flex justify-between gap-4">
+            <span className="text-slate-400">Flux net:</span>
+            <span className={data.netFlow >= 0 ? 'text-green-400' : 'text-red-400'}>
+              {data.netFlow >= 0 ? '+' : ''}{formatCurrency(data.netFlow)}
+            </span>
+          </div>
+          <div className="flex justify-between gap-4">
+            <span className="text-slate-400">Épargne:</span>
+            <span className="text-blue-400">{formatPercent(data.savingsRate)}</span>
+          </div>
+          {data.burnRate !== null && data.burnRate > 0 && (
+            <div className="flex justify-between gap-4 mt-2 pt-2 border-t border-slate-700">
+              <span className="text-orange-400">⚠️ Burn rate:</span>
+              <span className="text-orange-400">{data.burnRate.toFixed(1)} mois</span>
+            </div>
+          )}
+        </div>
+        {/* Triangle arrow */}
+        <div className="absolute left-1/2 -bottom-2 w-0 h-0 -ml-2 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-900"></div>
+      </div>
+    );
+  }
+  return null;
+};
 
 interface BalanceProjectionProps {
   projections: MonthProjection[];
@@ -127,9 +184,8 @@ export const BalanceProjection = ({ projections }: BalanceProjectionProps) => {
 
         {/* Key metrics dashboard */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className={`rounded-lg border p-4 ${
-            totalVariation >= 0 ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
-          }`}>
+          <div className={`rounded-lg border p-4 ${totalVariation >= 0 ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+            }`}>
             <p className="text-xs font-medium uppercase text-slate-700">Variation totale</p>
             <p className={`mt-2 text-2xl font-bold ${totalVariation >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {totalVariation >= 0 ? '+' : ''}{formatCurrency(totalVariation)}
@@ -149,9 +205,8 @@ export const BalanceProjection = ({ projections }: BalanceProjectionProps) => {
             </p>
           </div>
 
-          <div className={`rounded-lg border p-4 ${
-            monthsInDeficit === 0 ? 'border-green-200 bg-green-50' : 'border-orange-200 bg-orange-50'
-          }`}>
+          <div className={`rounded-lg border p-4 ${monthsInDeficit === 0 ? 'border-green-200 bg-green-50' : 'border-orange-200 bg-orange-50'
+            }`}>
             <p className="text-xs font-medium uppercase text-slate-700">Mois en déficit</p>
             <p className={`mt-2 text-2xl font-bold ${monthsInDeficit === 0 ? 'text-green-600' : 'text-orange-600'}`}>
               {monthsInDeficit} / {metrics.length}
@@ -173,132 +228,44 @@ export const BalanceProjection = ({ projections }: BalanceProjectionProps) => {
         </div>
 
         {/* Chart */}
-        <div className="mb-6">
-          <div className="relative h-64">
-            {/* Grid lines */}
-            {[0, 25, 50, 75, 100].map((percent) => (
-              <div
-                key={percent}
-                className="absolute left-0 right-0 border-t border-slate-100"
-                style={{ bottom: `${percent}%` }}
-              />
-            ))}
-
-            {/* Zero line */}
-            <div
-              className="absolute left-0 right-0 border-t-2 border-dashed border-slate-400"
-              style={{
-                bottom: `${((0 - minBalance + padding) / (range + 2 * padding)) * 100}%`
-              }}
+        <div className="mb-6 h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={metrics}
+              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
             >
-              <span className="absolute -left-16 -translate-y-1/2 text-xs font-semibold text-slate-700">0€</span>
-            </div>
-
-            {/* Balance line */}
-            <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
               <defs>
-                <linearGradient id="balanceGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="rgb(34, 197, 94)" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="rgb(239, 68, 68)" stopOpacity="0.3" />
+                <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                 </linearGradient>
               </defs>
-
-              {/* Area fill */}
-              <polygon
-                fill="url(#balanceGradient)"
-                points={[
-                  ...metrics.map((m, index) => {
-                    const x = (index / (metrics.length - 1)) * 100;
-                    const y = 100 - ((m.endingBalance - minBalance + padding) / (range + 2 * padding)) * 100;
-                    return `${x},${y}`;
-                  }),
-                  `100,${100 - ((0 - minBalance + padding) / (range + 2 * padding)) * 100}`,
-                  `0,${100 - ((0 - minBalance + padding) / (range + 2 * padding)) * 100}`,
-                ].join(' ')}
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+              <XAxis
+                dataKey="month"
+                tickFormatter={formatMonthLabel}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#64748b', fontSize: 12 }}
+                dy={10}
               />
-
-              {/* Line */}
-              <polyline
-                fill="none"
-                stroke={lastMonth.endingBalance >= 0 ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)'}
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                points={metrics.map((m, index) => {
-                  const x = (index / (metrics.length - 1)) * 100;
-                  const y = 100 - ((m.endingBalance - minBalance + padding) / (range + 2 * padding)) * 100;
-                  return `${x},${y}`;
-                }).join(' ')}
+              <YAxis
+                hide={true}
+                domain={[minBalance - padding, maxBalance + padding]}
               />
-            </svg>
-
-            {/* Data points */}
-            {metrics.map((m, index) => {
-              const x = (index / (metrics.length - 1)) * 100;
-              const y = 100 - ((m.endingBalance - minBalance + padding) / (range + 2 * padding)) * 100;
-
-              return (
-                <div
-                  key={m.month}
-                  className="absolute group"
-                  style={{
-                    left: `${x}%`,
-                    bottom: `${y}%`,
-                    transform: 'translate(-50%, 50%)',
-                  }}
-                >
-                  <div
-                    className={`
-                      w-4 h-4 rounded-full border-3 border-white shadow-lg cursor-pointer
-                      transition-transform hover:scale-150
-                      ${m.endingBalance < 0 ? 'bg-red-500' : m.endingBalance < 500 ? 'bg-orange-500' : m.endingBalance < 1000 ? 'bg-yellow-500' : 'bg-green-500'}
-                    `}
-                  />
-
-                  {/* Enhanced tooltip */}
-                  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                    <div className="bg-slate-900 text-white text-xs rounded-lg px-4 py-3 whitespace-nowrap shadow-2xl min-w-[200px]">
-                      <p className="font-bold text-sm mb-2">{formatMonthLabel(m.month)}</p>
-                      <div className="space-y-1">
-                        <div className="flex justify-between gap-4">
-                          <span className="text-slate-400">Solde:</span>
-                          <span className={`font-semibold ${m.endingBalance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {formatCurrency(m.endingBalance)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                          <span className="text-slate-400">Flux net:</span>
-                          <span className={m.netFlow >= 0 ? 'text-green-400' : 'text-red-400'}>
-                            {m.netFlow >= 0 ? '+' : ''}{formatCurrency(m.netFlow)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                          <span className="text-slate-400">Épargne:</span>
-                          <span className="text-blue-400">{formatPercent(m.savingsRate)}</span>
-                        </div>
-                        {m.burnRate !== null && m.burnRate > 0 && (
-                          <div className="flex justify-between gap-4 mt-2 pt-2 border-t border-slate-700">
-                            <span className="text-orange-400">⚠️ Burn rate:</span>
-                            <span className="text-orange-400">{m.burnRate.toFixed(1)} mois</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="w-0 h-0 mx-auto border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-slate-900" />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Month labels */}
-          <div className="flex justify-between mt-4 px-2">
-            {metrics.map((m) => (
-              <div key={m.month} className="text-xs text-slate-600 text-center flex-1">
-                {formatMonthLabel(m.month)}
-              </div>
-            ))}
-          </div>
+              <Tooltip content={<CustomTooltip formatCurrency={formatCurrency} formatPercent={formatPercent} formatMonthLabel={formatMonthLabel} />} />
+              <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="3 3" />
+              <Area
+                type="monotone"
+                dataKey="endingBalance"
+                stroke="#3b82f6"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#colorBalance)"
+                animationDuration={1500}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
 
         {/* Alerts section */}
@@ -378,14 +345,12 @@ export const BalanceProjection = ({ projections }: BalanceProjectionProps) => {
                     <td className={`px-4 py-3 text-sm font-bold text-right tabular-nums ${m.netFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {m.netFlow >= 0 ? '+' : ''}{formatCurrency(m.netFlow)}
                     </td>
-                    <td className={`px-4 py-3 text-sm font-semibold text-right tabular-nums ${
-                      m.savingsRate > 20 ? 'text-green-600' : m.savingsRate > 10 ? 'text-blue-600' : 'text-orange-600'
-                    }`}>
+                    <td className={`px-4 py-3 text-sm font-semibold text-right tabular-nums ${m.savingsRate > 20 ? 'text-green-600' : m.savingsRate > 10 ? 'text-blue-600' : 'text-orange-600'
+                      }`}>
                       {formatPercent(m.savingsRate)}
                     </td>
-                    <td className={`px-4 py-3 text-sm font-bold text-right tabular-nums ${
-                      m.endingBalance < 0 ? 'text-red-600' : m.endingBalance < 500 ? 'text-orange-600' : 'text-green-600'
-                    }`}>
+                    <td className={`px-4 py-3 text-sm font-bold text-right tabular-nums ${m.endingBalance < 0 ? 'text-red-600' : m.endingBalance < 500 ? 'text-orange-600' : 'text-green-600'
+                      }`}>
                       {formatCurrency(m.endingBalance)}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -418,9 +383,8 @@ export const BalanceProjection = ({ projections }: BalanceProjectionProps) => {
                 <td className="px-4 py-3 text-sm font-bold text-purple-600 text-right tabular-nums">
                   -{formatCurrency(metrics.reduce((sum, m) => sum + m.carriedOverDeficit, 0))}
                 </td>
-                <td className={`px-4 py-3 text-sm font-bold text-right tabular-nums ${
-                  totalVariation >= 0 ? 'text-green-600' : 'text-red-600'
-                }`}>
+                <td className={`px-4 py-3 text-sm font-bold text-right tabular-nums ${totalVariation >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
                   {totalVariation >= 0 ? '+' : ''}{formatCurrency(totalVariation)}
                 </td>
                 <td className="px-4 py-3 text-sm font-bold text-blue-600 text-right tabular-nums">
