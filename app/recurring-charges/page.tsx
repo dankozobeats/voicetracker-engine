@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { formatCurrency } from '@/lib/format';
+import { RecurringChargeModal } from '@/components/recurring/RecurringChargeModal';
 
 interface Reminder {
   id: string;
@@ -482,9 +483,9 @@ export default function RecurringChargesPage() {
   // Grouper par type si activé
   const groupedCharges = groupByType
     ? {
-        INCOME: sortedCharges.filter((c) => c.type === 'INCOME'),
-        EXPENSE: sortedCharges.filter((c) => c.type === 'EXPENSE'),
-      }
+      INCOME: sortedCharges.filter((c) => c.type === 'INCOME'),
+      EXPENSE: sortedCharges.filter((c) => c.type === 'EXPENSE'),
+    }
     : { ALL: sortedCharges };
 
   // Calculer les statistiques
@@ -536,11 +537,10 @@ export default function RecurringChargesPage() {
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-medium text-slate-900 break-words">{charge.label}</h3>
               {!groupByType && (
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                  charge.type === 'INCOME'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
-                }`}>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${charge.type === 'INCOME'
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
+                  }`}>
                   {charge.type === 'INCOME' ? 'Revenu' : 'Dépense'}
                 </span>
               )}
@@ -548,15 +548,14 @@ export default function RecurringChargesPage() {
                 {charge.account}
               </span>
               {charge.purpose && charge.purpose !== 'REGULAR' && (
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                  charge.purpose === 'SAVINGS'
-                    ? 'bg-green-100 text-green-800'
-                    : charge.purpose === 'EMERGENCY'
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${charge.purpose === 'SAVINGS'
+                  ? 'bg-green-100 text-green-800'
+                  : charge.purpose === 'EMERGENCY'
                     ? 'bg-amber-100 text-amber-800'
                     : charge.purpose === 'HEALTH'
-                    ? 'bg-blue-100 text-blue-800'
-                    : 'bg-slate-100 text-slate-700'
-                }`}>
+                      ? 'bg-blue-100 text-blue-800'
+                      : 'bg-slate-100 text-slate-700'
+                  }`}>
                   {charge.purpose === 'SAVINGS' && '💰 Épargne'}
                   {charge.purpose === 'EMERGENCY' && '⚠️ Imprévus'}
                   {charge.purpose === 'HEALTH' && '🏥 Santé'}
@@ -674,15 +673,14 @@ export default function RecurringChargesPage() {
                             {monthName}
                           </div>
                           <div
-                            className={`h-8 rounded text-[10px] font-semibold flex items-center justify-center relative ${
-                              isOutOfPeriod
-                                ? 'bg-slate-100 text-slate-400'
-                                : isExcluded
+                            className={`h-8 rounded text-[10px] font-semibold flex items-center justify-center relative ${isOutOfPeriod
+                              ? 'bg-slate-100 text-slate-400'
+                              : isExcluded
                                 ? 'bg-amber-200 text-amber-900 line-through'
                                 : isOverride
-                                ? 'bg-green-500 text-white shadow-sm'
-                                : 'bg-green-100 text-green-900'
-                            }`}
+                                  ? 'bg-green-500 text-white shadow-sm'
+                                  : 'bg-green-100 text-green-900'
+                              }`}
                           >
                             {isOutOfPeriod ? '—' : isExcluded ? '—' : `${Math.round(amount)}€`}
                             {hasReminder && !isExcluded && !isOutOfPeriod && (
@@ -770,11 +768,10 @@ export default function RecurringChargesPage() {
                     .map((month) => (
                       <span
                         key={month}
-                        className={`inline-flex items-center rounded px-2 py-1 text-xs font-medium ${
-                          month === currentMonth
-                            ? 'bg-red-200 text-red-900'
-                            : 'bg-amber-200 text-amber-900'
-                        }`}
+                        className={`inline-flex items-center rounded px-2 py-1 text-xs font-medium ${month === currentMonth
+                          ? 'bg-red-200 text-red-900'
+                          : 'bg-amber-200 text-amber-900'
+                          }`}
                       >
                         {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}
                       </span>
@@ -799,11 +796,10 @@ export default function RecurringChargesPage() {
                     .map((reminder) => (
                       <div
                         key={reminder.id}
-                        className={`rounded px-2 py-1.5 text-xs ${
-                          reminder.month === currentMonth
-                            ? 'bg-orange-200 text-orange-900 font-medium'
-                            : 'bg-orange-100 text-orange-800'
-                        }`}
+                        className={`rounded px-2 py-1.5 text-xs ${reminder.month === currentMonth
+                          ? 'bg-orange-200 text-orange-900 font-medium'
+                          : 'bg-orange-100 text-orange-800'
+                          }`}
                       >
                         <span className="font-medium">
                           {new Date(reminder.month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}:
@@ -887,10 +883,10 @@ export default function RecurringChargesPage() {
             </p>
           </div>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => setShowForm(true)}
             className="w-full sm:w-auto rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 whitespace-nowrap"
           >
-            {showForm ? 'Annuler' : 'Ajouter'}
+            Ajouter
           </button>
         </header>
 
@@ -1157,100 +1153,99 @@ export default function RecurringChargesPage() {
               {/* Contenu collapsible */}
               {showProjection && (
                 <div className="px-6 pb-6">{/* Ligne de séparation */}
-                <div className="mb-4 border-t border-indigo-200"></div>
+                  <div className="mb-4 border-t border-indigo-200"></div>
 
-              {/* Tableau de projection */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b-2 border-indigo-200">
-                      <th className="px-3 py-2 text-left font-semibold text-indigo-900">Mois</th>
-                      <th className="px-3 py-2 text-right font-semibold text-green-700">💰 Épargne</th>
-                      <th className="px-3 py-2 text-right font-semibold text-amber-700">⚠️ Imprévus</th>
-                      <th className="px-3 py-2 text-right font-semibold text-blue-700">🏥 Santé</th>
-                      <th className="px-3 py-2 text-right font-semibold text-indigo-900">Total mois</th>
-                      <th className="px-3 py-2 text-right font-semibold text-purple-900">Cumul</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {projectionWithCumul.map((data, index) => {
-                      const isCurrentMonth = data.month === currentMonth;
-                      return (
-                        <tr
-                          key={data.month}
-                          className={`border-b border-indigo-100 ${
-                            isCurrentMonth
-                              ? 'bg-indigo-100 font-semibold'
-                              : index % 2 === 0
-                              ? 'bg-white'
-                              : 'bg-indigo-50/30'
-                          }`}
-                        >
-                          <td className="px-3 py-2">
-                            <div className="flex items-center gap-2">
-                              {isCurrentMonth && (
-                                <span className="inline-flex items-center rounded-full bg-indigo-600 px-2 py-0.5 text-xs font-medium text-white">
-                                  Actuel
-                                </span>
-                              )}
-                              <span className={isCurrentMonth ? 'text-indigo-900' : 'text-slate-700'}>
-                                {new Date(data.month + '-01').toLocaleDateString('fr-FR', {
-                                  month: 'long',
-                                  year: 'numeric',
-                                })}
-                              </span>
-                            </div>
-                          </td>
-                          <td className={`px-3 py-2 text-right ${data.savings === 0 ? 'text-slate-400' : 'text-green-700'}`}>
-                            {data.savings === 0 ? '-' : formatCurrency(data.savings)}
-                          </td>
-                          <td className={`px-3 py-2 text-right ${data.emergency === 0 ? 'text-slate-400' : 'text-amber-700'}`}>
-                            {data.emergency === 0 ? '-' : formatCurrency(data.emergency)}
-                          </td>
-                          <td className={`px-3 py-2 text-right ${data.health === 0 ? 'text-slate-400' : 'text-blue-700'}`}>
-                            {data.health === 0 ? '-' : formatCurrency(data.health)}
-                          </td>
-                          <td className={`px-3 py-2 text-right font-medium ${isCurrentMonth ? 'text-indigo-900' : 'text-slate-900'}`}>
-                            {formatCurrency(data.total)}
-                          </td>
-                          <td className={`px-3 py-2 text-right font-bold ${isCurrentMonth ? 'text-purple-900' : 'text-purple-700'}`}>
-                            {formatCurrency(data.cumulTotal)}
-                          </td>
+                  {/* Tableau de projection */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b-2 border-indigo-200">
+                          <th className="px-3 py-2 text-left font-semibold text-indigo-900">Mois</th>
+                          <th className="px-3 py-2 text-right font-semibold text-green-700">💰 Épargne</th>
+                          <th className="px-3 py-2 text-right font-semibold text-amber-700">⚠️ Imprévus</th>
+                          <th className="px-3 py-2 text-right font-semibold text-blue-700">🏥 Santé</th>
+                          <th className="px-3 py-2 text-right font-semibold text-indigo-900">Total mois</th>
+                          <th className="px-3 py-2 text-right font-semibold text-purple-900">Cumul</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                      </thead>
+                      <tbody>
+                        {projectionWithCumul.map((data, index) => {
+                          const isCurrentMonth = data.month === currentMonth;
+                          return (
+                            <tr
+                              key={data.month}
+                              className={`border-b border-indigo-100 ${isCurrentMonth
+                                ? 'bg-indigo-100 font-semibold'
+                                : index % 2 === 0
+                                  ? 'bg-white'
+                                  : 'bg-indigo-50/30'
+                                }`}
+                            >
+                              <td className="px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                  {isCurrentMonth && (
+                                    <span className="inline-flex items-center rounded-full bg-indigo-600 px-2 py-0.5 text-xs font-medium text-white">
+                                      Actuel
+                                    </span>
+                                  )}
+                                  <span className={isCurrentMonth ? 'text-indigo-900' : 'text-slate-700'}>
+                                    {new Date(data.month + '-01').toLocaleDateString('fr-FR', {
+                                      month: 'long',
+                                      year: 'numeric',
+                                    })}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className={`px-3 py-2 text-right ${data.savings === 0 ? 'text-slate-400' : 'text-green-700'}`}>
+                                {data.savings === 0 ? '-' : formatCurrency(data.savings)}
+                              </td>
+                              <td className={`px-3 py-2 text-right ${data.emergency === 0 ? 'text-slate-400' : 'text-amber-700'}`}>
+                                {data.emergency === 0 ? '-' : formatCurrency(data.emergency)}
+                              </td>
+                              <td className={`px-3 py-2 text-right ${data.health === 0 ? 'text-slate-400' : 'text-blue-700'}`}>
+                                {data.health === 0 ? '-' : formatCurrency(data.health)}
+                              </td>
+                              <td className={`px-3 py-2 text-right font-medium ${isCurrentMonth ? 'text-indigo-900' : 'text-slate-900'}`}>
+                                {formatCurrency(data.total)}
+                              </td>
+                              <td className={`px-3 py-2 text-right font-bold ${isCurrentMonth ? 'text-purple-900' : 'text-purple-700'}`}>
+                                {formatCurrency(data.cumulTotal)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
 
-              {/* Statistiques en bas */}
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="rounded-lg bg-white border border-green-200 p-3">
-                  <p className="text-xs font-medium text-green-700">💰 Épargne (6 mois)</p>
-                  <p className="text-lg font-bold text-green-800">
-                    {formatCurrency(projectionWithCumul[projectionWithCumul.length - 1].cumulSavings)}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-white border border-amber-200 p-3">
-                  <p className="text-xs font-medium text-amber-700">⚠️ Imprévus (6 mois)</p>
-                  <p className="text-lg font-bold text-amber-800">
-                    {formatCurrency(projectionWithCumul[projectionWithCumul.length - 1].cumulEmergency)}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-white border border-blue-200 p-3">
-                  <p className="text-xs font-medium text-blue-700">🏥 Santé (6 mois)</p>
-                  <p className="text-lg font-bold text-blue-800">
-                    {formatCurrency(projectionWithCumul[projectionWithCumul.length - 1].cumulHealth)}
-                  </p>
-                </div>
-              </div>
+                  {/* Statistiques en bas */}
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="rounded-lg bg-white border border-green-200 p-3">
+                      <p className="text-xs font-medium text-green-700">💰 Épargne (6 mois)</p>
+                      <p className="text-lg font-bold text-green-800">
+                        {formatCurrency(projectionWithCumul[projectionWithCumul.length - 1].cumulSavings)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-white border border-amber-200 p-3">
+                      <p className="text-xs font-medium text-amber-700">⚠️ Imprévus (6 mois)</p>
+                      <p className="text-lg font-bold text-amber-800">
+                        {formatCurrency(projectionWithCumul[projectionWithCumul.length - 1].cumulEmergency)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-white border border-blue-200 p-3">
+                      <p className="text-xs font-medium text-blue-700">🏥 Santé (6 mois)</p>
+                      <p className="text-lg font-bold text-blue-800">
+                        {formatCurrency(projectionWithCumul[projectionWithCumul.length - 1].cumulHealth)}
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="mt-3 rounded-lg bg-indigo-100 px-3 py-2">
-                <p className="text-xs text-indigo-800">
-                  💡 <strong>Note:</strong> Cette projection prend en compte vos suspensions et ajustements mensuels programmés.
-                  Les montants affichés reflètent les charges actives pour chaque mois.
-                </p>
-              </div>
+                  <div className="mt-3 rounded-lg bg-indigo-100 px-3 py-2">
+                    <p className="text-xs text-indigo-800">
+                      💡 <strong>Note:</strong> Cette projection prend en compte vos suspensions et ajustements mensuels programmés.
+                      Les montants affichés reflètent les charges actives pour chaque mois.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
@@ -1392,13 +1387,12 @@ export default function RecurringChargesPage() {
                         {charge.sortedExcludedMonths.map((month) => (
                           <span
                             key={month}
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                              month === currentMonth
-                                ? 'bg-red-100 text-red-800'
-                                : month < currentMonth
-                                  ? 'bg-slate-100 text-slate-600'
-                                  : 'bg-amber-100 text-amber-800'
-                            }`}
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${month === currentMonth
+                              ? 'bg-red-100 text-red-800'
+                              : month < currentMonth
+                                ? 'bg-slate-100 text-slate-600'
+                                : 'bg-amber-100 text-amber-800'
+                              }`}
                           >
                             {new Date(month + '-01').toLocaleDateString('fr-FR', {
                               month: 'short',
@@ -1535,782 +1529,47 @@ export default function RecurringChargesPage() {
           </div>
         )}
 
-        {showForm && (
-          <form onSubmit={handleSubmit} className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-slate-900">
-              {editingId ? 'Modifier la charge récurrente' : 'Nouvelle charge récurrente'}
-            </h2>
-
-            <div>
-              <label htmlFor="label" className="block text-sm font-medium text-slate-700">
-                Libellé <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                id="label"
-                required
-                value={formData.label}
-                onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-                className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
-                placeholder="Ex: Salaire, Loyer, Netflix..."
-              />
-            </div>
-
-            <div>
-              <label htmlFor="type" className="block text-sm font-medium text-slate-700">
-                Type <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="type"
-                required
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as 'INCOME' | 'EXPENSE' })}
-                className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
-              >
-                <option value="EXPENSE">Dépense (Loyer, abonnements...)</option>
-                <option value="INCOME">Revenu (Salaire, revenus...)</option>
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="purpose" className="block text-sm font-medium text-slate-700">
-                Usage <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="purpose"
-                required
-                value={formData.purpose}
-                onChange={(e) => setFormData({ ...formData, purpose: e.target.value as 'REGULAR' | 'SAVINGS' | 'EMERGENCY' | 'HEALTH' | 'DEBT' })}
-                className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
-              >
-                <option value="REGULAR">💼 Charge normale (loyer, Netflix, téléphone...)</option>
-                <option value="SAVINGS">💰 Épargne (Revolut, livret A...)</option>
-                <option value="EMERGENCY">⚠️ Provision pour imprévus</option>
-                <option value="HEALTH">🏥 Provision santé/médecin</option>
-                <option value="DEBT">💳 Dette / Crédit à rembourser</option>
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="amount" className="block text-sm font-medium text-slate-700">
-                  {formData.purpose === 'DEBT' ? 'Mensualité' : 'Montant'} <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  id="amount"
-                  required
-                  min="0"
-                  step="0.01"
-                  value={formData.amount === 0 ? '' : formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-                  className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
-                  placeholder={formData.purpose === 'DEBT' ? 'ex: 250' : ''}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="account" className="block text-sm font-medium text-slate-700">
-                  Compte <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="account"
-                  required
-                  value={formData.account}
-                  onChange={(e) => setFormData({ ...formData, account: e.target.value as 'SG' | 'FLOA' })}
-                  className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
-                >
-                  <option value="SG">SG</option>
-                  <option value="FLOA">FLOA</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Champs spécifiques aux dettes */}
-            {formData.purpose === 'DEBT' && (
-              <div className="border-2 border-red-200 bg-red-50 rounded-lg p-4 space-y-4">
-                <h3 className="text-sm font-semibold text-red-900 flex items-center gap-2">
-                  <span>💳</span> Informations sur la dette
-                </h3>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="initial_balance" className="block text-sm font-medium text-slate-700">
-                      Capital initial
-                    </label>
-                    <input
-                      type="number"
-                      id="initial_balance"
-                      min="0"
-                      step="0.01"
-                      value={formData.initial_balance}
-                      onChange={(e) => setFormData({ ...formData, initial_balance: e.target.value })}
-                      className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-red-500"
-                      placeholder="ex: 5000"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">Montant total emprunté</p>
-                  </div>
-
-                  <div>
-                    <label htmlFor="remaining_balance" className="block text-sm font-medium text-slate-700">
-                      Capital restant <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      id="remaining_balance"
-                      required={formData.purpose === 'DEBT'}
-                      min="0"
-                      step="0.01"
-                      value={formData.remaining_balance}
-                      onChange={(e) => setFormData({ ...formData, remaining_balance: e.target.value })}
-                      className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-red-500"
-                      placeholder="ex: 4200"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">Montant qu'il reste à rembourser</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="interest_rate" className="block text-sm font-medium text-slate-700">
-                      Taux d'intérêt annuel (%)
-                    </label>
-                    <input
-                      type="number"
-                      id="interest_rate"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      value={formData.interest_rate}
-                      onChange={(e) => setFormData({ ...formData, interest_rate: e.target.value })}
-                      className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-red-500"
-                      placeholder="ex: 5.5"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">Optionnel - pour calcul des intérêts</p>
-                  </div>
-
-                  <div>
-                    <label htmlFor="debt_start_date" className="block text-sm font-medium text-slate-700">
-                      Date de début du prêt
-                    </label>
-                    <input
-                      type="date"
-                      id="debt_start_date"
-                      value={formData.debt_start_date}
-                      onChange={(e) => setFormData({ ...formData, debt_start_date: e.target.value })}
-                      className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-red-500"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">Date où le prêt a commencé</p>
-                  </div>
-                </div>
-
-                <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
-                  <p className="text-xs text-amber-800">
-                    💡 <strong>Note:</strong> Le champ "Mensualité" en haut représente votre paiement mensuel.
-                    Avec ces informations, le système calculera automatiquement la projection de remboursement.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Période et suspensions - Section regroupée */}
-            <div className="border-t border-slate-200 pt-4 space-y-4">
-              <h3 className="text-sm font-semibold text-slate-900">Période et suspensions</h3>
-
-              {/* Date de début */}
-              <div className="bg-slate-50 rounded-lg p-3">
-                <button
-                  type="button"
-                  onClick={() => setShowStartDatePicker(!showStartDatePicker)}
-                  className="w-full flex items-center justify-between hover:text-slate-900"
-                >
-                  <span className="text-sm font-medium text-slate-700">
-                    Date de début <span className="text-red-500">*</span>
-                  </span>
-                  <div className="flex items-center gap-2">
-                    {formData.start_date && (
-                      <span className="text-sm text-slate-600">
-                        {new Date(formData.start_date + '-01').toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
-                      </span>
-                    )}
-                    <svg
-                      className={`h-4 w-4 transition-transform ${showStartDatePicker ? 'rotate-180' : ''}`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </button>
-
-                {showStartDatePicker && (
-                  <div className="mt-3 space-y-2">
-                    <div className="flex items-center justify-center gap-3 py-1">
-                      <button
-                        type="button"
-                        onClick={() => setStartDateYear(startDateYear - 1)}
-                        className="rounded p-1 hover:bg-slate-200 text-slate-600"
-                      >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                      </button>
-                      <span className="text-sm font-semibold text-slate-900 min-w-[60px] text-center">{startDateYear}</span>
-                      <button
-                        type="button"
-                        onClick={() => setStartDateYear(startDateYear + 1)}
-                        className="rounded p-1 hover:bg-slate-200 text-slate-600"
-                      >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'].map((monthName, index) => {
-                        const monthStr = String(index + 1).padStart(2, '0');
-                        const yearMonth = `${startDateYear}-${monthStr}`;
-                        const isSelected = formData.start_date === yearMonth;
-
-                        return (
-                          <button
-                            key={index}
-                            type="button"
-                            onClick={() => handleStartDateClick(index)}
-                            className={`rounded px-2 py-1.5 text-xs font-medium transition-colors ${
-                              isSelected
-                                ? 'bg-blue-500 text-white shadow-sm'
-                                : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
-                            }`}
-                          >
-                            {monthName}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Date de fin */}
-              <div className="bg-slate-50 rounded-lg p-3">
-                <div
-                  onClick={() => setShowEndDatePicker(!showEndDatePicker)}
-                  className="w-full flex items-center justify-between hover:text-slate-900 cursor-pointer"
-                >
-                  <span className="text-sm font-medium text-slate-700">Date de fin (optionnel)</span>
-                  <div className="flex items-center gap-2">
-                    {formData.end_date && (
-                      <>
-                        <span className="text-sm text-slate-600">
-                          {new Date(formData.end_date + '-01').toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            clearEndDate();
-                          }}
-                          className="text-xs text-red-600 hover:text-red-700 px-1"
-                        >
-                          ✕
-                        </button>
-                      </>
-                    )}
-                    <svg
-                      className={`h-4 w-4 transition-transform ${showEndDatePicker ? 'rotate-180' : ''}`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-
-                {showEndDatePicker && (
-                  <div className="mt-3 space-y-2">
-                    <div className="flex items-center justify-center gap-3 py-1">
-                      <button
-                        type="button"
-                        onClick={() => setEndDateYear(endDateYear - 1)}
-                        className="rounded p-1 hover:bg-slate-200 text-slate-600"
-                      >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                      </button>
-                      <span className="text-sm font-semibold text-slate-900 min-w-[60px] text-center">{endDateYear}</span>
-                      <button
-                        type="button"
-                        onClick={() => setEndDateYear(endDateYear + 1)}
-                        className="rounded p-1 hover:bg-slate-200 text-slate-600"
-                      >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'].map((monthName, index) => {
-                        const monthStr = String(index + 1).padStart(2, '0');
-                        const yearMonth = `${endDateYear}-${monthStr}`;
-                        const isSelected = formData.end_date === yearMonth;
-
-                        return (
-                          <button
-                            key={index}
-                            type="button"
-                            onClick={() => handleEndDateClick(index)}
-                            className={`rounded px-2 py-1.5 text-xs font-medium transition-colors ${
-                              isSelected
-                                ? 'bg-green-500 text-white shadow-sm'
-                                : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
-                            }`}
-                          >
-                            {monthName}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Mois suspendus */}
-              <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
-                <button
-                  type="button"
-                  onClick={() => setShowExcludedMonthsPicker(!showExcludedMonthsPicker)}
-                  className="w-full flex items-center justify-between hover:text-slate-900"
-                >
-                  <span className="text-sm font-medium text-slate-700">Suspendre certains mois</span>
-                  <div className="flex items-center gap-2">
-                    {formData.excluded_months.length > 0 && (
-                      <span className="text-xs bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-medium">
-                        {formData.excluded_months.length}
-                      </span>
-                    )}
-                    <svg
-                      className={`h-4 w-4 transition-transform ${showExcludedMonthsPicker ? 'rotate-180' : ''}`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </button>
-
-                {formData.excluded_months.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {formData.excluded_months.map((month) => (
-                      <span
-                        key={month}
-                        className="inline-flex items-center gap-1 rounded bg-amber-200 px-2 py-0.5 text-xs font-medium text-amber-900"
-                      >
-                        {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}
-                        <button
-                          type="button"
-                          onClick={() => removeExcludedMonth(month)}
-                          className="hover:text-amber-950"
-                        >
-                          ✕
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {showExcludedMonthsPicker && (
-                  <div className="mt-3 space-y-2">
-                    <p className="text-xs text-amber-800">Cliquez sur les mois à suspendre</p>
-
-                    <div className="flex items-center justify-center gap-3 py-1">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedYear(selectedYear - 1)}
-                        className="rounded p-1 hover:bg-amber-100 text-slate-600"
-                      >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                      </button>
-                      <span className="text-sm font-semibold text-slate-900 min-w-[60px] text-center">{selectedYear}</span>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedYear(selectedYear + 1)}
-                        className="rounded p-1 hover:bg-amber-100 text-slate-600"
-                      >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'].map((monthName, index) => {
-                        const monthStr = String(index + 1).padStart(2, '0');
-                        const yearMonth = `${selectedYear}-${monthStr}`;
-                        const isExcluded = formData.excluded_months.includes(yearMonth);
-
-                        return (
-                          <button
-                            key={index}
-                            type="button"
-                            onClick={() => handleMonthClick(index)}
-                            className={`rounded px-2 py-1.5 text-xs font-medium transition-colors ${
-                              isExcluded
-                                ? 'bg-amber-500 text-white shadow-sm'
-                                : 'bg-white border border-amber-300 text-slate-700 hover:bg-amber-100'
-                            }`}
-                          >
-                            {monthName}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Montants variables par mois */}
-              <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                <div
-                  onClick={() => setShowMonthlyOverridesSection(!showMonthlyOverridesSection)}
-                  className="flex items-center justify-between cursor-pointer hover:opacity-80"
-                >
-                  <span className="text-sm font-medium text-slate-700">Montants variables (optionnel)</span>
-                  <div className="flex items-center gap-2">
-                    {Object.keys(formData.monthly_overrides).length > 0 && (
-                      <span className="text-xs bg-green-200 text-green-900 px-2 py-0.5 rounded-full font-medium">
-                        {Object.keys(formData.monthly_overrides).length}
-                      </span>
-                    )}
-                    <svg
-                      className={`h-4 w-4 transition-transform ${showMonthlyOverridesSection ? 'rotate-180' : ''}`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-
-                {showMonthlyOverridesSection && (
-                  <>
-                    <p className="text-xs text-green-800 mb-3 mt-2">
-                      Le dernier montant défini reste actif pour les mois suivants (ex: augmentation de salaire, nouveau loyer)
-                    </p>
-
-                    {Object.keys(formData.monthly_overrides).length > 0 && (
-                      <>
-                        <div className="mb-3 flex flex-wrap gap-1">
-                          {Object.entries(formData.monthly_overrides)
-                            .sort(([a], [b]) => a.localeCompare(b))
-                            .map(([month, amount]) => (
-                              <span
-                                key={month}
-                                className="inline-flex items-center gap-1 rounded bg-green-200 px-2 py-1 text-xs font-medium text-green-900"
-                              >
-                                {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}:{' '}
-                                {formatCurrency(amount)}
-                                <button
-                                  type="button"
-                                  onClick={() => removeMonthlyOverride(month)}
-                                  className="hover:text-green-950 ml-1"
-                                >
-                                  ✕
-                                </button>
-                              </span>
-                            ))}
-                        </div>
-
-                        {/* Timeline visuelle */}
-                        {(() => {
-                          // Generate timeline for next 12 months from start_date or current month
-                          const startMonth = formData.start_date || new Date().toISOString().slice(0, 7);
-                          const timelineMonths: { month: string; amount: number; isOverride: boolean }[] = [];
-
-                          for (let i = 0; i < 12; i++) {
-                            const date = new Date(startMonth + '-01');
-                            date.setMonth(date.getMonth() + i);
-                            const monthStr = date.toISOString().slice(0, 7);
-
-                            // Find effective amount for this month (cumulative logic)
-                            let effectiveAmount = formData.amount;
-                            let isOverride = false;
-
-                            const sortedOverrides = Object.entries(formData.monthly_overrides)
-                              .sort(([a], [b]) => a.localeCompare(b));
-
-                            for (const [overrideMonth, overrideAmount] of sortedOverrides) {
-                              if (overrideMonth <= monthStr) {
-                                effectiveAmount = overrideAmount;
-                                isOverride = overrideMonth === monthStr;
-                              }
-                            }
-
-                            timelineMonths.push({ month: monthStr, amount: effectiveAmount, isOverride });
-                          }
-
-                          return (
-                            <div className="mb-3 bg-white rounded border border-green-300 p-2">
-                              <div className="text-xs font-medium text-slate-600 mb-2">Timeline (12 prochains mois)</div>
-                              <div className="grid grid-cols-6 gap-1 text-xs">
-                                {timelineMonths.map(({ month, amount, isOverride }, idx) => (
-                                  <div key={`timeline-${idx}-${month}`} className="flex flex-col items-center">
-                                    <div className="text-[10px] text-slate-500 mb-0.5">
-                                      {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short' })}
-                                    </div>
-                                    <div
-                                      className={`rounded px-1.5 py-0.5 font-medium text-center w-full ${
-                                        isOverride
-                                          ? 'bg-green-500 text-white shadow-sm'
-                                          : 'bg-green-100 text-green-900'
-                                      }`}
-                                    >
-                                      {formatCurrency(amount)}
-                                    </div>
-                                    {isOverride && (
-                                      <div className="text-[9px] text-green-700 mt-0.5">override</div>
-                                    )}
-                                    {idx > 0 && timelineMonths[idx - 1].amount !== amount && !isOverride && (
-                                      <div className="text-[9px] text-green-600 mt-0.5">↑ propagé</div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </>
-                    )}
-
-                    <div className="space-y-2 mb-3">
-                      <div className="flex items-center justify-center gap-3 py-1">
-                        <button
-                          type="button"
-                          onClick={() => setOverrideYear(overrideYear - 1)}
-                          className="rounded p-1 hover:bg-green-200 text-slate-600"
-                        >
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                          </svg>
-                        </button>
-                        <span className="text-sm font-semibold text-slate-900 min-w-[60px] text-center">{overrideYear}</span>
-                        <button
-                          type="button"
-                          onClick={() => setOverrideYear(overrideYear + 1)}
-                          className="rounded p-1 hover:bg-green-200 text-slate-600"
-                        >
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-4 gap-1.5">
-                        {['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'].map((monthName, index) => {
-                          const monthStr = String(index + 1).padStart(2, '0');
-                          const yearMonth = `${overrideYear}-${monthStr}`;
-                          const isSelected = formData.override_month === yearMonth;
-
-                          return (
-                            <button
-                              key={index}
-                              type="button"
-                              onClick={() => handleOverrideMonthClick(index)}
-                              className={`rounded px-2 py-1.5 text-xs font-medium transition-colors ${
-                                isSelected
-                                  ? 'bg-green-500 text-white shadow-sm'
-                                  : 'bg-white border border-green-300 text-slate-700 hover:bg-green-100'
-                              }`}
-                            >
-                              {monthName}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={formData.override_amount}
-                        onChange={(e) => setFormData({ ...formData, override_amount: e.target.value })}
-                        className="flex-1 rounded border border-green-300 px-2 py-1.5 text-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
-                        placeholder="Montant pour le mois sélectionné"
-                      />
-                      <button
-                        type="button"
-                        onClick={addMonthlyOverride}
-                        disabled={!formData.override_month || !formData.override_amount}
-                        className="rounded bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Ajouter
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Rappels */}
-              <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
-                <div
-                  onClick={() => setShowRemindersSection(!showRemindersSection)}
-                  className="flex items-center justify-between cursor-pointer hover:opacity-80"
-                >
-                  <span className="text-sm font-medium text-slate-700">Rappels (optionnel)</span>
-                  <div className="flex items-center gap-2">
-                    {formData.reminders.filter((r) => !r.dismissed).length > 0 && (
-                      <span className="text-xs bg-orange-200 text-orange-900 px-2 py-0.5 rounded-full font-medium">
-                        {formData.reminders.filter((r) => !r.dismissed).length}
-                      </span>
-                    )}
-                    <svg
-                      className={`h-4 w-4 transition-transform ${showRemindersSection ? 'rotate-180' : ''}`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-
-                {showRemindersSection && (
-                  <>
-                    <p className="text-xs text-orange-800 mb-3 mt-2">
-                      Créez des rappels pour ne pas oublier de mettre à jour cette charge à une date précise
-                    </p>
-
-                    {formData.reminders.filter((r) => !r.dismissed).length > 0 && (
-                      <div className="mb-3 space-y-2">
-                        {formData.reminders
-                          .filter((r) => !r.dismissed)
-                          .sort((a, b) => a.month.localeCompare(b.month))
-                          .map((reminder) => (
-                            <div
-                              key={reminder.id}
-                              className="flex items-start gap-2 rounded bg-orange-100 px-3 py-2 text-xs"
-                            >
-                              <div className="flex-1">
-                                <div className="font-medium text-orange-900">
-                                  {new Date(reminder.month + '-01').toLocaleDateString('fr-FR', {
-                                    month: 'long',
-                                    year: 'numeric',
-                                  })}
-                                </div>
-                                <div className="text-orange-800 mt-0.5">{reminder.note}</div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => removeReminder(reminder.id)}
-                                className="text-orange-600 hover:text-orange-900 font-medium"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ))}
-                      </div>
-                    )}
-
-                    <div className="space-y-2 mb-3">
-                      <div className="flex items-center justify-center gap-3 py-1">
-                        <button
-                          type="button"
-                          onClick={() => setReminderYear(reminderYear - 1)}
-                          className="rounded p-1 hover:bg-orange-200 text-slate-600"
-                        >
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                          </svg>
-                        </button>
-                        <span className="text-sm font-semibold text-slate-900 min-w-[60px] text-center">{reminderYear}</span>
-                        <button
-                          type="button"
-                          onClick={() => setReminderYear(reminderYear + 1)}
-                          className="rounded p-1 hover:bg-orange-200 text-slate-600"
-                        >
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-4 gap-1.5">
-                        {['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'].map((monthName, index) => {
-                          const monthStr = String(index + 1).padStart(2, '0');
-                          const yearMonth = `${reminderYear}-${monthStr}`;
-                          const isSelected = formData.reminder_month === yearMonth;
-
-                          return (
-                            <button
-                              key={index}
-                              type="button"
-                              onClick={() => handleReminderMonthClick(index)}
-                              className={`rounded px-2 py-1.5 text-xs font-medium transition-colors ${
-                                isSelected
-                                  ? 'bg-orange-500 text-white shadow-sm'
-                                  : 'bg-white border border-orange-300 text-slate-700 hover:bg-orange-100'
-                              }`}
-                            >
-                              {monthName}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={formData.reminder_note}
-                        onChange={(e) => setFormData({ ...formData, reminder_note: e.target.value })}
-                        className="flex-1 rounded border border-orange-300 px-2 py-1.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-orange-500"
-                        placeholder="Note pour le mois sélectionné (ex: Augmentation de loyer)"
-                        maxLength={100}
-                      />
-                      <button
-                        type="button"
-                        onClick={addReminder}
-                        disabled={!formData.reminder_month || !formData.reminder_note.trim()}
-                        className="rounded bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Ajouter
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-4">
-              <button
-                type="button"
-                onClick={cancelEdit}
-                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-                disabled={submitting}
-              >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {submitting ? 'Enregistrement...' : editingId ? 'Mettre à jour' : 'Enregistrer'}
-              </button>
-            </div>
-          </form>
-        )}
+        <RecurringChargeModal
+          isOpen={showForm}
+          onClose={cancelEdit}
+          editingId={editingId}
+          formData={formData}
+          setFormData={setFormData}
+          onSubmit={handleSubmit}
+          submitting={submitting}
+          showStartDatePicker={showStartDatePicker}
+          setShowStartDatePicker={setShowStartDatePicker}
+          showEndDatePicker={showEndDatePicker}
+          setShowEndDatePicker={setShowEndDatePicker}
+          showExcludedMonthsPicker={showExcludedMonthsPicker}
+          setShowExcludedMonthsPicker={setShowExcludedMonthsPicker}
+          showMonthlyOverridesSection={showMonthlyOverridesSection}
+          setShowMonthlyOverridesSection={setShowMonthlyOverridesSection}
+          showRemindersSection={showRemindersSection}
+          setShowRemindersSection={setShowRemindersSection}
+          startDateYear={startDateYear}
+          setStartDateYear={setStartDateYear}
+          endDateYear={endDateYear}
+          setEndDateYear={setEndDateYear}
+          selectedYear={selectedYear}
+          setSelectedYear={setSelectedYear}
+          overrideYear={overrideYear}
+          setOverrideYear={setOverrideYear}
+          reminderYear={reminderYear}
+          setReminderYear={setReminderYear}
+          handleStartDateClick={handleStartDateClick}
+          handleEndDateClick={handleEndDateClick}
+          clearEndDate={clearEndDate}
+          handleMonthClick={handleMonthClick}
+          removeExcludedMonth={removeExcludedMonth}
+          handleOverrideMonthClick={handleOverrideMonthClick}
+          addMonthlyOverride={addMonthlyOverride}
+          removeMonthlyOverride={removeMonthlyOverride}
+          handleReminderMonthClick={handleReminderMonthClick}
+          addReminder={addReminder}
+          removeReminder={removeReminder}
+          formatCurrency={formatCurrency}
+        />
 
         {charges.length === 0 ? (
           <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
