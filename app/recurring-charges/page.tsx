@@ -4,6 +4,33 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { formatCurrency } from '@/lib/format';
 import { RecurringChargeModal } from '@/components/recurring/RecurringChargeModal';
+import {
+  Plus,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  BarChart3,
+  Calendar,
+  AlertCircle,
+  Info,
+  ArrowUpRight,
+  ArrowDownRight,
+  ChevronDown,
+  ChevronUp,
+  Settings2,
+  Search,
+  Filter,
+  CreditCard,
+  Heart,
+  ShieldAlert,
+  PiggyBank,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  Edit3,
+  Trash2
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Reminder {
   id: string;
@@ -103,6 +130,13 @@ export default function RecurringChargesPage() {
   const [showIncome, setShowIncome] = useState(true);
   const [showExpense, setShowExpense] = useState(true);
   const [showProjection, setShowProjection] = useState(false);
+  const [groupByAccount, setGroupByAccount] = useState(false);
+
+  const resetFilters = () => {
+    setFilterType('ALL');
+    setFilterAccount('ALL');
+    setSearchQuery('');
+  };
 
   const fetchCharges = async () => {
     try {
@@ -480,13 +514,24 @@ export default function RecurringChargesPage() {
     return a.label.localeCompare(b.label); // Alphabétique
   });
 
-  // Grouper par type si activé
-  const groupedCharges = groupByType
-    ? {
-      INCOME: sortedCharges.filter((c) => c.type === 'INCOME'),
-      EXPENSE: sortedCharges.filter((c) => c.type === 'EXPENSE'),
+  // Grouper par type ou par compte
+  const getGroupedCharges = () => {
+    if (groupByType) {
+      return {
+        INCOME: sortedCharges.filter((c) => c.type === 'INCOME'),
+        EXPENSE: sortedCharges.filter((c) => c.type === 'EXPENSE'),
+      };
     }
-    : { ALL: sortedCharges };
+    if (groupByAccount) {
+      return {
+        SG: sortedCharges.filter((c) => c.account === 'SG'),
+        FLOA: sortedCharges.filter((c) => c.account === 'FLOA'),
+      };
+    }
+    return { ALL: sortedCharges };
+  };
+
+  const groupedCharges = getGroupedCharges();
 
   // Calculer les statistiques
   const stats = {
@@ -515,93 +560,130 @@ export default function RecurringChargesPage() {
       (charge.excluded_months && charge.excluded_months.length > 0) ||
       (charge.reminders && charge.reminders.filter((r) => !r.dismissed).length > 0);
 
+    const getPurposeIcon = (purpose: string) => {
+      switch (purpose) {
+        case 'SAVINGS': return <PiggyBank className="h-4 w-4" />;
+        case 'EMERGENCY': return <ShieldAlert className="h-4 w-4" />;
+        case 'HEALTH': return <Heart className="h-4 w-4" />;
+        case 'DEBT': return <CreditCard className="h-4 w-4" />;
+        default: return <BarChart3 className="h-4 w-4" />;
+      }
+    };
+
     return (
-      <div
+      <motion.div
+        layout
         key={charge.id}
-        className="rounded-lg border border-slate-200 bg-white p-3 sm:p-4 space-y-3"
+        className="group relative rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md hover:border-slate-300"
       >
-        {/* Header - Always visible */}
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div
             className="flex-1 cursor-pointer min-w-0"
             onClick={() => {
               const newExpanded = new Set(expandedCharges);
-              if (isExpanded) {
-                newExpanded.delete(charge.id);
-              } else {
-                newExpanded.add(charge.id);
-              }
+              if (isExpanded) newExpanded.delete(charge.id);
+              else newExpanded.add(charge.id);
               setExpandedCharges(newExpanded);
             }}
           >
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-medium text-slate-900 break-words">{charge.label}</h3>
-              {!groupByType && (
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${charge.type === 'INCOME'
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-red-100 text-red-800'
-                  }`}>
-                  {charge.type === 'INCOME' ? 'Revenu' : 'Dépense'}
-                </span>
-              )}
-              <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-700">
-                {charge.account}
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className={`inline-flex items-center justify-center rounded-lg p-1.5 ${charge.type === 'INCOME' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-600'
+                }`}>
+                {getPurposeIcon(charge.purpose)}
               </span>
-              {charge.purpose && charge.purpose !== 'REGULAR' && (
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${charge.purpose === 'SAVINGS'
-                  ? 'bg-green-100 text-green-800'
-                  : charge.purpose === 'EMERGENCY'
-                    ? 'bg-amber-100 text-amber-800'
-                    : charge.purpose === 'HEALTH'
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-slate-100 text-slate-700'
-                  }`}>
-                  {charge.purpose === 'SAVINGS' && '💰 Épargne'}
-                  {charge.purpose === 'EMERGENCY' && '⚠️ Imprévus'}
-                  {charge.purpose === 'HEALTH' && '🏥 Santé'}
+              <h3 className="font-bold text-slate-900 truncate max-w-[200px]">{charge.label}</h3>
+
+              <div className="flex items-center gap-1.5 ml-1">
+                {!groupByType && (
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${charge.type === 'INCOME' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'
+                    }`}>
+                    {charge.type === 'INCOME' ? 'Revenu' : 'Dépense'}
+                  </span>
+                )}
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-slate-50 text-slate-600 border border-slate-100">
+                  {charge.account}
                 </span>
-              )}
-              {hasDetails && (
-                <button
-                  className="ml-2 text-slate-400 hover:text-slate-600 transition-transform"
-                  style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-              )}
-            </div>
-            <div className="mt-1 text-lg font-semibold text-slate-900">
-              {formatCurrency(charge.amount)} / mois
-            </div>
-            {/* Quick summary - always visible */}
-            <div className="mt-2 flex flex-wrap gap-2 text-xs">
-              <span className="text-slate-600">
-                {new Date(charge.start_date + '-01').toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
-                {charge.end_date && <> → {new Date(charge.end_date + '-01').toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}</>}
-              </span>
-              {charge.excluded_months && charge.excluded_months.length > 0 && (
-                <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-800">
-                  {charge.excluded_months.length} suspension{charge.excluded_months.length > 1 ? 's' : ''}
-                </span>
-              )}
-              {charge.reminders && charge.reminders.filter((r) => !r.dismissed).length > 0 && (
-                <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 font-medium text-orange-800">
-                  {charge.reminders.filter((r) => !r.dismissed).length} rappel{charge.reminders.filter((r) => !r.dismissed).length > 1 ? 's' : ''}
-                </span>
-              )}
+              </div>
             </div>
 
-            {/* Mini-Timeline - Visual 12-month forecast */}
+            <div className="flex items-baseline gap-1">
+              <span className={`text-xl font-black ${charge.type === 'INCOME' ? 'text-emerald-600' : 'text-slate-900'}`}>
+                {charge.type === 'INCOME' ? '+' : '-'}{formatCurrency(charge.amount)}
+              </span>
+              <span className="text-xs font-medium text-slate-400">/ mois</span>
+            </div>
+
+            <div className="mt-2 flex flex-wrap gap-3">
+              <div className="flex items-center gap-1 text-[11px] font-medium text-slate-500">
+                <Calendar className="h-3 w-3" />
+                <span>
+                  {new Date(charge.start_date + '-01').toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                  {charge.end_date && <> → {new Date(charge.end_date + '-01').toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}</>}
+                </span>
+              </div>
+
+              {charge.excluded_months && charge.excluded_months.length > 0 && (
+                <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100">
+                  <Clock className="h-3 w-3" />
+                  <span>{charge.excluded_months.length} suspension(s)</span>
+                </div>
+              )}
+
+              {charge.reminders && charge.reminders.filter((r) => !r.dismissed).length > 0 && (
+                <div className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                  <AlertCircle className="h-3 w-3" />
+                  <span>{charge.reminders.filter((r) => !r.dismissed).length} rappel(s)</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 border-t sm:border-t-0 pt-3 sm:pt-0">
+            <button
+              onClick={() => startEdit(charge)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 transition-all hover:bg-slate-100 active:scale-95"
+            >
+              <Edit3 className="h-4 w-4" />
+              <span className="sm:hidden lg:inline">Modifier</span>
+            </button>
+            <button
+              onClick={() => handleDelete(charge.id)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl bg-rose-50 px-4 py-2 text-sm font-bold text-rose-600 transition-all hover:bg-rose-100 active:scale-95"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="sm:hidden lg:inline">Supprimer</span>
+            </button>
+            {hasDetails && (
+              <button
+                onClick={() => {
+                  const newExpanded = new Set(expandedCharges);
+                  if (isExpanded) newExpanded.delete(charge.id);
+                  else newExpanded.add(charge.id);
+                  setExpandedCharges(newExpanded);
+                }}
+                className={`ml-1 flex items-center justify-center h-10 w-10 rounded-xl bg-slate-900 text-white transition-all hover:scale-105 active:scale-95 shadow-lg shadow-slate-900/10 ${isExpanded ? 'rotate-180 bg-indigo-600 shadow-indigo-600/20' : ''
+                  }`}
+              >
+                <ChevronDown className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Forecast Timeline / Visual Data */}
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <div className="flex items-center justify-between mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" /> Projection 12 mois</span>
+            <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600">Prévisionnel</span>
+          </div>
+
+          <div className="grid grid-cols-6 sm:grid-cols-12 gap-1.5">
             {(() => {
               const today = new Date();
-              const timeline = [];
-
+              const result = [];
               for (let i = 0; i < 12; i++) {
                 const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
                 const monthStr = date.toISOString().slice(0, 7);
-
                 const isBeforeStart = charge.start_date && monthStr < charge.start_date;
                 const isAfterEnd = charge.end_date && monthStr > charge.end_date;
                 const isOutOfPeriod = isBeforeStart || isAfterEnd;
@@ -610,11 +692,8 @@ export default function RecurringChargesPage() {
 
                 let effectiveAmount = charge.amount;
                 let isOverride = false;
-
                 if (charge.monthly_overrides) {
-                  const sortedOverrides = Object.entries(charge.monthly_overrides)
-                    .sort(([a], [b]) => a.localeCompare(b));
-
+                  const sortedOverrides = Object.entries(charge.monthly_overrides).sort(([a], [b]) => a.localeCompare(b));
                   for (const [overrideMonth, overrideAmount] of sortedOverrides) {
                     if (overrideMonth <= monthStr) {
                       effectiveAmount = overrideAmount;
@@ -623,196 +702,118 @@ export default function RecurringChargesPage() {
                   }
                 }
 
-                timeline.push({
-                  month: monthStr,
-                  monthName: date.toLocaleDateString('fr-FR', { month: 'short' }),
-                  amount: effectiveAmount,
-                  isExcluded,
-                  isOverride,
-                  hasReminder,
-                  isOutOfPeriod,
-                });
-              }
-
-              return (
-                <div className="mt-3 border-t border-slate-100 pt-3">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const newExpanded = new Set(expandedCharges);
-                      if (isExpanded) {
-                        newExpanded.delete(charge.id);
-                      } else {
-                        newExpanded.add(charge.id);
-                      }
-                      setExpandedCharges(newExpanded);
-                    }}
-                    className="w-full flex items-center justify-between text-left mb-2 hover:opacity-70"
-                  >
-                    <span className="text-[10px] font-medium text-slate-500">Calendrier prévisionnel (12 mois)</span>
-                    <svg
-                      className={`h-3 w-3 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                result.push(
+                  <div key={monthStr} className="flex flex-col items-center gap-1 group/item">
+                    <span className={`text-[9px] font-bold transition-colors ${monthStr === currentMonth ? 'text-indigo-600 scale-110' : 'text-slate-400'
+                      }`}>
+                      {date.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '').toUpperCase()}
+                    </span>
+                    <div
+                      className={`h-10 w-full rounded-lg border flex flex-col items-center justify-center transition-all ${isOutOfPeriod ? 'bg-slate-50 border-slate-100 opacity-30 select-none' :
+                        isExcluded ? 'bg-amber-50 border-amber-100 text-amber-500' :
+                          isOverride ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' :
+                            monthStr === currentMonth ? 'bg-indigo-50 border-indigo-200 text-indigo-700' :
+                              'bg-white border-slate-200 text-slate-600 hover:border-slate-400'
+                        }`}
+                      title={`${date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}: ${isOutOfPeriod ? 'Inactive' : isExcluded ? 'Suspendue' : formatCurrency(effectiveAmount)
+                        }`}
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-
-                  {isExpanded && (
-                    <div className="grid grid-cols-6 gap-1">
-                      {timeline.map(({ month, monthName, amount, isExcluded, isOverride, hasReminder, isOutOfPeriod }) => (
-                        <div
-                          key={month}
-                          className="relative group"
-                          title={`${monthName}: ${isOutOfPeriod ? 'Hors période' : isExcluded ? 'Suspendu' : formatCurrency(amount)}${isOverride ? ' (override)' : ''}${hasReminder ? ' [Rappel]' : ''}`}
-                        >
-                          <div className="text-[9px] text-center text-slate-500 mb-0.5 uppercase">
-                            {monthName}
-                          </div>
-                          <div
-                            className={`h-8 rounded text-[10px] font-semibold flex items-center justify-center relative ${isOutOfPeriod
-                              ? 'bg-slate-100 text-slate-400'
-                              : isExcluded
-                                ? 'bg-amber-200 text-amber-900 line-through'
-                                : isOverride
-                                  ? 'bg-green-500 text-white shadow-sm'
-                                  : 'bg-green-100 text-green-900'
-                              }`}
-                          >
-                            {isOutOfPeriod ? '—' : isExcluded ? '—' : `${Math.round(amount)}€`}
-                            {hasReminder && !isExcluded && !isOutOfPeriod && (
-                              <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full border border-white" />
-                            )}
-                          </div>
+                      {isOutOfPeriod || isExcluded ? (
+                        <span className="text-[14px]">×</span>
+                      ) : (
+                        <>
+                          <span className="text-[10px] font-black leading-none">{Math.round(effectiveAmount)}</span>
+                          <span className="text-[7px] font-bold opacity-70">€</span>
+                        </>
+                      )}
+                      {hasReminder && !isExcluded && !isOutOfPeriod && (
+                        <div className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-600 border border-white"></span>
                         </div>
-                      ))}
+                      )}
                     </div>
-                  )}
-                </div>
-              );
+                  </div>
+                );
+              }
+              return result;
             })()}
-          </div>
-          <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 flex-shrink-0">
-            <button
-              onClick={() => startEdit(charge)}
-              className="rounded-md px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium text-blue-600 hover:bg-blue-50 whitespace-nowrap"
-            >
-              Modifier
-            </button>
-            <button
-              onClick={() => handleDelete(charge.id)}
-              className="rounded-md px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium text-red-600 hover:bg-red-50 whitespace-nowrap"
-            >
-              Supprimer
-            </button>
           </div>
         </div>
 
-        {/* Expanded details */}
-        {isExpanded && (
-          <>
-            {/* Période */}
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span>
-                {new Date(charge.start_date + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
-                {charge.end_date && (
-                  <> → {new Date(charge.end_date + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</>
-                )}
-                {!charge.end_date && <> → Indéterminé</>}
-              </span>
-            </div>
-
-            {/* Montants variables */}
-            {Object.keys(charge.monthly_overrides).length > 0 && (
-              <div className="bg-green-50 rounded p-3 border border-green-200">
-                <div className="text-xs font-medium text-green-900 mb-2 flex items-center gap-1.5">
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                  </svg>
-                  Montants variables ({Object.keys(charge.monthly_overrides).length})
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {Object.entries(charge.monthly_overrides)
-                    .sort(([a], [b]) => a.localeCompare(b))
-                    .map(([month, amount]) => (
-                      <span
-                        key={month}
-                        className="inline-flex items-center gap-1.5 rounded bg-green-200 px-2 py-1 text-xs font-medium text-green-900"
-                      >
-                        {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}
-                        <span className="font-semibold">{formatCurrency(amount)}</span>
-                      </span>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            {/* Mois suspendus */}
-            {charge.excluded_months && charge.excluded_months.length > 0 && (
-              <div className="bg-amber-50 rounded p-3 border border-amber-200">
-                <div className="text-xs font-medium text-amber-900 mb-2 flex items-center gap-1.5">
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Mois suspendus ({charge.excluded_months.length})
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {charge.excluded_months
-                    .sort((a, b) => a.localeCompare(b))
-                    .map((month) => (
-                      <span
-                        key={month}
-                        className={`inline-flex items-center rounded px-2 py-1 text-xs font-medium ${month === currentMonth
-                          ? 'bg-red-200 text-red-900'
-                          : 'bg-amber-200 text-amber-900'
-                          }`}
-                      >
-                        {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}
-                      </span>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            {/* Rappels */}
-            {charge.reminders && charge.reminders.filter((r) => !r.dismissed).length > 0 && (
-              <div className="bg-orange-50 rounded p-3 border border-orange-200">
-                <div className="text-xs font-medium text-orange-900 mb-2 flex items-center gap-1.5">
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-                  Rappels ({charge.reminders.filter((r) => !r.dismissed).length})
-                </div>
-                <div className="space-y-1.5">
-                  {charge.reminders
-                    .filter((r) => !r.dismissed)
-                    .sort((a, b) => a.month.localeCompare(b.month))
-                    .map((reminder) => (
-                      <div
-                        key={reminder.id}
-                        className={`rounded px-2 py-1.5 text-xs ${reminder.month === currentMonth
-                          ? 'bg-orange-200 text-orange-900 font-medium'
-                          : 'bg-orange-100 text-orange-800'
-                          }`}
-                      >
-                        <span className="font-medium">
-                          {new Date(reminder.month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}:
-                        </span>{' '}
-                        {reminder.note}
+        {/* Detailed Panels */}
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-6 space-y-4 pt-4 border-t border-slate-100">
+                {/* Info Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {Object.keys(charge.monthly_overrides).length > 0 && (
+                    <div className="rounded-2xl bg-emerald-50/50 border border-emerald-100 p-4">
+                      <div className="flex items-center gap-2 mb-3 text-emerald-800">
+                        <TrendingUp className="h-4 w-4" />
+                        <span className="text-xs font-black uppercase tracking-wider">Ajustements Mensuels</span>
                       </div>
-                    ))}
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(charge.monthly_overrides)
+                          .sort(([a], [b]) => a.localeCompare(b))
+                          .map(([month, amount]) => (
+                            <div key={month} className="flex items-center gap-2 bg-white rounded-xl border border-emerald-100 px-3 py-1.5 shadow-sm">
+                              <span className="text-[10px] font-bold text-slate-400">{new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}</span>
+                              <span className="text-xs font-black text-emerald-700">{formatCurrency(amount)}</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {charge.excluded_months && charge.excluded_months.length > 0 && (
+                    <div className="rounded-2xl bg-amber-50/50 border border-amber-100 p-4">
+                      <div className="flex items-center gap-2 mb-3 text-amber-800">
+                        <Clock className="h-4 w-4" />
+                        <span className="text-xs font-black uppercase tracking-wider">Périodes de Suspension</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {charge.excluded_months.sort().map((month) => (
+                          <div key={month} className={`px-3 py-1.5 rounded-xl text-xs font-bold border shadow-sm ${month === currentMonth ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-white border-amber-200 text-amber-700'
+                            }`}>
+                            {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
+
+                {charge.reminders && charge.reminders.filter((r) => !r.dismissed).length > 0 && (
+                  <div className="rounded-2xl bg-indigo-50/50 border border-indigo-100 p-4">
+                    <div className="flex items-center gap-2 mb-3 text-indigo-800">
+                      <Info className="h-4 w-4" />
+                      <span className="text-xs font-black uppercase tracking-wider">Notes & Mémos</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {charge.reminders
+                        .filter((r) => !r.dismissed)
+                        .sort((a, b) => a.month.localeCompare(b.month))
+                        .map((reminder) => (
+                          <div key={reminder.id} className="flex flex-col gap-1 bg-white rounded-xl border border-indigo-100 p-3 shadow-sm">
+                            <div className="text-[10px] font-black text-indigo-600/60 uppercase">{new Date(reminder.month + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</div>
+                            <div className="text-xs font-bold text-slate-700 leading-relaxed">{reminder.note}</div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </>
-        )}
-      </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
     );
   };
 
@@ -874,76 +875,123 @@ export default function RecurringChargesPage() {
 
   return (
     <main className="page-shell">
-      <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Charges récurrentes</h1>
-            <p className="mt-1 sm:mt-2 text-sm sm:text-base text-slate-600">
-              Gérez vos revenus et charges fixes mensuelles (salaire, loyer, abonnements, etc.)
-            </p>
+      <div className="space-y-6 sm:space-y-8">
+        <header className="relative overflow-hidden rounded-2xl bg-slate-900 px-6 py-8 sm:px-10 sm:py-12 shadow-2xl">
+          <div className="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white mb-2">
+                Charges récurrentes
+              </h1>
+              <p className="text-slate-400 max-w-lg leading-relaxed">
+                Visualisez et orchestrez vos flux financiers mensuels. Vos revenus, charges fixes et provisions en un seul coup d'œil.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowForm(true)}
+              className="group relative flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-slate-900 transition-all hover:scale-105 active:scale-95 shadow-xl hover:shadow-white/10"
+            >
+              <Plus className="h-5 w-5" />
+              <span>Ajouter une charge</span>
+              <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+            </button>
           </div>
-          <button
-            onClick={() => setShowForm(true)}
-            className="w-full sm:w-auto rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 whitespace-nowrap"
-          >
-            Ajouter
-          </button>
+
+          {/* Background decorations */}
+          <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-indigo-500/10 blur-3xl" />
+          <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl" />
         </header>
 
         {error && (
-          <div className="rounded-lg bg-red-50 p-4 text-sm text-red-800" role="alert">
-            {error}
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-800 shadow-sm"
+          >
+            <AlertCircle className="h-5 w-5 flex-shrink-0" />
+            <span>{error}</span>
+          </motion.div>
         )}
 
-        {/* Panneau de statistiques */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="rounded-lg border border-slate-200 bg-white p-3 sm:p-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Total</p>
-            <p className="mt-1 sm:mt-2 text-xl sm:text-2xl font-bold text-slate-900">{stats.total}</p>
-            <p className="mt-1 text-xs text-slate-600">
-              {stats.income} revenus · {stats.expense} dépenses
-            </p>
+        {/* Panneau de statistiques Dashboard Style */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 transition-all hover:shadow-xl hover:-translate-y-1">
+            <div className="flex items-start justify-between">
+              <div className="rounded-xl bg-slate-100 p-2 text-slate-600 transition-colors group-hover:bg-slate-900 group-hover:text-white">
+                <BarChart3 className="h-6 w-6" />
+              </div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Total</div>
+            </div>
+            <div className="mt-4">
+              <div className="text-3xl font-black text-slate-900">{stats.total}</div>
+              <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                <span className="text-emerald-500">{stats.income} entrées</span>
+                <span className="text-slate-300">|</span>
+                <span className="text-rose-500">{stats.expense} sorties</span>
+              </div>
+            </div>
+            <div className="absolute bottom-0 left-0 h-1 w-full bg-slate-100 group-hover:bg-slate-900 transition-colors" />
           </div>
 
-          <div className="rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-green-700">Revenus mensuels</p>
-            <p className="mt-1 sm:mt-2 text-xl sm:text-2xl font-bold text-green-600">+{formatCurrency(stats.totalIncome)}</p>
-            <p className="mt-1 text-xs text-green-600">{stats.income} charge(s)</p>
+          <div className="group relative overflow-hidden rounded-2xl border border-emerald-100 bg-emerald-50/30 p-5 transition-all hover:shadow-xl hover:-translate-y-1">
+            <div className="flex items-start justify-between">
+              <div className="rounded-xl bg-emerald-100 p-2 text-emerald-600 transition-colors group-hover:bg-emerald-600 group-hover:text-white">
+                <ArrowUpRight className="h-6 w-6" />
+              </div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-600/60">Revenus</div>
+            </div>
+            <div className="mt-4">
+              <div className="text-3xl font-black text-emerald-600">+{formatCurrency(stats.totalIncome)}</div>
+              <div className="mt-1 flex items-center gap-1 text-xs font-medium text-emerald-600/70">
+                <TrendingUp className="h-3 w-3" />
+                <span>Flux mensuel stable</span>
+              </div>
+            </div>
+            <div className="absolute bottom-0 left-0 h-1 w-full bg-emerald-100/50 group-hover:bg-emerald-600 transition-colors" />
           </div>
 
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 sm:p-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-red-700">Charges mensuelles</p>
-            <p className="mt-1 sm:mt-2 text-xl sm:text-2xl font-bold text-red-600">-{formatCurrency(stats.totalExpense)}</p>
-            <p className="mt-1 text-xs text-red-600">{stats.expense} charge(s)</p>
+          <div className="group relative overflow-hidden rounded-2xl border border-rose-100 bg-rose-50/30 p-5 transition-all hover:shadow-xl hover:-translate-y-1">
+            <div className="flex items-start justify-between">
+              <div className="rounded-xl bg-rose-100 p-2 text-rose-600 transition-colors group-hover:bg-rose-600 group-hover:text-white">
+                <ArrowDownRight className="h-6 w-6" />
+              </div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-rose-600/60">Charges</div>
+            </div>
+            <div className="mt-4">
+              <div className="text-3xl font-black text-rose-600">-{formatCurrency(stats.totalExpense)}</div>
+              <div className="mt-1 flex items-center gap-1 text-xs font-medium text-rose-600/70">
+                <TrendingDown className="h-3 w-3" />
+                <span>Sorties programmées</span>
+              </div>
+            </div>
+            <div className="absolute bottom-0 left-0 h-1 w-full bg-rose-100/50 group-hover:bg-rose-600 transition-colors" />
           </div>
 
-          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 sm:p-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-blue-700">Solde mensuel</p>
-            <p className={`mt-1 sm:mt-2 text-xl sm:text-2xl font-bold ${stats.totalIncome - stats.totalExpense >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
-              {stats.totalIncome - stats.totalExpense >= 0 ? '+' : ''}{formatCurrency(stats.totalIncome - stats.totalExpense)}
-            </p>
-            <p className="mt-1 text-xs text-blue-600">
-              SG: {stats.sg} · FLOA: {stats.floa}
-            </p>
+          <div className="group relative overflow-hidden rounded-2xl border border-indigo-100 bg-indigo-50/30 p-5 transition-all hover:shadow-xl hover:-translate-y-1">
+            <div className="flex items-start justify-between">
+              <div className="rounded-xl bg-indigo-100 p-2 text-indigo-600 transition-colors group-hover:bg-indigo-600 group-hover:text-white">
+                <Wallet className="h-6 w-6" />
+              </div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-600/60">Solde</div>
+            </div>
+            <div className="mt-4">
+              <div className={`text-3xl font-black ${stats.totalIncome - stats.totalExpense >= 0 ? 'text-indigo-600' : 'text-orange-600'}`}>
+                {stats.totalIncome - stats.totalExpense >= 0 ? '+' : ''}{formatCurrency(stats.totalIncome - stats.totalExpense)}
+              </div>
+              <div className="mt-1 text-xs font-medium text-indigo-600/70 flex gap-2">
+                <span>SG: {stats.sg}</span>
+                <span className="opacity-30">•</span>
+                <span>FLOA: {stats.floa}</span>
+              </div>
+            </div>
+            <div className="absolute bottom-0 left-0 h-1 w-full bg-indigo-100/50 group-hover:bg-indigo-600 transition-colors" />
           </div>
         </div>
 
         {/* Panneau récapitulatif des provisions et épargnes */}
         {(() => {
-          // Fonction helper pour calculer le montant réel d'une charge pour le mois actuel
           const getAmountForCurrentMonth = (charge: RecurringCharge): number => {
-            // Vérifier si le mois est exclu (suspendu)
-            if (charge.excluded_months && charge.excluded_months.includes(currentMonth)) {
-              return 0;
-            }
-
-            // Vérifier s'il y a un override pour ce mois
-            if (charge.monthly_overrides && charge.monthly_overrides[currentMonth] !== undefined) {
-              return charge.monthly_overrides[currentMonth];
-            }
-
-            // Retourner le montant de base
+            if (charge.excluded_months && charge.excluded_months.includes(currentMonth)) return 0;
+            if (charge.monthly_overrides && charge.monthly_overrides[currentMonth] !== undefined) return charge.monthly_overrides[currentMonth];
             return charge.amount;
           };
 
@@ -951,13 +999,11 @@ export default function RecurringChargesPage() {
           const emergencyCharges = chargesWithoutDebts.filter((c) => c.purpose === 'EMERGENCY' && c.type === 'EXPENSE');
           const healthCharges = chargesWithoutDebts.filter((c) => c.purpose === 'HEALTH' && c.type === 'EXPENSE');
 
-          // Calculer les totaux en tenant compte des suspensions et overrides pour le mois actuel
           const totalSavings = savingsCharges.reduce((sum, c) => sum + getAmountForCurrentMonth(c), 0);
           const totalEmergency = emergencyCharges.reduce((sum, c) => sum + getAmountForCurrentMonth(c), 0);
           const totalHealth = healthCharges.reduce((sum, c) => sum + getAmountForCurrentMonth(c), 0);
           const totalProvisions = totalSavings + totalEmergency + totalHealth;
 
-          // Compter uniquement les charges actives ce mois (non suspendues)
           const activeSavingsCount = savingsCharges.filter(c => getAmountForCurrentMonth(c) > 0).length;
           const activeEmergencyCount = emergencyCharges.filter(c => getAmountForCurrentMonth(c) > 0).length;
           const activeHealthCount = healthCharges.filter(c => getAmountForCurrentMonth(c) > 0).length;
@@ -965,78 +1011,91 @@ export default function RecurringChargesPage() {
           if (totalProvisions === 0) return null;
 
           return (
-            <div className="rounded-lg border-2 border-purple-300 bg-gradient-to-br from-purple-50 to-blue-50 p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="rounded-full bg-purple-600 p-2">
-                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-purple-900">Provisions & Épargne mensuelle</h3>
-                  <p className="text-sm text-purple-700">
-                    Montant total mis de côté chaque mois pour vos objectifs d'épargne et provisions
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="rounded-lg bg-white border-2 border-purple-200 p-4">
-                  <p className="text-xs font-medium uppercase tracking-wider text-purple-700">Total ce mois</p>
-                  <p className="mt-2 text-3xl font-bold text-purple-600">{formatCurrency(totalProvisions)}</p>
-                  <p className="mt-1 text-xs text-purple-600">
-                    {activeSavingsCount + activeEmergencyCount + activeHealthCount} charge(s) active(s)
-                  </p>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 p-6 sm:p-8 shadow-2xl text-white"
+            >
+              <div className="relative z-10">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="rounded-2xl bg-white/10 p-3 backdrop-blur-md border border-white/20">
+                      <PiggyBank className="h-8 w-8 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black tracking-tight">Provisions & Épargne</h3>
+                      <p className="text-indigo-100/70 text-sm font-medium">Accumulation mensuelle programmée</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-200/60 mb-1">Total ce mois</div>
+                    <div className="text-4xl font-black text-white leading-none">{formatCurrency(totalProvisions)}</div>
+                  </div>
                 </div>
 
-                {savingsCharges.length > 0 && (
-                  <div className="rounded-lg bg-white border-2 border-green-200 p-4">
-                    <p className="text-xs font-medium uppercase tracking-wider text-green-700 flex items-center gap-1">
-                      <span>💰</span> Épargne
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-green-600">{formatCurrency(totalSavings)}</p>
-                    <p className="mt-1 text-xs text-green-600">
-                      {activeSavingsCount > 0 ? `${activeSavingsCount} active(s)` : 'Toutes suspendues ce mois'}
-                    </p>
-                  </div>
-                )}
-
-                {emergencyCharges.length > 0 && (
-                  <div className="rounded-lg bg-white border-2 border-amber-200 p-4">
-                    <p className="text-xs font-medium uppercase tracking-wider text-amber-700 flex items-center gap-1">
-                      <span>⚠️</span> Imprévus
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-amber-600">{formatCurrency(totalEmergency)}</p>
-                    <p className="mt-1 text-xs text-amber-600">
-                      {activeEmergencyCount > 0 ? `${activeEmergencyCount} active(s)` : 'Toutes suspendues ce mois'}
-                    </p>
-                  </div>
-                )}
-
-                {healthCharges.length > 0 && (
-                  <div className="rounded-lg bg-white border-2 border-blue-200 p-4">
-                    <p className="text-xs font-medium uppercase tracking-wider text-blue-700 flex items-center gap-1">
-                      <span>🏥</span> Santé
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-blue-600">{formatCurrency(totalHealth)}</p>
-                    <p className="mt-1 text-xs text-blue-600">
-                      {activeHealthCount > 0 ? `${activeHealthCount} active(s)` : 'Toutes suspendues ce mois'}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-4 rounded-lg bg-purple-100 border border-purple-300 p-3">
-                <p className="text-sm text-purple-900">
-                  <strong>📊 Montant ce mois ({new Date(currentMonth + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}):</strong> {formatCurrency(totalProvisions)}
-                  {(activeSavingsCount + activeEmergencyCount + activeHealthCount) < (savingsCharges.length + emergencyCharges.length + healthCharges.length) && (
-                    <span className="ml-2 text-amber-700">
-                      • {(savingsCharges.length + emergencyCharges.length + healthCharges.length) - (activeSavingsCount + activeEmergencyCount + activeHealthCount)} charge(s) suspendue(s)
-                    </span>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {savingsCharges.length > 0 && (
+                    <div className="group relative overflow-hidden rounded-2xl bg-white/5 p-4 border border-white/10 backdrop-blur-sm transition-all hover:bg-white/10">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="rounded-lg bg-emerald-500/20 p-2 text-emerald-400">
+                          <TrendingUp className="h-4 w-4" />
+                        </div>
+                        <span className="text-sm font-bold tracking-wide">💰 Épargne</span>
+                      </div>
+                      <div className="text-2xl font-black tracking-tight">{formatCurrency(totalSavings)}</div>
+                      <div className="mt-2 flex items-center justify-between">
+                        <div className="text-[10px] font-bold text-white/40 uppercase">{activeSavingsCount} active(s)</div>
+                        {activeSavingsCount === 0 && <span className="text-[10px] font-bold text-rose-400 bg-rose-400/10 px-2 py-0.5 rounded-full">Suspendue</span>}
+                      </div>
+                    </div>
                   )}
-                </p>
+
+                  {emergencyCharges.length > 0 && (
+                    <div className="group relative overflow-hidden rounded-2xl bg-white/5 p-4 border border-white/10 backdrop-blur-sm transition-all hover:bg-white/10">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="rounded-lg bg-amber-500/20 p-2 text-amber-400">
+                          <ShieldAlert className="h-4 w-4" />
+                        </div>
+                        <span className="text-sm font-bold tracking-wide">⚠️ Imprévus</span>
+                      </div>
+                      <div className="text-2xl font-black tracking-tight">{formatCurrency(totalEmergency)}</div>
+                      <div className="mt-2 flex items-center justify-between">
+                        <div className="text-[10px] font-bold text-white/40 uppercase">{activeEmergencyCount} active(s)</div>
+                        {activeEmergencyCount === 0 && <span className="text-[10px] font-bold text-rose-400 bg-rose-400/10 px-2 py-0.5 rounded-full">Suspendue</span>}
+                      </div>
+                    </div>
+                  )}
+
+                  {healthCharges.length > 0 && (
+                    <div className="group relative overflow-hidden rounded-2xl bg-white/5 p-4 border border-white/10 backdrop-blur-sm transition-all hover:bg-white/10">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="rounded-lg bg-blue-500/20 p-2 text-blue-400">
+                          <Heart className="h-4 w-4" />
+                        </div>
+                        <span className="text-sm font-bold tracking-wide">🏥 Santé</span>
+                      </div>
+                      <div className="text-2xl font-black tracking-tight">{formatCurrency(totalHealth)}</div>
+                      <div className="mt-2 flex items-center justify-between">
+                        <div className="text-[10px] font-bold text-white/40 uppercase">{activeHealthCount} active(s)</div>
+                        {activeHealthCount === 0 && <span className="text-[10px] font-bold text-rose-400 bg-rose-400/10 px-2 py-0.5 rounded-full">Suspendue</span>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 flex items-center gap-2 rounded-xl bg-black/20 px-4 py-3 text-xs font-medium text-indigo-100/90 border border-white/5">
+                  <Info className="h-4 w-4 text-indigo-400" />
+                  <span>
+                    <strong>{new Date(currentMonth + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })} :</strong>
+                    {' '}Votre stratégie d'épargne est active à {Math.round(((activeSavingsCount + activeEmergencyCount + activeHealthCount) / (savingsCharges.length + emergencyCharges.length + healthCharges.length)) * 100)}%.
+                  </span>
+                </div>
               </div>
-            </div>
+
+              {/* Decorative elements */}
+              <div className="absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
+              <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-indigo-400/10 blur-3xl" />
+            </motion.div>
           );
         })()}
 
@@ -1409,125 +1468,78 @@ export default function RecurringChargesPage() {
           </div>
         )}
 
-        {/* Filtres et organisation */}
-        {charges.length > 0 && (
-          <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px]">
-                <label htmlFor="search-query" className="block text-xs font-medium text-slate-700 mb-1">
-                  Rechercher
-                </label>
-                <input
-                  type="text"
-                  id="search-query"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher par libellé..."
-                  className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
-                />
-              </div>
+        {/* Toolbar & Filters */}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100 focus-within:border-indigo-300 focus-within:bg-white focus-within:ring-4 focus-within:ring-indigo-500/5 transition-all">
+              <Search className="h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Rechercher une charge..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent border-none text-sm font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none"
+              />
+            </div>
 
-              <div>
-                <label htmlFor="filter-type" className="block text-xs font-medium text-slate-700 mb-1">
-                  Type
-                </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 p-1 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex items-center gap-2 px-3 py-1.5">
+                  <Filter className="h-3.5 w-3.5 text-slate-400" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Filtrer</span>
+                </div>
                 <select
-                  id="filter-type"
                   value={filterType}
-                  onChange={(e) => setFilterType(e.target.value as 'ALL' | 'INCOME' | 'EXPENSE')}
-                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
+                  onChange={(e) => setFilterType(e.target.value as any)}
+                  className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all cursor-pointer"
                 >
-                  <option value="ALL">Tous</option>
+                  <option value="ALL">Tout</option>
                   <option value="INCOME">Revenus</option>
                   <option value="EXPENSE">Dépenses</option>
                 </select>
-              </div>
 
-              <div>
-                <label htmlFor="filter-account" className="block text-xs font-medium text-slate-700 mb-1">
-                  Compte
-                </label>
                 <select
-                  id="filter-account"
                   value={filterAccount}
-                  onChange={(e) => setFilterAccount(e.target.value as 'ALL' | 'SG' | 'FLOA')}
-                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
+                  onChange={(e) => setFilterAccount(e.target.value as any)}
+                  className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all cursor-pointer"
                 >
-                  <option value="ALL">Tous</option>
-                  <option value="SG">SG</option>
-                  <option value="FLOA">FLOA</option>
+                  <option value="ALL">Tous les comptes</option>
+                  <option value="SG">Société Générale</option>
+                  <option value="FLOA">FLOA Bank</option>
                 </select>
               </div>
 
-              <div>
-                <label htmlFor="sort-by" className="block text-xs font-medium text-slate-700 mb-1">
-                  Trier par
-                </label>
-                <select
-                  id="sort-by"
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as 'label' | 'amount')}
-                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
-                >
-                  <option value="label">Libellé (A-Z)</option>
-                  <option value="amount">Montant (élevé → bas)</option>
-                </select>
-              </div>
-
-              {(filterType !== 'ALL' || filterAccount !== 'ALL' || searchQuery !== '') && (
-                <div className="flex items-end">
-                  <button
-                    onClick={() => {
-                      setFilterType('ALL');
-                      setFilterAccount('ALL');
-                      setSearchQuery('');
-                    }}
-                    className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
-                  >
-                    Réinitialiser
-                  </button>
+              <div className="flex items-center gap-1.5 p-1 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex items-center gap-2 px-3 py-1.5">
+                  <Settings2 className="h-3.5 w-3.5 text-slate-400" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Vue</span>
                 </div>
-              )}
-            </div>
-
-            {/* Organisation */}
-            <div className="flex items-center gap-4 pt-2 border-t border-slate-100">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={groupByType}
-                  onChange={(e) => setGroupByType(e.target.checked)}
-                  className="rounded border-slate-300 text-slate-900 focus:ring-slate-500"
-                />
-                <span className="text-xs font-medium text-slate-700">Grouper par type</span>
-              </label>
-
-              {groupByType && (
-                <>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={showIncome}
-                      onChange={(e) => setShowIncome(e.target.checked)}
-                      className="rounded border-slate-300 text-green-600 focus:ring-green-500"
-                    />
-                    <span className="text-xs font-medium text-green-700">Afficher revenus</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={showExpense}
-                      onChange={(e) => setShowExpense(e.target.checked)}
-                      className="rounded border-slate-300 text-red-600 focus:ring-red-500"
-                    />
-                    <span className="text-xs font-medium text-red-700">Afficher dépenses</span>
-                  </label>
-                </>
-              )}
+                <button
+                  onClick={() => setGroupByAccount(!groupByAccount)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${groupByAccount ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                    }`}
+                >
+                  Par compte
+                </button>
+                <button
+                  onClick={() => setGroupByType(!groupByType)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${groupByType ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                    }`}
+                >
+                  Par type
+                </button>
+                <div className="w-[1px] h-4 bg-slate-200 mx-1" />
+                <button
+                  onClick={resetFilters}
+                  className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors"
+                  title="Réinitialiser"
+                >
+                  <Clock className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
-        )}
+        </div>
 
         <RecurringChargeModal
           isOpen={showForm}
@@ -1571,81 +1583,122 @@ export default function RecurringChargesPage() {
           formatCurrency={formatCurrency}
         />
 
-        {charges.length === 0 ? (
-          <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
-            <p className="text-slate-600">Aucun revenu ou charge récurrente défini.</p>
-          </div>
-        ) : filteredCharges.length === 0 ? (
-          <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
-            <p className="text-slate-600">Aucune charge ne correspond aux filtres sélectionnés.</p>
-            <button
-              onClick={() => {
-                setFilterType('ALL');
-                setFilterAccount('ALL');
-              }}
-              className="mt-4 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-            >
-              Réinitialiser les filtres
-            </button>
-          </div>
-        ) : groupByType ? (
-          <div className="space-y-6">
-            {/* Revenus */}
-            {showIncome && groupedCharges.INCOME && groupedCharges.INCOME.length > 0 && (
-              <div>
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-green-900 flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100">
-                      <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                    </span>
-                    Revenus
-                    <span className="text-sm font-normal text-green-700">
-                      ({groupedCharges.INCOME.length})
-                    </span>
-                  </h2>
-                  <div className="text-sm font-semibold text-green-600">
-                    Total: +{formatCurrency(groupedCharges.INCOME.reduce((sum, c) => sum + c.amount, 0))} / mois
+        <div className="space-y-8">
+          {charges.length === 0 ? (
+            <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+              <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-slate-50 text-slate-400 mb-4">
+                <BarChart3 className="h-8 w-8" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Aucune charge définie</h3>
+              <p className="text-slate-500 max-w-sm mx-auto">Commencez par ajouter vos revenus et vos charges récurrentes pour visualiser votre flux financier.</p>
+              <button
+                onClick={() => setShowForm(true)}
+                className="mt-6 rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white hover:bg-slate-800 transition-all"
+              >
+                Ajouter ma première charge
+              </button>
+            </div>
+          ) : filteredCharges.length === 0 ? (
+            <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+              <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-slate-50 text-slate-400 mb-4">
+                <Search className="h-8 w-8" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Aucun résultat</h3>
+              <p className="text-slate-500 max-w-sm mx-auto">Nous n'avons trouvé aucune charge correspondant à vos critères de recherche ou filtres.</p>
+              <button
+                onClick={resetFilters}
+                className="mt-6 rounded-xl border border-slate-200 bg-white px-6 py-2.5 text-sm font-bold text-slate-900 hover:bg-slate-50 transition-all"
+              >
+                Réinitialiser les filtres
+              </button>
+            </div>
+          ) : groupByType ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Revenus */}
+              {showIncome && groupedCharges.INCOME && groupedCharges.INCOME.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between px-2">
+                    <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                      Revenus
+                      <span className="text-slate-400 text-sm font-medium">({groupedCharges.INCOME.length})</span>
+                    </h2>
+                    <div className="text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                      Total: +{formatCurrency(groupedCharges.INCOME.reduce((sum, c) => sum + c.amount, 0))}
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    {groupedCharges.INCOME.map((charge) => renderChargeCard(charge))}
                   </div>
                 </div>
-                <div className="space-y-3">
-                  {groupedCharges.INCOME.map((charge) => renderChargeCard(charge))}
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Dépenses */}
-            {showExpense && groupedCharges.EXPENSE && groupedCharges.EXPENSE.length > 0 && (
-              <div>
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-red-900 flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100">
-                      <svg className="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                      </svg>
-                    </span>
-                    Dépenses
-                    <span className="text-sm font-normal text-red-700">
-                      ({groupedCharges.EXPENSE.length})
-                    </span>
-                  </h2>
-                  <div className="text-sm font-semibold text-red-600">
-                    Total: -{formatCurrency(groupedCharges.EXPENSE.reduce((sum, c) => sum + c.amount, 0))} / mois
+              {/* Dépenses */}
+              {showExpense && groupedCharges.EXPENSE && groupedCharges.EXPENSE.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between px-2">
+                    <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-rose-500" />
+                      Dépenses
+                      <span className="text-slate-400 text-sm font-medium">({groupedCharges.EXPENSE.length})</span>
+                    </h2>
+                    <div className="text-sm font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded-full">
+                      Total: -{formatCurrency(groupedCharges.EXPENSE.reduce((sum, c) => sum + c.amount, 0))}
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    {groupedCharges.EXPENSE.map((charge) => renderChargeCard(charge))}
                   </div>
                 </div>
-                <div className="space-y-3">
-                  {groupedCharges.EXPENSE.map((charge) => renderChargeCard(charge))}
+              )}
+            </div>
+          ) : groupByAccount ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* SG */}
+              {groupedCharges.SG && groupedCharges.SG.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between px-2">
+                    <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-indigo-500" />
+                      Société Générale
+                      <span className="text-slate-400 text-sm font-medium">({groupedCharges.SG.length})</span>
+                    </h2>
+                    <div className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
+                      Solde: {formatCurrency(groupedCharges.SG.reduce((sum, c) => sum + (c.type === 'INCOME' ? c.amount : -c.amount), 0))}
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    {groupedCharges.SG.map((charge) => renderChargeCard(charge))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {sortedCharges.map((charge) => renderChargeCard(charge))}
-          </div>
-        )}
+              )}
+
+              {/* FLOA */}
+              {groupedCharges.FLOA && groupedCharges.FLOA.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between px-2">
+                    <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-amber-500" />
+                      FLOA Bank
+                      <span className="text-slate-400 text-sm font-medium">({groupedCharges.FLOA.length})</span>
+                    </h2>
+                    <div className="text-sm font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
+                      Solde: {formatCurrency(groupedCharges.FLOA.reduce((sum, c) => sum + (c.type === 'INCOME' ? c.amount : -c.amount), 0))}
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    {groupedCharges.FLOA.map((charge) => renderChargeCard(charge))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {sortedCharges.map((charge) => renderChargeCard(charge))}
+            </div>
+          )}
+        </div>
       </div>
     </main>
   );
-}
+};

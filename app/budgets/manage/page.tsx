@@ -2,6 +2,38 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import {
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Calendar,
+  PieChart,
+  TrendingDown,
+  TrendingUp,
+  ArrowLeft,
+  Search,
+  Settings2,
+  Trash2,
+  Edit3,
+  Link as LinkIcon,
+  X,
+  Target,
+  Wallet,
+  Activity,
+  History,
+  ShoppingCart,
+  Car,
+  Heart,
+  Home,
+  Zap,
+  Phone,
+  Gamepad2,
+  ShieldCheck,
+  MoreHorizontal
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { BudgetModal } from '@/components/budgets/BudgetModal';
 
 type BudgetPeriod = 'MONTHLY' | 'ROLLING' | 'MULTI';
 
@@ -80,6 +112,8 @@ export default function ManageBudgetsPage() {
   const [availableCharges, setAvailableCharges] = useState<RecurringCharge[]>([]);
   const [assigning, setAssigning] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expandedCharges, setExpandedCharges] = useState<Set<string>>(new Set());
 
   // État pour le mois sélectionné (format YYYY-MM)
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
@@ -410,431 +444,490 @@ export default function ManageBudgetsPage() {
     return true;
   };
 
-  // Filtrer les budgets valides pour le mois sélectionné
-  const validBudgets = budgets.filter(budget => isBudgetValidForMonth(budget, selectedMonth));
+  // Filtrer les budgets valides pour le mois sélectionné ET par recherche
+  const validBudgets = budgets.filter(budget =>
+    isBudgetValidForMonth(budget, selectedMonth) &&
+    (budget.category.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  // Calculer les statistiques globales pour le mois
+  const globalStats = {
+    totalBudget: validBudgets.reduce((sum, b) => sum + b.amount, 0),
+    totalSpent: validBudgets.reduce((sum, b) => sum + b.totalSpent, 0),
+    remaining: validBudgets.reduce((sum, b) => sum + b.remainingBudget, 0),
+    health: validBudgets.length > 0
+      ? Math.round((validBudgets.reduce((sum, b) => sum + Math.min(b.totalSpent, b.amount), 0) / validBudgets.reduce((sum, b) => sum + b.amount, 0)) * 100)
+      : 0
+  };
 
   return (
-    <main className="container mx-auto p-3 sm:p-4 lg:p-6 max-w-6xl">
-      <section className="mb-6 sm:mb-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 sm:gap-4">
-          <div className="flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Gérer mes budgets</h1>
-            <p className="text-sm sm:text-base text-slate-600 mt-1">
-              Définissez vos budgets et affectez-y vos charges récurrentes
-            </p>
-          </div>
-          <Link
-            href="/budgets"
-            className="w-full sm:w-auto rounded-lg bg-slate-100 px-3 sm:px-4 py-2 text-sm sm:text-base font-medium text-slate-700 hover:bg-slate-200 text-center whitespace-nowrap"
-          >
-            Voir les résultats
-          </Link>
-        </div>
+    <main className="min-h-screen bg-slate-50 pb-20">
+      {/* Header Dashboard Premium */}
+      <div className="relative bg-slate-900 pt-8 pb-32 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-transparent to-purple-500/20" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_-20%,rgba(99,102,241,0.15),transparent)]" />
 
-        {/* Sélecteur de mois */}
-        <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-between gap-3 rounded-lg bg-slate-50 border border-slate-200 px-3 sm:px-4 py-3">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
-            <span className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap">Période affichée:</span>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <button
-                onClick={goToPreviousMonth}
-                className="rounded-md px-2 py-1 text-slate-600 hover:bg-slate-200"
-                title="Mois précédent"
-              >
-                ←
-              </button>
-              <span className="flex-1 sm:min-w-[180px] text-center text-base sm:text-lg font-semibold text-slate-900 capitalize">
-                {formatMonthDisplay(selectedMonth)}
-              </span>
-              <button
-                onClick={goToNextMonth}
-                className="rounded-md px-2 py-1 text-slate-600 hover:bg-slate-200"
-                title="Mois suivant"
-              >
-                →
-              </button>
-            </div>
-          </div>
-          {!isCurrentMonth() && (
-            <button
-              onClick={goToCurrentMonth}
-              className="w-full sm:w-auto rounded-lg bg-blue-600 px-3 py-1.5 text-xs sm:text-sm font-medium text-white hover:bg-blue-700 whitespace-nowrap"
-            >
-              Revenir au mois actuel
-            </button>
-          )}
-        </div>
-      </section>
-
-      {/* Formulaire */}
-      <section className="mb-8">
-        <button
-          type="button"
-          onClick={() => {
-            if (showForm) {
-              resetForm();
-            } else {
-              setShowForm(true);
-            }
-          }}
-          className="w-full rounded-lg bg-slate-900 px-4 py-3 text-left font-medium text-white hover:bg-slate-800"
-        >
-          {showForm ? '✕ Annuler' : '+ Nouveau budget'}
-        </button>
-
-        {showForm && (
-          <form onSubmit={handleSubmit} className="mt-4 rounded-lg border border-slate-200 bg-white p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-slate-900">
-              {editingId ? 'Modifier le budget' : 'Nouveau budget'}
-            </h2>
-
-            {/* Catégorie */}
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Catégorie <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={allCategories.includes(formData.category) ? formData.category : '__custom__'}
-                onChange={(e) => {
-                  if (e.target.value !== '__custom__') {
-                    setFormData({ ...formData, category: e.target.value });
-                  }
-                }}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
-              >
-                <option value="">Sélectionner...</option>
-                {allCategories.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-                <option value="__custom__">➕ Autre (tapez ci-dessous)</option>
-              </select>
-              {(!allCategories.includes(formData.category) || formData.category === '') && (
-                <input
-                  type="text"
-                  required
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  placeholder="Tapez une nouvelle catégorie..."
-                  className="mt-2 block w-full rounded-md border border-green-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500 bg-green-50"
-                />
-              )}
-            </div>
-
-            {/* Montant */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Montant du budget <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                required
-                min="0"
-                step="0.01"
-                value={formData.amount || ''}
-                onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-                className="block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
-              />
-            </div>
-
-            {/* Période */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Période <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.period}
-                onChange={(e) => setFormData({ ...formData, period: e.target.value as BudgetPeriod })}
-                className="block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
-              >
-                <option value="MONTHLY">Mensuel</option>
-                <option value="ROLLING">Glissant (X mois)</option>
-                <option value="MULTI">Multi-mois (période fixe)</option>
-              </select>
-            </div>
-
-            {formData.period === 'ROLLING' && (
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Nombre de mois glissants
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="12"
-                  value={formData.window_months}
-                  onChange={(e) => setFormData({ ...formData, window_months: parseInt(e.target.value) || 3 })}
-                  className="block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
-                />
+              <div className="flex items-center gap-3 mb-2">
+                <Link
+                  href="/budgets"
+                  className="p-2 rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all border border-white/5"
+                >
+                  <ArrowLeft size={20} />
+                </Link>
+                <h1 className="text-3xl font-black text-white tracking-tight">Gestion des Budgets</h1>
               </div>
-            )}
+              <p className="text-slate-400 font-medium">Contrôlez et optimisez vos dépenses par catégorie</p>
+            </div>
 
-            {formData.period === 'MULTI' && (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Date de début</label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.period_start}
-                    onChange={(e) => setFormData({ ...formData, period_start: e.target.value })}
-                    className="block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
-                  />
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowForm(true)}
+                className="flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-slate-900 hover:bg-indigo-50 transition-all active:scale-95 shadow-xl shadow-white/5"
+              >
+                <Plus size={18} />
+                Nouveau Budget
+              </button>
+            </div>
+          </div>
+
+          {/* Stats Dashboard */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+            {[
+              { label: 'Budget Total', value: formatCurrency(globalStats.totalBudget), icon: <Target className="text-indigo-400" />, color: 'indigo' },
+              { label: 'Dépenses Réelles', value: formatCurrency(globalStats.totalSpent), icon: <TrendingDown className="text-rose-400" />, color: 'rose' },
+              { label: 'Solde Restant', value: formatCurrency(globalStats.remaining), icon: <Wallet className="text-emerald-400" />, color: 'emerald', highlight: globalStats.remaining < 0 },
+              { label: 'Utilisation', value: `${globalStats.health}%`, icon: <Activity className="text-blue-400" />, color: 'blue' },
+            ].map((stat, i) => (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                key={stat.label}
+                className="relative group rounded-3xl bg-white/5 p-6 border border-white/10 backdrop-blur-md overflow-hidden"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`p-3 rounded-2xl bg-${stat.color}-500/10`}>
+                    {stat.icon}
+                  </div>
+                  <div className="h-1.5 w-12 rounded-full bg-white/10 overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: stat.label === 'Utilisation' ? `${globalStats.health}%` : '60%' }}
+                      className={`h-full bg-${stat.color}-500/50`}
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Date de fin</label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.period_end}
-                    onChange={(e) => setFormData({ ...formData, period_end: e.target.value })}
-                    className="block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-slate-500"
-                  />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{stat.label}</p>
+                  <p className={`text-2xl font-black tracking-tight ${stat.highlight ? 'text-rose-400' : 'text-white'}`}>
+                    {stat.value}
+                  </p>
                 </div>
-              </div>
-            )}
-
-            <div className="flex gap-3 pt-4">
-              <button
-                type="submit"
-                className="flex-1 rounded-lg bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800"
-              >
-                {editingId ? 'Mettre à jour' : 'Créer'}
-              </button>
-              <button
-                type="button"
-                onClick={resetForm}
-                className="rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-50"
-              >
-                Annuler
-              </button>
-            </div>
-          </form>
-        )}
-      </section>
-
-      {/* Liste des budgets */}
-      <section>
-        <h2 className="mb-4 text-lg font-semibold text-slate-900">
-          Budgets valides pour {formatMonthDisplay(selectedMonth)} ({validBudgets.length})
-        </h2>
-
-        {validBudgets.length === 0 ? (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-8 text-center">
-            <p className="text-slate-600">
-              {budgets.length === 0
-                ? "Aucun budget configuré. Créez votre premier budget ci-dessus."
-                : `Aucun budget valide pour ${formatMonthDisplay(selectedMonth)}. Les budgets existants ne couvrent pas cette période.`
-              }
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {validBudgets.map((budget) => (
-              <div
-                key={budget.id}
-                className="rounded-lg border border-slate-200 bg-white p-3 sm:p-4 lg:p-6 space-y-4"
-              >
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row items-start gap-3 sm:justify-between">
-                  <div className="flex-1 min-w-0 w-full">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-base sm:text-lg font-semibold text-slate-900 break-words">{budget.category}</h3>
-                      <span className="rounded-full bg-blue-100 px-2 sm:px-2.5 py-0.5 text-xs font-medium text-blue-800 whitespace-nowrap">
-                        {formatPeriodLabel(budget)}
-                      </span>
-                    </div>
-                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:flex lg:items-baseline gap-3 sm:gap-4">
-                      <div className="min-w-0">
-                        <p className="text-xs text-slate-500 truncate">Budget total</p>
-                        <p className="text-base sm:text-lg lg:text-xl font-bold text-slate-900 truncate">{formatCurrency(budget.amount)}</p>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs text-slate-500 truncate">Charges fixes</p>
-                        <p className="text-sm sm:text-base lg:text-lg font-semibold text-orange-600 truncate">{formatCurrency(budget.totalCharges)}</p>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs text-slate-500 truncate">Transactions</p>
-                        <p className="text-sm sm:text-base lg:text-lg font-semibold text-purple-600 truncate">{formatCurrency(budget.totalTransactions)}</p>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs text-slate-500 truncate">Total dépensé</p>
-                        <p className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900 truncate">{formatCurrency(budget.totalSpent)}</p>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs text-slate-500 truncate">Reste disponible</p>
-                        <p className={`text-sm sm:text-base lg:text-lg font-semibold truncate ${budget.remainingBudget < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                          {formatCurrency(budget.remainingBudget)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 flex-shrink-0 w-full sm:w-auto">
-                    <button
-                      onClick={() => handleEdit(budget)}
-                      className="rounded-lg bg-blue-50 px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-blue-700 hover:bg-blue-100 whitespace-nowrap"
-                    >
-                      Modifier
-                    </button>
-                    <button
-                      onClick={() => handleDelete(budget.id)}
-                      className="rounded-lg bg-red-50 px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-red-700 hover:bg-red-100 whitespace-nowrap"
-                    >
-                      Supprimer
-                    </button>
-                  </div>
-                </div>
-
-                {/* Charges affectées */}
-                <div className="pt-4 border-t border-slate-100">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-2 mb-3">
-                    <h4 className="text-sm font-medium text-slate-700">
-                      Charges récurrentes affectées ({budget.charges.length})
-                    </h4>
-                    <button
-                      onClick={() => openAssignChargesModal(budget.id)}
-                      className="w-full sm:w-auto rounded-lg bg-green-50 px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-green-700 hover:bg-green-100 whitespace-nowrap"
-                    >
-                      + Affecter une charge
-                    </button>
-                  </div>
-
-                  {budget.charges.length === 0 ? (
-                    <p className="text-sm text-slate-500 italic">Aucune charge affectée</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {budget.charges.map((charge) => (
-                        <div
-                          key={charge.id}
-                          className="flex items-center justify-between gap-2 rounded-lg bg-orange-50 px-2 sm:px-3 py-2"
-                        >
-                          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                            <span className="font-medium text-slate-900 text-sm sm:text-base truncate">{charge.label}</span>
-                            <span className="text-xs text-slate-500 whitespace-nowrap">{charge.account}</span>
-                          </div>
-                          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                            <span className="font-semibold text-orange-700 text-sm sm:text-base whitespace-nowrap">{formatCurrency(charge.amount)}</span>
-                            <button
-                              onClick={() => handleRemoveCharge(budget.id, charge.id)}
-                              className="text-red-600 hover:text-red-700 text-sm font-medium"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Transactions ponctuelles */}
-                <div className="pt-4 border-t border-slate-100">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-medium text-slate-700">
-                      Transactions ponctuelles liées ({budget.transactions.length})
-                    </h4>
-                  </div>
-
-                  {budget.transactions.length === 0 ? (
-                    <p className="text-sm text-slate-500 italic">Aucune transaction liée à ce budget</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {budget.transactions.map((transaction) => (
-                        <div
-                          key={transaction.id}
-                          className="flex items-center justify-between gap-2 rounded-lg bg-purple-50 px-2 sm:px-3 py-2"
-                        >
-                          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 flex-wrap">
-                            <span className="font-medium text-slate-900 text-sm sm:text-base truncate">{transaction.label}</span>
-                            <span className="text-xs text-slate-500 whitespace-nowrap">{transaction.account}</span>
-                            <span className="text-xs text-slate-400 whitespace-nowrap">
-                              {new Date(transaction.date).toLocaleDateString('fr-FR', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric'
-                              })}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                            <span className="font-semibold text-purple-700 text-sm sm:text-base whitespace-nowrap">{formatCurrency(transaction.amount)}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+              </motion.div>
             ))}
           </div>
-        )}
-      </section>
+        </div>
+      </div>
 
-      {/* Modal d'affectation */}
-      {showAssignModal && selectedBudget && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-slate-200">
-              <h2 className="text-xl font-bold text-slate-900">
-                Affecter des charges au budget "{selectedBudget.category}"
-              </h2>
-              <p className="text-sm text-slate-600 mt-1">
-                Budget restant: {formatCurrency(selectedBudget.remainingBudget)}
-              </p>
-              {successMessage && (
-                <div className="mt-3 rounded-lg bg-green-50 border border-green-200 px-4 py-2 text-sm text-green-800">
-                  {successMessage}
-                </div>
-              )}
+      <div className="container mx-auto px-4 -mt-16 relative z-20">
+        {/* Barre d'outils Modernisée */}
+        <div className="flex flex-col lg:flex-row items-center gap-4 bg-white p-2 rounded-3xl shadow-xl shadow-indigo-900/5 border border-slate-200 mb-8">
+          <div className="flex-1 flex items-center gap-3 px-4 w-full">
+            <div className="flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-2xl border border-slate-200 w-full sm:w-auto">
+              <button onClick={goToPreviousMonth} className="p-1 hover:bg-white rounded-lg transition-colors text-slate-600">
+                <ChevronLeft size={18} />
+              </button>
+              <span className="text-sm font-black text-slate-900 min-w-[140px] text-center capitalize">
+                {formatMonthDisplay(selectedMonth)}
+              </span>
+              <button onClick={goToNextMonth} className="p-1 hover:bg-white rounded-lg transition-colors text-slate-600">
+                <ChevronRight size={18} />
+              </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6">
-              {availableCharges.length === 0 ? (
-                <p className="text-center text-slate-600 py-8">
-                  Toutes les charges récurrentes sont déjà affectées à des budgets.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-sm text-slate-600 mb-4">
-                    {availableCharges.length} charge{availableCharges.length > 1 ? 's' : ''} disponible{availableCharges.length > 1 ? 's' : ''}
-                  </p>
-                  {availableCharges.map((charge) => (
-                    <div
-                      key={charge.id}
-                      className="flex items-center justify-between rounded-lg border border-slate-200 p-4 hover:bg-slate-50"
-                    >
-                      <div>
-                        <h3 className="font-medium text-slate-900">{charge.label}</h3>
-                        <p className="text-sm text-slate-600">{charge.account}</p>
+            <button
+              onClick={goToCurrentMonth}
+              className={`p-2 rounded-2xl transition-all ${isCurrentMonth() ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 hover:text-indigo-600'}`}
+              title="Mois actuel"
+            >
+              <History size={18} />
+            </button>
+
+            <div className="hidden sm:flex h-8 w-[1px] bg-slate-200 mx-1" />
+
+            <div className="hidden sm:flex flex-1 items-center gap-2 bg-slate-50 px-4 rounded-2xl border border-slate-100 focus-within:border-indigo-300 focus-within:bg-white transition-all">
+              <Search size={16} className="text-slate-400" />
+              <input
+                type="text"
+                placeholder="Filtrer les budgets..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent py-3 text-sm font-bold text-slate-700 outline-none placeholder:text-slate-400"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 p-1">
+            <button className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10">
+              <LinkIcon size={14} />
+              Vues liées
+            </button>
+          </div>
+        </div>
+
+        <BudgetModal
+          isOpen={showForm}
+          onClose={resetForm}
+          onSubmit={handleSubmit}
+          editingId={editingId}
+          formData={formData}
+          setFormData={setFormData}
+          allCategories={allCategories}
+        />
+
+        {/* Liste des budgets */}
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+              <PieChart className="text-indigo-600" size={24} />
+              Budgets de la période
+              <span className="text-slate-400 text-sm font-bold">({validBudgets.length})</span>
+            </h2>
+          </div>
+
+          {validBudgets.length === 0 ? (
+            <div className="rounded-[2.5rem] border-2 border-dashed border-slate-200 bg-white p-12 text-center">
+              <div className="inline-flex p-4 rounded-3xl bg-slate-50 text-slate-400 mb-4">
+                <PieChart size={40} />
+              </div>
+              <h3 className="text-lg font-black text-slate-900 mb-1">Aucun budget trouvé</h3>
+              <p className="text-slate-500 font-medium max-w-xs mx-auto">
+                {budgets.length === 0
+                  ? "Commencez par créer votre premier budget pour suivre vos dépenses."
+                  : `Aucun budget n'est défini pour ${formatMonthDisplay(selectedMonth)}.`}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {validBudgets.map((budget) => {
+                const consumptionPercent = Math.min(Math.round((budget.totalSpent / budget.amount) * 100), 100);
+                const isOverBudget = budget.remainingBudget < 0;
+
+                const getCategoryIcon = (category: string) => {
+                  const cat = category.toLowerCase();
+                  if (cat.includes('course') || cat.includes('manger')) return <ShoppingCart size={20} />;
+                  if (cat.includes('transport') || cat.includes('voiture')) return <Car size={20} />;
+                  if (cat.includes('santé') || cat.includes('docteur')) return <Heart size={20} />;
+                  if (cat.includes('logement') || cat.includes('loyer')) return <Home size={20} />;
+                  if (cat.includes('énergie') || cat.includes('élec')) return <Zap size={20} />;
+                  if (cat.includes('télécom') || cat.includes('phone')) return <Phone size={20} />;
+                  if (cat.includes('loisir') || cat.includes('game')) return <Gamepad2 size={20} />;
+                  if (cat.includes('assurance')) return <ShieldCheck size={20} />;
+                  return <PieChart size={20} />;
+                };
+
+                return (
+                  <motion.div
+                    layout
+                    key={budget.id}
+                    className="group relative rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm hover:shadow-xl hover:shadow-indigo-900/5 transition-all"
+                  >
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="flex items-center gap-4">
+                        <div className={`p-4 rounded-2xl ${isOverBudget ? 'bg-rose-50 text-rose-600' : 'bg-indigo-50 text-indigo-600'} transition-colors`}>
+                          {getCategoryIcon(budget.category)}
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-black text-slate-900 tracking-tight">{budget.category}</h3>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                            {formatPeriodLabel(budget)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="font-semibold text-slate-900">{formatCurrency(charge.amount)}</span>
+
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100">
                         <button
-                          onClick={() => handleAssignCharge(charge.id)}
-                          disabled={assigning}
-                          className="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                          onClick={() => handleEdit(budget)}
+                          className="p-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white transition-all"
                         >
-                          Affecter
+                          <Edit3 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(budget.id)}
+                          className="p-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-rose-600 hover:text-white transition-all"
+                        >
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
 
-            <div className="p-6 border-t border-slate-200">
-              <button
-                onClick={() => {
-                  setShowAssignModal(false);
-                  setSelectedBudgetId(null);
-                }}
-                className="w-full rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-50"
-              >
-                Fermer
-              </button>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Consommé</p>
+                          <p className="text-2xl font-black text-slate-900">{formatCurrency(budget.totalSpent)}</p>
+                        </div>
+                        <div className="text-right space-y-1">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Limite</p>
+                          <p className="text-lg font-bold text-slate-500">{formatCurrency(budget.amount)}</p>
+                        </div>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="relative h-4 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${consumptionPercent}%` }}
+                          transition={{ duration: 1, ease: 'easeOut' }}
+                          className={`h-full rounded-full ${isOverBudget ? 'bg-gradient-to-r from-rose-500 to-orange-500' : 'bg-gradient-to-r from-indigo-600 to-purple-600'
+                            }`}
+                        />
+                        {consumptionPercent > 0 && consumptionPercent < 100 && (
+                          <div className="absolute top-0 right-0 h-full w-[2px] bg-white/20" style={{ left: `${consumptionPercent}%` }} />
+                        )}
+                      </div>
+
+                      <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                        <span className={isOverBudget ? 'text-rose-500' : 'text-slate-400'}>
+                          {consumptionPercent}% Utilisé
+                        </span>
+                        <span className={isOverBudget ? 'text-rose-600' : 'text-emerald-600'}>
+                          {isOverBudget ? 'Dépassement de ' : 'Reste '} {formatCurrency(Math.abs(budget.remainingBudget))}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Quick Stats Grid */}
+                    <div className="grid grid-cols-2 gap-3 pt-6 mt-6 border-t border-slate-100">
+                      <div className="p-3 rounded-2xl bg-slate-50 flex items-center justify-between group/fixed">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-xl bg-white text-orange-500 shadow-sm transition-colors group-hover/fixed:bg-orange-500 group-hover/fixed:text-white">
+                            <Zap size={14} />
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Fixes</p>
+                            <p className="text-xs font-bold text-slate-700">{formatCurrency(budget.totalCharges)}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const newExpanded = new Set(expandedCharges);
+                            if (newExpanded.has(`${budget.id}-charges`)) newExpanded.delete(`${budget.id}-charges`);
+                            else newExpanded.add(`${budget.id}-charges`);
+                            setExpandedCharges(newExpanded);
+                          }}
+                          className="p-1 rounded-lg hover:bg-white text-slate-400 hover:text-indigo-600 transition-all"
+                        >
+                          <ChevronDown size={14} className={`transition-transform duration-300 ${expandedCharges.has(`${budget.id}-charges`) ? 'rotate-180' : ''}`} />
+                        </button>
+                      </div>
+
+                      <div className="p-3 rounded-2xl bg-slate-50 flex items-center justify-between group/spot">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-xl bg-white text-purple-500 shadow-sm transition-colors group-hover/spot:bg-purple-500 group-hover/spot:text-white">
+                            <ShoppingCart size={14} />
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Ponctuelles</p>
+                            <p className="text-xs font-bold text-slate-700">{formatCurrency(budget.totalTransactions)}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const newExpanded = new Set(expandedCharges);
+                            if (newExpanded.has(`${budget.id}-tx`)) newExpanded.delete(`${budget.id}-tx`);
+                            else newExpanded.add(`${budget.id}-tx`);
+                            setExpandedCharges(newExpanded);
+                          }}
+                          className="p-1 rounded-lg hover:bg-white text-slate-400 hover:text-indigo-600 transition-all"
+                        >
+                          <ChevronDown size={14} className={`transition-transform duration-300 ${expandedCharges.has(`${budget.id}-tx`) ? 'rotate-180' : ''}`} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Collapsible Fixed Expenses */}
+                    <AnimatePresence mode="wait">
+                      {expandedCharges.has(`${budget.id}-charges`) && budget.charges.length > 0 && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden mt-2"
+                        >
+                          <div className="p-3 rounded-2xl bg-orange-50/50 border border-orange-100 flex flex-col gap-2">
+                            {budget.charges.map(charge => (
+                              <div key={charge.id} className="flex justify-between items-center text-[10px] font-bold text-slate-600">
+                                <span className="flex items-center gap-2 truncate pr-2">
+                                  <div className="w-1 h-1 rounded-full bg-orange-400 flex-shrink-0" />
+                                  <span className="truncate">{charge.label}</span>
+                                </span>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <span>{formatCurrency(charge.amount)}</span>
+                                  <button onClick={() => handleRemoveCharge(budget.id, charge.id)} className="text-rose-400 hover:text-rose-600">
+                                    <X size={10} />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Collapsible Transactions */}
+                    <AnimatePresence mode="wait">
+                      {expandedCharges.has(`${budget.id}-tx`) && budget.transactions.length > 0 && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden mt-2"
+                        >
+                          <div className="p-3 rounded-2xl bg-purple-50/50 border border-purple-100 flex flex-col gap-2">
+                            {budget.transactions.map(tx => (
+                              <div key={tx.id} className="flex justify-between items-center text-[10px] font-bold text-slate-600">
+                                <span className="flex items-center gap-2 truncate pr-2">
+                                  <div className="w-1 h-1 rounded-full bg-purple-400 flex-shrink-0" />
+                                  <span className="truncate">{tx.label}</span>
+                                </span>
+                                <span className="flex-shrink-0">{formatCurrency(tx.amount)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <button
+                      onClick={() => openAssignChargesModal(budget.id)}
+                      className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-2xl bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all shadow-sm"
+                    >
+                      <Plus size={14} />
+                      Gérer les charges liées
+                    </button>
+                  </motion.div>
+                );
+              })}
             </div>
+          )}
+        </section>
+      </div>
+
+      {/* Modal d'affectation Modernisée */}
+      <AnimatePresence>
+        {showAssignModal && selectedBudget && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAssignModal(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20 flex flex-col"
+            >
+              <div className="p-8 border-b border-slate-100 bg-slate-50/50">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/20">
+                      <LinkIcon size={24} />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-black text-slate-900 tracking-tight">
+                        Affecter des charges
+                      </h2>
+                      <p className="text-slate-400 text-sm font-medium">
+                        Lier des charges récurrentes au budget <span className="text-indigo-600 font-bold">{selectedBudget.category}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowAssignModal(false)}
+                    className="p-2 rounded-xl hover:bg-slate-200 transition-colors"
+                  >
+                    <X size={20} className="text-slate-400" />
+                  </button>
+                </div>
+
+                {successMessage && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-2xl bg-emerald-50 border border-emerald-100 p-4 text-sm font-bold text-emerald-700 flex items-center gap-2"
+                  >
+                    <ShieldCheck size={18} />
+                    {successMessage}
+                  </motion.div>
+                )}
+              </div>
+
+              <div className="p-8 flex-1 overflow-y-auto custom-scrollbar">
+                {availableCharges.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="inline-flex p-4 rounded-3xl bg-slate-50 text-slate-300 mb-4">
+                      <ShieldCheck size={40} />
+                    </div>
+                    <p className="text-slate-500 font-bold">Toutes les charges sont affectées.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 px-1">
+                      {availableCharges.length} charge{availableCharges.length > 1 ? 's' : ''} disponible{availableCharges.length > 1 ? 's' : ''}
+                    </p>
+                    {availableCharges.map((charge) => (
+                      <motion.div
+                        layout
+                        key={charge.id}
+                        className="flex items-center justify-between p-4 rounded-2xl border border-slate-100 bg-slate-50/30 hover:bg-white hover:border-indigo-100 hover:shadow-lg hover:shadow-indigo-900/5 transition-all group"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 rounded-xl bg-white shadow-sm text-slate-400 group-hover:text-indigo-600 transition-colors">
+                            <Zap size={18} />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-slate-900 leading-tight">{charge.label}</h3>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{charge.account}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="font-black text-slate-900">{formatCurrency(charge.amount)}</span>
+                          <button
+                            onClick={() => handleAssignCharge(charge.id)}
+                            disabled={assigning}
+                            className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-black uppercase tracking-widest text-white hover:bg-indigo-600 disabled:opacity-50 transition-all active:scale-95"
+                          >
+                            Affecter
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-8 border-t border-slate-100 bg-slate-50/50">
+                <button
+                  onClick={() => {
+                    setShowAssignModal(false);
+                    setSelectedBudgetId(null);
+                  }}
+                  className="w-full py-4 rounded-2xl bg-white border border-slate-200 text-sm font-black text-slate-500 hover:bg-slate-50 transition-all active:scale-95 shadow-sm"
+                >
+                  Fermer
+                </button>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </main>
   );
 }
