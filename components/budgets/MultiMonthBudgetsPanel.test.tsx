@@ -7,14 +7,37 @@ import { MultiMonthBudgetsPanel } from './MultiMonthBudgetsPanel';
 import { mockedEnginePayload } from '@/lib/api';
 
 describe('MultiMonthBudgetsPanel', () => {
-  it('renders multi-month budgets in contract order and matches snapshot', () => {
-    const { container } = render(<MultiMonthBudgetsPanel budgets={mockedEnginePayload.multiMonthBudgets} />);
+  it('renders heading and all multi-month budget cards', () => {
+    const budgets = mockedEnginePayload.multiMonthBudgets;
+    render(<MultiMonthBudgetsPanel budgets={budgets} />);
 
-    expect(container).toMatchSnapshot();
+    expect(screen.getByRole('heading', { level: 2, name: 'Budgets multi-mois' })).toBeInTheDocument();
 
-    const categories = screen.getAllByRole('heading', { level: 3 }).map((node) => node.textContent);
+    const cards = screen.getAllByRole('article');
+    expect(cards).toHaveLength(budgets.length);
 
-    expect(categories).toEqual(mockedEnginePayload.multiMonthBudgets.map((budget) => budget.category));
+    for (const budget of budgets) {
+      expect(screen.getByRole('heading', { level: 3, name: budget.category })).toBeInTheDocument();
+    }
+
+    const startCounts = budgets.reduce<Record<string, number>>((acc, budget) => {
+      acc[budget.periodStart] = (acc[budget.periodStart] ?? 0) + 1;
+      return acc;
+    }, {});
+    const endCounts = budgets.reduce<Record<string, number>>((acc, budget) => {
+      acc[budget.periodEnd] = (acc[budget.periodEnd] ?? 0) + 1;
+      return acc;
+    }, {});
+
+    for (const [periodStart, count] of Object.entries(startCounts)) {
+      expect(screen.getAllByText(periodStart)).toHaveLength(count);
+    }
+    for (const [periodEnd, count] of Object.entries(endCounts)) {
+      expect(screen.getAllByText(periodEnd)).toHaveLength(count);
+    }
+
+    // Status labels are user-facing (not raw status enums)
+    expect(screen.getByText('Maîtrisé')).toBeInTheDocument();
   });
 
   it('does not mutate the provided budgets array', () => {

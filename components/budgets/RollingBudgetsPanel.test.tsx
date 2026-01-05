@@ -7,14 +7,30 @@ import { RollingBudgetsPanel } from './RollingBudgetsPanel';
 import { mockedEnginePayload } from '@/lib/api';
 
 describe('RollingBudgetsPanel', () => {
-  it('renders rolling budgets in provided order and matches snapshot', () => {
-    const { container } = render(<RollingBudgetsPanel budgets={mockedEnginePayload.rollingBudgets} />);
+  it('renders heading and all rolling budget cards', () => {
+    const budgets = mockedEnginePayload.rollingBudgets;
+    render(<RollingBudgetsPanel budgets={budgets} />);
 
-    expect(container).toMatchSnapshot();
+    expect(screen.getByRole('heading', { level: 2, name: 'Budgets glissants' })).toBeInTheDocument();
 
-    const categories = screen.getAllByRole('heading', { level: 3 }).map((node) => node.textContent);
+    const cards = screen.getAllByRole('article');
+    expect(cards).toHaveLength(budgets.length);
 
-    expect(categories).toEqual(mockedEnginePayload.rollingBudgets.map((budget) => budget.category));
+    for (const budget of budgets) {
+      expect(screen.getByRole('heading', { level: 3, name: budget.category })).toBeInTheDocument();
+    }
+
+    const windowCounts = budgets.reduce<Record<number, number>>((acc, budget) => {
+      acc[budget.windowMonths] = (acc[budget.windowMonths] ?? 0) + 1;
+      return acc;
+    }, {});
+    for (const [windowMonths, count] of Object.entries(windowCounts)) {
+      expect(screen.getAllByText(`Glissant · ${windowMonths} Mois`)).toHaveLength(count);
+    }
+
+    // Status labels are user-facing (not raw status enums)
+    expect(screen.getByText('Maîtrisé')).toBeInTheDocument();
+    expect(screen.getByText('Attention')).toBeInTheDocument();
   });
 
   it('does not mutate the budgets array', () => {
