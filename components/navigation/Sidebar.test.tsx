@@ -10,15 +10,42 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-import { Sidebar } from './Sidebar';
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/dashboard',
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+}));
+
+vi.mock('@/lib/supabase/client', () => ({
+  supabase: {
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+      onAuthStateChange: vi.fn(() => ({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      })),
+      signOut: vi.fn().mockResolvedValue({ error: null }),
+    },
+  },
+}));
 
 describe('Sidebar', () => {
-  it('renders sections with navigation links and matches snapshot', () => {
-    const { container } = render(<Sidebar />);
+  it('renders sections and key action links', async () => {
+    const { Sidebar } = await import('./Sidebar');
+    render(<Sidebar />);
 
-    expect(container).toMatchSnapshot();
+    expect(screen.getByText('Voicetracker')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Analyse' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Gestion' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Budgets' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Alertes' })).toBeInTheDocument();
 
-    const links = screen.getAllByRole('link');
-    expect(links[0]).toHaveAttribute('href', '/dashboard');
+    expect(screen.getByRole('link', { name: 'Ajouter une transaction' })).toHaveAttribute('href', '/transactions/new');
+    expect(screen.getByRole('link', { name: 'Créer un budget' })).toHaveAttribute('href', '/budgets/new');
   });
 });

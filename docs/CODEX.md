@@ -259,3 +259,37 @@ Demander clarification.
 ---
 
 Ce document prévaut sur toute discussion, prompt ou implémentation.
+## 🔊 Voice Transaction Module — Extension
+
+### Objectif
+Ajouter une saisie vocale de transactions bancaires
+sans modifier le moteur de calcul existant.
+
+### Règles strictes
+- ❌ Interdiction totale de modifier le moteur de calcul
+- ❌ Aucune logique métier de calcul dans le module voice
+- ❌ Aucune dépendance UI / DOM / navigateur
+- ❌ Aucun fallback silencieux
+- ✔ Production exclusive de `TransactionCreateInput`
+- ✔ Erreurs typées obligatoires
+- ✔ Tests Vitest obligatoires avant intégration
+
+### Architecture imposée
+src/voice/
+- voice.contract.ts
+- voice.parser.ts
+- voice.normalizer.ts
+- voice.errors.ts
+- voice.index.ts
+
+src/tests/voice/
+- parser.spec.ts
+- normalizer.spec.ts
+- integration.spec.ts
+
+### Pipeline
+Voix → Texte → Parser → Normalizer → TransactionCreateInput → API existante
+
+### Discipline
+- Branche dédiée obligatoire
+- Merge interdit si tests non verts

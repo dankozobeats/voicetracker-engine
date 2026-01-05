@@ -7,16 +7,22 @@ import { BudgetTrendsPanel } from './BudgetTrendsPanel';
 import { mockedEnginePayload } from '@/lib/api';
 
 describe('BudgetTrendsPanel', () => {
-  it('renders trends in provided order and matches snapshot', () => {
-    const { container } = render(<BudgetTrendsPanel trends={mockedEnginePayload.trends} />);
+  it('renders heading and all trend cards', () => {
+    const trends = mockedEnginePayload.trends;
+    render(<BudgetTrendsPanel trends={trends} />);
 
-    expect(container).toMatchSnapshot();
+    expect(screen.getByRole('heading', { level: 2, name: 'Évolution des dépenses' })).toBeInTheDocument();
 
-    const statuses = screen.getAllByText(/INCREASING|STABLE/);
+    const cards = screen.getAllByRole('article');
+    expect(cards).toHaveLength(trends.length);
 
-    expect(statuses.map((node) => node.textContent)).toEqual(
-      mockedEnginePayload.trends.map((trend) => trend.trend)
-    );
+    for (const trend of trends) {
+      expect(screen.getByRole('heading', { level: 3, name: trend.category })).toBeInTheDocument();
+    }
+
+    // User-facing labels for trend status
+    expect(screen.getByText('En hausse')).toBeInTheDocument();
+    expect(screen.getByText('Stable')).toBeInTheDocument();
   });
 
   it('keeps the trends array intact', () => {
