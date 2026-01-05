@@ -6,16 +6,34 @@ on:
   pull_request:
 
 jobs:
-  lint:
+  test:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+          cache: pnpm
 
-      - run: npm ci
-      - run: npm run lint
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm test
+
+      - name: Guard — Voice Protection
+        if: github.event_name == 'pull_request'
+        run: bash scripts/ci/guard-voice.sh
+
+      - name: Guard — API Voice Anti-Engine
+        run: bash scripts/ci/guard-api-voice.sh
+
+      - name: Guard — Snapshot Guard
+        if: github.event_name == 'pull_request'
+        run: bash scripts/ci/guard-snapshots.sh
