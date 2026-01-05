@@ -571,10 +571,13 @@ export default function ManageBudgetsPage() {
           </div>
 
           <div className="flex items-center gap-2 p-1">
-            <button className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10">
+            <Link
+              href="/budgets"
+              className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10"
+            >
               <LinkIcon size={14} />
               Vues liées
-            </button>
+            </Link>
           </div>
         </div>
 

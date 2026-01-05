@@ -3,6 +3,7 @@ import '../styles/globals.css';  // ← AJOUTE CETTE LIGNE
 import type { ReactNode } from 'react';
 import { Sidebar } from '@/components/navigation/Sidebar';
 import QueryProvider from '@/components/providers/QueryProvider';
+import { CalculatorWrapper } from '@/components/shared/CalculatorWrapper';
 
 export const metadata = {
   title: 'Voicetracker UI',
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <QueryProvider>
           <Sidebar />
           <main className="min-h-screen pt-16 lg:pt-0 lg:pl-64">{children}</main>
+          <CalculatorWrapper />
         </QueryProvider>
       </body>
     </html>

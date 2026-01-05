@@ -126,7 +126,7 @@ export default function RecurringChargesPage() {
   const [reminderYear, setReminderYear] = useState(new Date().getFullYear());
   const [expandedCharges, setExpandedCharges] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<'label' | 'amount'>('label');
-  const [groupByType, setGroupByType] = useState(true);
+  const [groupByType, setGroupByType] = useState(false);
   const [showIncome, setShowIncome] = useState(true);
   const [showExpense, setShowExpense] = useState(true);
   const [showProjection, setShowProjection] = useState(false);
@@ -514,7 +514,6 @@ export default function RecurringChargesPage() {
     return a.label.localeCompare(b.label); // Alphabétique
   });
 
-  // Grouper par type ou par compte
   const getGroupedCharges = () => {
     if (groupByType) {
       return {
@@ -533,24 +532,48 @@ export default function RecurringChargesPage() {
 
   const groupedCharges = getGroupedCharges();
 
-  // Calculer les statistiques
-  const stats = {
-    total: chargesWithoutDebts.length,
-    income: chargesWithoutDebts.filter((c) => c.type === 'INCOME').length,
-    expense: chargesWithoutDebts.filter((c) => c.type === 'EXPENSE').length,
-    totalIncome: chargesWithoutDebts
-      .filter((c) => c.type === 'INCOME')
-      .reduce((sum, c) => sum + c.amount, 0),
-    totalExpense: chargesWithoutDebts
-      .filter((c) => c.type === 'EXPENSE')
-      .reduce((sum, c) => sum + c.amount, 0),
-    sg: chargesWithoutDebts.filter((c) => c.account === 'SG').length,
-    floa: chargesWithoutDebts.filter((c) => c.account === 'FLOA').length,
-  };
-
   // Récapitulatif des suspensions et rappels
   const getCurrentMonth = () => new Date().toISOString().slice(0, 7); // YYYY-MM
   const currentMonth = getCurrentMonth();
+
+  // Helper: calcule le montant réel pour un mois donné
+  const getAmountForMonth = (charge: RecurringCharge, month: string): number => {
+    // Vérifie si la charge est active pour ce mois (dans la période start_date/end_date)
+    // start_date est au format YYYY-MM
+    if (charge.start_date > month) return 0;
+    if (charge.end_date && charge.end_date < month) return 0;
+
+    // Vérifie si le mois est exclu (suspendu)
+    if (charge.excluded_months && charge.excluded_months.includes(month)) {
+      return 0;
+    }
+
+    // Vérifie s'il y a un override pour ce mois
+    if (charge.monthly_overrides && charge.monthly_overrides[month] !== undefined) {
+      return charge.monthly_overrides[month];
+    }
+
+    // Retourne le montant de base
+    return charge.amount;
+  };
+
+  // Calculer les statistiques (uniquement pour le mois en cours)
+  const activeChargesThisMonth = chargesWithoutDebts.filter((c) => getAmountForMonth(c, currentMonth) > 0);
+
+  const stats = {
+    total: activeChargesThisMonth.length,
+    income: activeChargesThisMonth.filter((c) => c.type === 'INCOME').length,
+    expense: activeChargesThisMonth.filter((c) => c.type === 'EXPENSE').length,
+    totalIncome: activeChargesThisMonth
+      .filter((c) => c.type === 'INCOME')
+      .reduce((sum, c) => sum + getAmountForMonth(c, currentMonth), 0),
+    totalExpense: activeChargesThisMonth
+      .filter((c) => c.type === 'EXPENSE')
+      .reduce((sum, c) => sum + getAmountForMonth(c, currentMonth), 0),
+    sg: activeChargesThisMonth.filter((c) => c.account === 'SG').length,
+    floa: activeChargesThisMonth.filter((c) => c.account === 'FLOA').length,
+  };
+
 
   // Fonction de rendu pour une carte de charge
   const renderChargeCard = (charge: RecurringCharge) => {
@@ -989,24 +1012,18 @@ export default function RecurringChargesPage() {
 
         {/* Panneau récapitulatif des provisions et épargnes */}
         {(() => {
-          const getAmountForCurrentMonth = (charge: RecurringCharge): number => {
-            if (charge.excluded_months && charge.excluded_months.includes(currentMonth)) return 0;
-            if (charge.monthly_overrides && charge.monthly_overrides[currentMonth] !== undefined) return charge.monthly_overrides[currentMonth];
-            return charge.amount;
-          };
-
           const savingsCharges = chargesWithoutDebts.filter((c) => c.purpose === 'SAVINGS' && c.type === 'EXPENSE');
           const emergencyCharges = chargesWithoutDebts.filter((c) => c.purpose === 'EMERGENCY' && c.type === 'EXPENSE');
           const healthCharges = chargesWithoutDebts.filter((c) => c.purpose === 'HEALTH' && c.type === 'EXPENSE');
 
-          const totalSavings = savingsCharges.reduce((sum, c) => sum + getAmountForCurrentMonth(c), 0);
-          const totalEmergency = emergencyCharges.reduce((sum, c) => sum + getAmountForCurrentMonth(c), 0);
-          const totalHealth = healthCharges.reduce((sum, c) => sum + getAmountForCurrentMonth(c), 0);
+          const totalSavings = savingsCharges.reduce((sum, c) => sum + getAmountForMonth(c, currentMonth), 0);
+          const totalEmergency = emergencyCharges.reduce((sum, c) => sum + getAmountForMonth(c, currentMonth), 0);
+          const totalHealth = healthCharges.reduce((sum, c) => sum + getAmountForMonth(c, currentMonth), 0);
           const totalProvisions = totalSavings + totalEmergency + totalHealth;
 
-          const activeSavingsCount = savingsCharges.filter(c => getAmountForCurrentMonth(c) > 0).length;
-          const activeEmergencyCount = emergencyCharges.filter(c => getAmountForCurrentMonth(c) > 0).length;
-          const activeHealthCount = healthCharges.filter(c => getAmountForCurrentMonth(c) > 0).length;
+          const activeSavingsCount = savingsCharges.filter(c => getAmountForMonth(c, currentMonth) > 0).length;
+          const activeEmergencyCount = emergencyCharges.filter(c => getAmountForMonth(c, currentMonth) > 0).length;
+          const activeHealthCount = healthCharges.filter(c => getAmountForMonth(c, currentMonth) > 0).length;
 
           if (totalProvisions === 0) return null;
 
@@ -1101,26 +1118,6 @@ export default function RecurringChargesPage() {
 
         {/* Projection sur 6 mois - Provisions & Épargne - Collapsible */}
         {(() => {
-          // Helper: calcule le montant réel pour un mois donné
-          const getAmountForMonth = (charge: RecurringCharge, month: string): number => {
-            // Vérifie si la charge est active pour ce mois (dans la période start_date/end_date)
-            if (charge.start_date > month) return 0;
-            if (charge.end_date && charge.end_date < month) return 0;
-
-            // Vérifie si le mois est exclu (suspendu)
-            if (charge.excluded_months && charge.excluded_months.includes(month)) {
-              return 0;
-            }
-
-            // Vérifie s'il y a un override pour ce mois
-            if (charge.monthly_overrides && charge.monthly_overrides[month] !== undefined) {
-              return charge.monthly_overrides[month];
-            }
-
-            // Retourne le montant de base
-            return charge.amount;
-          };
-
           // Filtre les charges par type de provision
           const savingsCharges = chargesWithoutDebts.filter((c) => c.purpose === 'SAVINGS' && c.type === 'EXPENSE');
           const emergencyCharges = chargesWithoutDebts.filter((c) => c.purpose === 'EMERGENCY' && c.type === 'EXPENSE');

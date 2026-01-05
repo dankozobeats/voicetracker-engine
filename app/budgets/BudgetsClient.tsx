@@ -6,11 +6,11 @@ import { CategoryBudgetsPanel } from '@/components/budgets/CategoryBudgetsPanel'
 import { RollingBudgetsPanel } from '@/components/budgets/RollingBudgetsPanel';
 import { MultiMonthBudgetsPanel } from '@/components/budgets/MultiMonthBudgetsPanel';
 import { BudgetTrendsPanel } from '@/components/budgets/BudgetTrendsPanel';
+import { BudgetSummary } from '@/components/budgets/BudgetSummary';
 import Link from 'next/link';
-import type { CategoryBudgetResult } from '@/lib/types';
-import type { RollingCategoryBudgetResult } from '@/lib/types';
-import type { MultiMonthBudgetResult } from '@/lib/types';
-import type { CategoryBudgetTrendResult } from '@/lib/types';
+import { motion, AnimatePresence } from 'framer-motion';
+import { PieChart, TrendingUp, Calendar, Layers, Plus } from 'lucide-react';
+import type { CategoryBudgetResult, RollingCategoryBudgetResult, MultiMonthBudgetResult, CategoryBudgetTrendResult } from '@/lib/types';
 
 interface BudgetsData {
   categoryBudgets: CategoryBudgetResult[];
@@ -30,10 +30,7 @@ export const BudgetsClient = () => {
   useEffect(() => {
     const fetchBudgets = async () => {
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
+        const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           setError('Vous devez être connecté pour voir vos budgets');
           setLoading(false);
@@ -41,14 +38,9 @@ export const BudgetsClient = () => {
         }
 
         const response = await fetch('/api/budgets');
-
-        if (!response.ok) {
-          throw new Error('Erreur lors du chargement des budgets');
-        }
+        if (!response.ok) throw new Error('Erreur lors du chargement des budgets');
 
         const data = (await response.json()) as BudgetsData;
-
-        // Les données viennent maintenant directement de l'Engine avec les valeurs calculées
         setBudgets({
           categoryBudgets: data.categoryBudgets || [],
           rollingBudgets: data.rollingBudgets || [],
@@ -67,23 +59,32 @@ export const BudgetsClient = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-slate-600">Chargement des budgets...</p>
+      <div className="flex flex-col items-center justify-center py-32 space-y-4">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full"
+        />
+        <p className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">Analysing Budgets...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-red-600">{error}</p>
+      <div className="mx-auto max-w-lg mt-20 p-8 rounded-[40px] bg-rose-50 border border-rose-100 text-center">
+        <p className="text-rose-600 font-black mb-4">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-6 py-2 bg-rose-600 text-white rounded-xl text-xs font-black uppercase tracking-widest"
+        >
+          Réessayer
+        </button>
       </div>
     );
   }
 
-  if (!budgets) {
-    return null;
-  }
+  if (!budgets) return null;
 
   const hasAnyBudget =
     budgets.categoryBudgets.length > 0 ||
@@ -93,114 +94,89 @@ export const BudgetsClient = () => {
 
   if (!hasAnyBudget) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="mx-auto max-w-md text-center">
-          <div className="mb-6">
-            <svg
-              className="mx-auto h-16 w-16 text-slate-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
+      <div className="flex min-h-[60vh] items-center justify-center px-6">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mx-auto max-w-md text-center p-12 rounded-[56px] bg-white border border-slate-100 shadow-2xl shadow-slate-200/50"
+        >
+          <div className="mb-8 flex justify-center">
+            <div className="p-6 rounded-[32px] bg-indigo-50 text-indigo-500">
+              <Plus className="h-12 w-12" />
+            </div>
           </div>
-          <h2 className="mb-2 text-2xl font-semibold text-slate-900">Aucun budget défini</h2>
-          <p className="mb-6 text-slate-600">Créez votre premier budget pour commencer le suivi de vos dépenses.</p>
+          <h2 className="mb-3 text-3xl font-black tracking-tight text-slate-900">Zéro Budget ?</h2>
+          <p className="mb-8 text-slate-500 font-medium text-lg leading-relaxed">
+            Prenez le contrôle de votre argent dès maintenant en définissant vos plafonds de dépenses.
+          </p>
           <Link
-            href="/budgets/manage"
-            className="inline-block rounded-lg bg-slate-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-slate-800"
+            href="/budgets/new"
+            className="inline-flex items-center gap-3 rounded-2xl bg-slate-900 px-8 py-4 text-sm font-black text-white transition-all hover:scale-105 active:scale-95 shadow-xl shadow-slate-900/20"
           >
+            <Plus className="h-5 w-5" />
             Créer un budget
           </Link>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   const tabs = [
-    {
-      id: 'monthly' as TabType,
-      label: 'Budgets mensuels',
-      count: budgets.categoryBudgets.length,
-      icon: '📊',
-    },
-    {
-      id: 'rolling' as TabType,
-      label: 'Budgets glissants',
-      count: budgets.rollingBudgets.length,
-      icon: '📈',
-    },
-    {
-      id: 'multi' as TabType,
-      label: 'Budgets multi-mois',
-      count: budgets.multiMonthBudgets.length,
-      icon: '📅',
-    },
-    {
-      id: 'trends' as TabType,
-      label: 'Évolution',
-      count: budgets.trends.length,
-      icon: '📉',
-    },
+    { id: 'monthly' as TabType, label: 'Mensuels', icon: PieChart, color: 'text-indigo-500', bg: 'bg-indigo-50', count: budgets.categoryBudgets.length },
+    { id: 'rolling' as TabType, label: 'Glissants', icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-50', count: budgets.rollingBudgets.length },
+    { id: 'multi' as TabType, label: 'Multi-mois', icon: Calendar, color: 'text-amber-500', bg: 'bg-amber-50', count: budgets.multiMonthBudgets.length },
+    { id: 'trends' as TabType, label: 'Evolution', icon: Layers, color: 'text-purple-500', bg: 'bg-purple-50', count: budgets.trends.length },
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Tab Navigation */}
-      <div className="border-b border-slate-200">
-        <nav className="-mb-px flex space-x-8 overflow-x-auto" aria-label="Tabs">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`
-                whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors
-                ${
-                  activeTab === tab.id
-                    ? 'border-slate-900 text-slate-900'
-                    : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
-                }
-              `}
-            >
-              <span className="flex items-center gap-2">
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
+    <div className="space-y-12">
+      {/* Dashboard Summary Section */}
+      <BudgetSummary budgets={budgets.categoryBudgets} />
+
+      {/* Navigation Section */}
+      <div className="space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Analyse Détaillée</h2>
+            <p className="text-slate-400 font-medium tracking-wide">Explorez vos dépenses par type de budget</p>
+          </div>
+
+          <div className="p-1.5 rounded-2xl bg-slate-100 flex gap-1 items-center">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab.id
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+                  }`}
+              >
+                <tab.icon className={`h-4 w-4 ${activeTab === tab.id ? tab.color : 'text-slate-400'}`} />
+                <span className="hidden sm:inline">{tab.label}</span>
                 {tab.count > 0 && (
-                  <span
-                    className={`
-                      rounded-full px-2 py-0.5 text-xs font-semibold
-                      ${
-                        activeTab === tab.id
-                          ? 'bg-slate-900 text-white'
-                          : 'bg-slate-100 text-slate-600'
-                      }
-                    `}
-                  >
+                  <span className={`px-1.5 py-0.5 rounded-md text-[9px] ${activeTab === tab.id ? `${tab.bg} ${tab.color}` : 'bg-slate-200 text-slate-500'}`}>
                     {tab.count}
                   </span>
                 )}
-              </span>
-            </button>
-          ))}
-        </nav>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Dynamic Content Section */}
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="min-h-[400px]"
+        >
+          {activeTab === 'monthly' && <CategoryBudgetsPanel budgets={budgets.categoryBudgets} />}
+          {activeTab === 'rolling' && <RollingBudgetsPanel budgets={budgets.rollingBudgets} />}
+          {activeTab === 'multi' && <MultiMonthBudgetsPanel budgets={budgets.multiMonthBudgets} />}
+          {activeTab === 'trends' && <BudgetTrendsPanel trends={budgets.trends} />}
+        </motion.div>
       </div>
 
-      {/* Tab Content */}
-      <div>
-        {activeTab === 'monthly' && <CategoryBudgetsPanel budgets={budgets.categoryBudgets} />}
-        {activeTab === 'rolling' && <RollingBudgetsPanel budgets={budgets.rollingBudgets} />}
-        {activeTab === 'multi' && <MultiMonthBudgetsPanel budgets={budgets.multiMonthBudgets} />}
-        {activeTab === 'trends' && <BudgetTrendsPanel trends={budgets.trends} />}
-      </div>
     </div>
   );
 };
-
-
