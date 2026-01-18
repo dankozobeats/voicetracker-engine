@@ -580,82 +580,93 @@ export function TransactionsClient({ initialTransactions }: { initialTransaction
       </div>
 
       {/* Cards pour mobile - Affichage mobile uniquement */}
-      <div className="lg:hidden space-y-3">
+      <div className="lg:hidden space-y-4">
         {transactions.map((transaction) => {
           const isVerified = verifiedTransactions.has(transaction.id);
-          const isEditing = editingId === transaction.id;
+          const isIncome = transaction.type === 'INCOME';
 
           return (
             <div
               key={transaction.id}
-              className={`rounded-lg border border-slate-200 bg-white p-3 shadow-sm ${isHydrated && isVerified ? 'opacity-60 bg-slate-50' : ''
+              className={`rounded-[24px] border-2 bg-white p-5 shadow-xl transition-all duration-300 ${isHydrated && isVerified
+                ? 'opacity-60 grayscale-[0.5] border-slate-100 shadow-none scale-[0.98]'
+                : 'border-slate-50 shadow-slate-200/40 hover:shadow-slate-300/50'
                 }`}
             >
               {/* Header de la card */}
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="flex items-start gap-2 flex-1 min-w-0">
-                  <input
-                    type="checkbox"
-                    checked={isVerified}
-                    onChange={() => toggleVerified(transaction.id)}
-                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-green-600 focus:ring-green-500 flex-shrink-0"
-                  />
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  <div className="relative mt-1">
+                    <input
+                      type="checkbox"
+                      checked={isVerified}
+                      onChange={() => toggleVerified(transaction.id)}
+                      className="h-5 w-5 rounded-lg border-2 border-slate-200 text-slate-900 focus:ring-slate-900/20 transition-all cursor-pointer"
+                    />
+                    {isVerified && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="h-2 w-2 rounded-full bg-slate-900" />
+                      </div>
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900 text-sm truncate">{transaction.label}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{formatDate(transaction.date)}</p>
+                    <p className="font-black text-slate-900 text-base leading-tight truncate">{transaction.label}</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">{formatDate(transaction.date)}</p>
                   </div>
                 </div>
-                <span
-                  className={`text-sm font-semibold whitespace-nowrap ${transaction.type === 'INCOME' ? 'text-green-600' : 'text-red-600'
-                    }`}
-                >
-                  {transaction.type === 'INCOME' ? '+' : '-'}
-                  {formatCurrency(transaction.amount)}
-                </span>
+                <div className="text-right">
+                  <span
+                    className={`text-lg font-black tracking-tight ${isIncome ? 'text-emerald-600' : 'text-slate-900'
+                      }`}
+                  >
+                    {isIncome ? '+' : '-'}
+                    {formatCurrency(transaction.amount)}
+                  </span>
+                </div>
               </div>
 
-              {/* Détails */}
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs mt-2 pt-2 border-t border-slate-100">
-                <div>
-                  <span className="text-slate-500">Catégorie:</span>
-                  <p className="text-slate-900 font-medium truncate">{transaction.category}</p>
+              {/* Détails en badge grid */}
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                <div className="rounded-xl bg-slate-50 border border-slate-100 p-2">
+                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Catégorie</p>
+                  <p className="text-xs font-bold text-slate-700 truncate">{transaction.category}</p>
                 </div>
-                <div>
-                  <span className="text-slate-500">Compte:</span>
-                  <p className="text-slate-900 font-medium">{transaction.account}</p>
+                <div className={`rounded-xl border p-2 ${transaction.account === 'SG' ? 'bg-indigo-50 border-indigo-100' : 'bg-amber-50 border-amber-100'}`}>
+                  <p className={`text-[8px] font-black uppercase tracking-widest mb-0.5 ${transaction.account === 'SG' ? 'text-indigo-600' : 'text-amber-600'}`}>Compte</p>
+                  <p className={`text-xs font-bold ${transaction.account === 'SG' ? 'text-indigo-900' : 'text-amber-900'}`}>{transaction.account}</p>
                 </div>
                 {transaction.budget_id && (
-                  <div className="col-span-2">
-                    <span className="text-slate-500">Budget:</span>
-                    <p className="text-purple-700 font-medium truncate">
+                  <div className="col-span-2 rounded-xl bg-purple-50 border border-purple-100 p-2">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-purple-600 mb-0.5">Budget</p>
+                    <p className="text-xs font-bold text-purple-900 truncate">
                       {budgets.find((b) => b.id === transaction.budget_id)?.category || 'Budget'}
                     </p>
                   </div>
                 )}
                 {transaction.is_deferred && (
-                  <div className="col-span-2">
-                    <span className="text-slate-500">Différé:</span>
-                    <p className="text-amber-700 font-medium">
-                      {transaction.deferred_to} (Priorité: {transaction.priority})
+                  <div className="col-span-2 rounded-xl bg-orange-50 border border-orange-100 p-2">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Différé ({transaction.deferred_to})</p>
+                    <p className="text-xs font-bold text-orange-900">
+                      Priorité {transaction.priority}
                     </p>
                   </div>
                 )}
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2 mt-3 pt-2 border-t border-slate-100">
+              <div className="flex gap-3 pt-4 border-t border-slate-50">
                 <button
                   onClick={() => startEdit(transaction)}
-                  className="flex-1 text-xs font-medium text-blue-600 hover:text-blue-900 py-1.5 px-3 rounded border border-blue-200 hover:bg-blue-50"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-slate-900/20 active:scale-95 transition-all"
                 >
                   Modifier
                 </button>
                 <button
                   onClick={() => handleDelete(transaction.id)}
                   disabled={deletingId === transaction.id}
-                  className="flex-1 text-xs font-medium text-red-600 hover:text-red-900 py-1.5 px-3 rounded border border-red-200 hover:bg-red-50 disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-black uppercase tracking-widest text-slate-600 hover:bg-rose-100 hover:text-rose-600 active:scale-95 transition-all disabled:opacity-50"
                 >
-                  {deletingId === transaction.id ? 'Suppression...' : 'Supprimer'}
+                  {deletingId === transaction.id ? '...' : 'Supprimer'}
                 </button>
               </div>
             </div>

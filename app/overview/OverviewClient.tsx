@@ -80,9 +80,9 @@ export default function OverviewClient({ initialData }: { initialData?: EnginePa
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
         {/* Header with Account Selector */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Vue Financière</h1>
-            <p className="text-sm sm:text-base text-slate-600 mt-1">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 truncate">Vue Financière</h1>
+            <p className="text-sm sm:text-base text-slate-600 mt-1 truncate">
               Analyse de votre situation financière
             </p>
           </div>
@@ -126,30 +126,30 @@ export default function OverviewClient({ initialData }: { initialData?: EnginePa
         </div>
 
         {/* Navigation Tabs */}
-        <div className="bg-white rounded-lg border-2 border-slate-200 p-1 flex gap-1 overflow-x-auto">
+        <div className="bg-white rounded-2xl border-2 border-slate-100 p-1.5 flex gap-1.5 overflow-x-auto no-scrollbar scroll-smooth">
           <button
             onClick={() => setActiveTab('current')}
-            className={`flex-1 min-w-[100px] px-3 sm:px-4 py-2 sm:py-3 rounded-md text-sm sm:text-base font-medium transition ${activeTab === 'current'
-              ? 'bg-blue-600 text-white'
-              : 'text-slate-600 hover:bg-slate-100'
+            className={`flex-1 min-w-[110px] px-4 py-2.5 rounded-xl text-sm font-bold uppercase tracking-widest transition-all ${activeTab === 'current'
+              ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20 translate-y-[-1px]'
+              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
               }`}
           >
-            📅 Synthèse
+            📊 Synthèse
           </button>
           <button
             onClick={() => setActiveTab('projection')}
-            className={`flex-1 min-w-[120px] px-3 sm:px-4 py-2 sm:py-3 rounded-md text-sm sm:text-base font-medium transition whitespace-nowrap ${activeTab === 'projection'
-              ? 'bg-blue-600 text-white'
-              : 'text-slate-600 hover:bg-slate-100'
+            className={`flex-1 min-w-[120px] px-4 py-2.5 rounded-xl text-sm font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'projection'
+              ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20 translate-y-[-1px]'
+              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
               }`}
           >
             📈 Projection
           </button>
           <button
             onClick={() => setActiveTab('budgets')}
-            className={`flex-1 min-w-[100px] px-3 sm:px-4 py-2 sm:py-3 rounded-md text-sm sm:text-base font-medium transition ${activeTab === 'budgets'
-              ? 'bg-blue-600 text-white'
-              : 'text-slate-600 hover:bg-slate-100'
+            className={`flex-1 min-w-[110px] px-4 py-2.5 rounded-xl text-sm font-bold uppercase tracking-widest transition-all ${activeTab === 'budgets'
+              ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20 translate-y-[-1px]'
+              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
               }`}
           >
             🎯 Budgets

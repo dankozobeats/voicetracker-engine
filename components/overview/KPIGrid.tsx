@@ -34,50 +34,50 @@ export function KPIGrid({ currentMonth }: KPIGridProps) {
             animate="show"
         >
             {/* Solde Début */}
-            <motion.div variants={item} className="bg-white rounded-lg border-2 border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+            <motion.div variants={item} className="bg-white rounded-[24px] border-2 border-slate-100 p-4 sm:p-6 shadow-xl shadow-slate-200/40 hover:shadow-2xl hover:shadow-slate-300/50 transition-all duration-300">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
                     Solde Début
                 </p>
-                <p className="text-3xl font-bold text-slate-900">
+                <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                     {formatCurrency(currentMonth.openingBalance)}
                 </p>
             </motion.div>
 
             {/* Revenus */}
-            <motion.div variants={item} className="bg-green-50 rounded-lg border-2 border-green-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-                <p className="text-xs font-semibold uppercase tracking-wider text-green-700 mb-2">
+            <motion.div variants={item} className="bg-emerald-50/50 rounded-[24px] border-2 border-emerald-100 p-4 sm:p-6 shadow-xl shadow-emerald-200/20 hover:shadow-2xl hover:shadow-emerald-300/30 transition-all duration-300">
+                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-2">
                     Revenus
                 </p>
-                <p className="text-3xl font-bold text-green-600">
+                <p className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight">
                     +{formatCurrency(currentMonth.income)}
                 </p>
             </motion.div>
 
             {/* Dépenses */}
-            <motion.div variants={item} className="bg-red-50 rounded-lg border-2 border-red-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-                <p className="text-xs font-semibold uppercase tracking-wider text-red-700 mb-2">
+            <motion.div variants={item} className="bg-rose-50/50 rounded-[24px] border-2 border-rose-100 p-4 sm:p-6 shadow-xl shadow-rose-200/20 hover:shadow-2xl hover:shadow-rose-300/30 transition-all duration-300">
+                <p className="text-[10px] font-black uppercase tracking-widest text-rose-700 mb-2">
                     Dépenses
                 </p>
-                <p className="text-3xl font-bold text-red-600">
+                <p className="text-2xl sm:text-3xl font-black text-rose-600 tracking-tight">
                     -{formatCurrency(currentMonth.expenses)}
                 </p>
             </motion.div>
 
             {/* Solde Final */}
-            <motion.div variants={item} className={`rounded-lg border-2 p-6 shadow-sm hover:shadow-md transition-shadow ${variation >= 0
-                    ? 'bg-blue-50 border-blue-200'
-                    : 'bg-orange-50 border-orange-200'
+            <motion.div variants={item} className={`rounded-[24px] border-2 p-4 sm:p-6 shadow-xl transition-all duration-300 ${variation >= 0
+                ? 'bg-blue-50/50 border-blue-100 shadow-blue-200/20 hover:shadow-blue-300/30'
+                : 'bg-amber-50/50 border-amber-100 shadow-amber-200/20 hover:shadow-amber-300/30'
                 }`}>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
                     Solde Final
                 </p>
-                <p className={`text-3xl font-bold ${variation >= 0 ? 'text-blue-600' : 'text-orange-600'
+                <p className={`text-2xl sm:text-3xl font-black tracking-tight ${variation >= 0 ? 'text-blue-600' : 'text-amber-600'
                     }`}>
                     {formatCurrency(currentMonth.endingBalance)}
                 </p>
-                <p className={`text-sm mt-1 ${variation >= 0 ? 'text-blue-600' : 'text-orange-600'
+                <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${variation >= 0 ? 'text-blue-500' : 'text-amber-500'
                     }`}>
-                    {variation >= 0 ? '+' : ''}{formatCurrency(variation)} ce mois
+                    {variation >= 0 ? 'En hausse' : 'En baisse'} de {formatCurrency(Math.abs(variation))}
                 </p>
             </motion.div>
         </motion.div>

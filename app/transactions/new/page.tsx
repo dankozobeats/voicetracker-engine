@@ -10,7 +10,7 @@ export default function NewTransactionPage() {
       <section className="relative overflow-hidden bg-slate-900 px-6 py-12 sm:px-10 sm:py-20 shadow-2xl rounded-b-[40px] mb-12">
         <div className="relative z-10 mx-auto max-w-4xl">
           <Link
-            href="/analysis"
+            href="/overview"
             className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors mb-8"
           >
             <ArrowLeft className="h-4 w-4" />

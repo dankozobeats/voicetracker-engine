@@ -139,16 +139,16 @@ export default function CeilingRulesPage() {
   return (
     <div className="page-shell">
       <div className="mx-auto max-w-4xl space-y-8">
-        <header className="flex items-center justify-between">
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Plafonds de dépenses</h1>
-            <p className="mt-2 text-slate-600">
-              Définissez des limites maximales de dépenses par mois
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Plafonds de dépenses</h1>
+            <p className="mt-1 text-sm font-medium text-slate-500">
+              Définissez des limites maximales de dépenses
             </p>
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            className="w-full sm:w-auto rounded-xl bg-slate-900 px-6 py-3 text-sm font-black text-white hover:bg-slate-800 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-slate-900/20"
           >
             {showForm ? 'Annuler' : 'Ajouter un plafond'}
           </button>

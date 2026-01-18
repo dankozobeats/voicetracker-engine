@@ -107,7 +107,7 @@ export const TransactionForm = () => {
         throw new Error(errorData.error ?? 'Erreur lors de l\'enregistrement');
       }
 
-      router.push('/analysis');
+      router.push('/overview');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue');
       setLoading(false);

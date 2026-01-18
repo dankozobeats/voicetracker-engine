@@ -683,67 +683,69 @@ export default function RecurringChargesPage() {
             <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600">Prévisionnel</span>
           </div>
 
-          <div className="grid grid-cols-6 sm:grid-cols-12 gap-1.5">
-            {(() => {
-              const today = new Date();
-              const result = [];
-              for (let i = 0; i < 12; i++) {
-                const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
-                const monthStr = date.toISOString().slice(0, 7);
-                const isBeforeStart = charge.start_date && monthStr < charge.start_date;
-                const isAfterEnd = charge.end_date && monthStr > charge.end_date;
-                const isOutOfPeriod = isBeforeStart || isAfterEnd;
-                const isExcluded = charge.excluded_months?.includes(monthStr);
-                const hasReminder = charge.reminders?.some((r: Reminder) => !r.dismissed && r.month === monthStr);
+          <div className="overflow-x-auto no-scrollbar -mx-2 px-2 pb-2">
+            <div className="flex gap-1.5 min-w-[600px] sm:min-w-0 sm:grid sm:grid-cols-12">
+              {(() => {
+                const today = new Date();
+                const result = [];
+                for (let i = 0; i < 12; i++) {
+                  const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
+                  const monthStr = date.toISOString().slice(0, 7);
+                  const isBeforeStart = charge.start_date && monthStr < charge.start_date;
+                  const isAfterEnd = charge.end_date && monthStr > charge.end_date;
+                  const isOutOfPeriod = isBeforeStart || isAfterEnd;
+                  const isExcluded = charge.excluded_months?.includes(monthStr);
+                  const hasReminder = charge.reminders?.some((r: Reminder) => !r.dismissed && r.month === monthStr);
 
-                let effectiveAmount = charge.amount;
-                let isOverride = false;
-                if (charge.monthly_overrides) {
-                  const sortedOverrides = Object.entries(charge.monthly_overrides).sort(([a], [b]) => a.localeCompare(b));
-                  for (const [overrideMonth, overrideAmount] of sortedOverrides) {
-                    if (overrideMonth <= monthStr) {
-                      effectiveAmount = overrideAmount as number;
-                      isOverride = overrideMonth === monthStr;
+                  let effectiveAmount = charge.amount;
+                  let isOverride = false;
+                  if (charge.monthly_overrides) {
+                    const sortedOverrides = Object.entries(charge.monthly_overrides).sort(([a], [b]) => a.localeCompare(b));
+                    for (const [overrideMonth, overrideAmount] of sortedOverrides) {
+                      if (overrideMonth <= monthStr) {
+                        effectiveAmount = overrideAmount as number;
+                        isOverride = overrideMonth === monthStr;
+                      }
                     }
                   }
-                }
 
-                result.push(
-                  <div key={monthStr} className="flex flex-col items-center gap-1 group/item">
-                    <span className={`text-[9px] font-bold transition-colors ${monthStr === currentMonth ? 'text-indigo-600 scale-110' : 'text-slate-400'
-                      }`}>
-                      {date.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '').toUpperCase()}
-                    </span>
-                    <div
-                      className={`h-10 w-full rounded-lg border flex flex-col items-center justify-center transition-all ${isOutOfPeriod ? 'bg-slate-50 border-slate-100 opacity-30 select-none' :
-                        isExcluded ? 'bg-amber-50 border-amber-100 text-amber-500' :
-                          isOverride ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' :
-                            monthStr === currentMonth ? 'bg-indigo-50 border-indigo-200 text-indigo-700' :
-                              'bg-white border-slate-200 text-slate-600 hover:border-slate-400'
-                        }`}
-                      title={`${date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}: ${isOutOfPeriod ? 'Inactive' : isExcluded ? 'Suspendue' : formatCurrency(effectiveAmount)
-                        }`}
-                    >
-                      {isOutOfPeriod || isExcluded ? (
-                        <span className="text-[14px]">×</span>
-                      ) : (
-                        <>
-                          <span className="text-[10px] font-black leading-none">{Math.round(effectiveAmount)}</span>
-                          <span className="text-[7px] font-bold opacity-70">€</span>
-                        </>
-                      )}
-                      {hasReminder && !isExcluded && !isOutOfPeriod && (
-                        <div className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-600 border border-white"></span>
-                        </div>
-                      )}
+                  result.push(
+                    <div key={monthStr} className="flex-1 flex flex-col items-center gap-1 group/item min-w-[45px] sm:min-w-0">
+                      <span className={`text-[9px] font-black transition-colors ${monthStr === currentMonth ? 'text-indigo-600' : 'text-slate-400'
+                        }`}>
+                        {date.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '').toUpperCase()}
+                      </span>
+                      <div
+                        className={`h-10 w-full rounded-lg border flex flex-col items-center justify-center transition-all relative ${isOutOfPeriod ? 'bg-slate-50 border-slate-100 opacity-30 select-none' :
+                          isExcluded ? 'bg-amber-50 border-amber-100 text-amber-500' :
+                            isOverride ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' :
+                              monthStr === currentMonth ? 'bg-indigo-50 border-indigo-200 text-indigo-700' :
+                                'bg-white border-slate-200 text-slate-600 hover:border-slate-400'
+                          }`}
+                        title={`${date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}: ${isOutOfPeriod ? 'Inactive' : isExcluded ? 'Suspendue' : formatCurrency(effectiveAmount)
+                          }`}
+                      >
+                        {isOutOfPeriod || isExcluded ? (
+                          <span className="text-[14px]">×</span>
+                        ) : (
+                          <>
+                            <span className="text-[10px] font-black leading-none">{Math.round(effectiveAmount)}</span>
+                            <span className="text-[7px] font-bold opacity-70">€</span>
+                          </>
+                        )}
+                        {hasReminder && !isExcluded && !isOutOfPeriod && (
+                          <div className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-600 border border-white"></span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              }
-              return result;
-            })()}
+                  );
+                }
+                return result;
+              })()}
+            </div>
           </div>
         </div>
 
