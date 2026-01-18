@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { formatCurrency } from '@/lib/format';
 import { RecurringChargeModal } from '@/components/recurring/RecurringChargeModal';
+import type { RecurringCharge } from '@/lib/types';
 import {
   Plus,
   TrendingUp,
@@ -39,24 +40,7 @@ interface Reminder {
   dismissed: boolean;
 }
 
-interface RecurringCharge {
-  id: string;
-  label: string;
-  amount: number;
-  account: 'SG' | 'FLOA';
-  type: 'INCOME' | 'EXPENSE';
-  purpose: 'REGULAR' | 'SAVINGS' | 'EMERGENCY' | 'HEALTH' | 'DEBT';
-  start_date: string;
-  end_date: string | null;
-  excluded_months: string[];
-  monthly_overrides: Record<string, number>;
-  reminders: Reminder[];
-  // Debt fields
-  initial_balance?: number | null;
-  remaining_balance?: number | null;
-  interest_rate?: number | null;
-  debt_start_date?: string | null;
-}
+// RecurringCharge type removed, using import from @/lib/types
 
 interface FormData {
   label: string;
@@ -495,47 +479,6 @@ export default function RecurringChargesPage() {
     setFormData({ ...formData, reminder_month: yearMonth });
   };
 
-  // Filtrer les charges
-  const filteredCharges = charges.filter((charge) => {
-    if (filterType !== 'ALL' && charge.type !== filterType) return false;
-    if (filterAccount !== 'ALL' && charge.account !== filterAccount) return false;
-    if (searchQuery && !charge.label.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    return true;
-  });
-
-  // Exclure les dettes des charges récurrentes (elles ont leur propre page /debts)
-  const chargesWithoutDebts = filteredCharges.filter((c) => c.purpose !== 'DEBT');
-
-  // Trier les charges
-  const sortedCharges = [...chargesWithoutDebts].sort((a, b) => {
-    if (sortBy === 'amount') {
-      return b.amount - a.amount; // Décroissant
-    }
-    return a.label.localeCompare(b.label); // Alphabétique
-  });
-
-  const getGroupedCharges = () => {
-    if (groupByType) {
-      return {
-        INCOME: sortedCharges.filter((c) => c.type === 'INCOME'),
-        EXPENSE: sortedCharges.filter((c) => c.type === 'EXPENSE'),
-      };
-    }
-    if (groupByAccount) {
-      return {
-        SG: sortedCharges.filter((c) => c.account === 'SG'),
-        FLOA: sortedCharges.filter((c) => c.account === 'FLOA'),
-      };
-    }
-    return { ALL: sortedCharges };
-  };
-
-  const groupedCharges = getGroupedCharges();
-
-  // Récapitulatif des suspensions et rappels
-  const getCurrentMonth = () => new Date().toISOString().slice(0, 7); // YYYY-MM
-  const currentMonth = getCurrentMonth();
-
   // Helper: calcule le montant réel pour un mois donné
   const getAmountForMonth = (charge: RecurringCharge, month: string): number => {
     // Vérifie si la charge est active pour ce mois (dans la période start_date/end_date)
@@ -557,21 +500,61 @@ export default function RecurringChargesPage() {
     return charge.amount;
   };
 
+  // Filtrer les charges
+  const filteredCharges = charges.filter((charge: RecurringCharge) => {
+    if (filterType !== 'ALL' && charge.type !== filterType) return false;
+    if (filterAccount !== 'ALL' && charge.account !== filterAccount) return false;
+    if (searchQuery && !charge.label.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    return true;
+  });
+
+  // Exclure les dettes des charges récurrentes (elles ont leur propre page /debts)
+  const chargesWithoutDebts = filteredCharges.filter((c: RecurringCharge) => c.purpose !== 'DEBT');
+
+  const getGroupedCharges = () => {
+    const sortedCharges = [...chargesWithoutDebts].sort((a: RecurringCharge, b: RecurringCharge) => {
+      if (sortBy === 'amount') {
+        return b.amount - a.amount; // Décroissant
+      }
+      return a.label.localeCompare(b.label); // Alphabétique
+    });
+
+    if (groupByType) {
+      return {
+        INCOME: sortedCharges.filter((c: RecurringCharge) => c.type === 'INCOME'),
+        EXPENSE: sortedCharges.filter((c: RecurringCharge) => c.type === 'EXPENSE'),
+      };
+    }
+    if (groupByAccount) {
+      return {
+        SG: sortedCharges.filter((c: RecurringCharge) => c.account === 'SG'),
+        FLOA: sortedCharges.filter((c: RecurringCharge) => c.account === 'FLOA'),
+      };
+    }
+    return { ALL: sortedCharges };
+  };
+
+  const groupedCharges = getGroupedCharges();
+
+  // Récapitulatif des suspensions et rappels
+  const getCurrentMonth = () => new Date().toISOString().slice(0, 7); // YYYY-MM
+  const currentMonth = getCurrentMonth();
+
   // Calculer les statistiques (uniquement pour le mois en cours)
-  const activeChargesThisMonth = chargesWithoutDebts.filter((c) => getAmountForMonth(c, currentMonth) > 0);
+  const activeChargesThisMonth = chargesWithoutDebts.filter((c: RecurringCharge) => getAmountForMonth(c, currentMonth) > 0);
 
   const stats = {
     total: activeChargesThisMonth.length,
-    income: activeChargesThisMonth.filter((c) => c.type === 'INCOME').length,
-    expense: activeChargesThisMonth.filter((c) => c.type === 'EXPENSE').length,
+    income: activeChargesThisMonth.filter((c: RecurringCharge) => c.type === 'INCOME').length,
+    expense: activeChargesThisMonth.filter((c: RecurringCharge) => c.type === 'EXPENSE').length,
     totalIncome: activeChargesThisMonth
-      .filter((c) => c.type === 'INCOME')
-      .reduce((sum, c) => sum + getAmountForMonth(c, currentMonth), 0),
+      .filter((c: RecurringCharge) => c.type === 'INCOME')
+      .reduce((sum: number, c: RecurringCharge) => sum + getAmountForMonth(c, currentMonth), 0),
     totalExpense: activeChargesThisMonth
-      .filter((c) => c.type === 'EXPENSE')
-      .reduce((sum, c) => sum + getAmountForMonth(c, currentMonth), 0),
-    sg: activeChargesThisMonth.filter((c) => c.account === 'SG').length,
-    floa: activeChargesThisMonth.filter((c) => c.account === 'FLOA').length,
+      .filter((c: RecurringCharge) => c.type === 'EXPENSE')
+      .reduce((sum: number, c: RecurringCharge) => sum + getAmountForMonth(c, currentMonth), 0),
+    sg: activeChargesThisMonth.filter((c: RecurringCharge) => c.account === 'SG').length,
+    floa: activeChargesThisMonth.filter((c: RecurringCharge) => c.account === 'FLOA').length,
   };
 
 
@@ -581,7 +564,7 @@ export default function RecurringChargesPage() {
     const hasDetails =
       Object.keys(charge.monthly_overrides).length > 0 ||
       (charge.excluded_months && charge.excluded_months.length > 0) ||
-      (charge.reminders && charge.reminders.filter((r) => !r.dismissed).length > 0);
+      (charge.reminders && charge.reminders.filter((r: Reminder) => !r.dismissed).length > 0);
 
     const getPurposeIcon = (purpose: string) => {
       switch (purpose) {
@@ -652,10 +635,10 @@ export default function RecurringChargesPage() {
                 </div>
               )}
 
-              {charge.reminders && charge.reminders.filter((r) => !r.dismissed).length > 0 && (
+              {charge.reminders && charge.reminders.filter((r: Reminder) => !r.dismissed).length > 0 && (
                 <div className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
                   <AlertCircle className="h-3 w-3" />
-                  <span>{charge.reminders.filter((r) => !r.dismissed).length} rappel(s)</span>
+                  <span>{charge.reminders.filter((r: Reminder) => !r.dismissed).length} rappel(s)</span>
                 </div>
               )}
             </div>
@@ -711,7 +694,7 @@ export default function RecurringChargesPage() {
                 const isAfterEnd = charge.end_date && monthStr > charge.end_date;
                 const isOutOfPeriod = isBeforeStart || isAfterEnd;
                 const isExcluded = charge.excluded_months?.includes(monthStr);
-                const hasReminder = charge.reminders?.some((r) => !r.dismissed && r.month === monthStr);
+                const hasReminder = charge.reminders?.some((r: Reminder) => !r.dismissed && r.month === monthStr);
 
                 let effectiveAmount = charge.amount;
                 let isOverride = false;
@@ -719,7 +702,7 @@ export default function RecurringChargesPage() {
                   const sortedOverrides = Object.entries(charge.monthly_overrides).sort(([a], [b]) => a.localeCompare(b));
                   for (const [overrideMonth, overrideAmount] of sortedOverrides) {
                     if (overrideMonth <= monthStr) {
-                      effectiveAmount = overrideAmount;
+                      effectiveAmount = overrideAmount as number;
                       isOverride = overrideMonth === monthStr;
                     }
                   }
@@ -785,7 +768,7 @@ export default function RecurringChargesPage() {
                       <div className="flex flex-wrap gap-2">
                         {Object.entries(charge.monthly_overrides)
                           .sort(([a], [b]) => a.localeCompare(b))
-                          .map(([month, amount]) => (
+                          .map(([month, amount]: [string, number]) => (
                             <div key={month} className="flex items-center gap-2 bg-white rounded-xl border border-emerald-100 px-3 py-1.5 shadow-sm">
                               <span className="text-[10px] font-bold text-slate-400">{new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}</span>
                               <span className="text-xs font-black text-emerald-700">{formatCurrency(amount)}</span>
@@ -802,7 +785,7 @@ export default function RecurringChargesPage() {
                         <span className="text-xs font-black uppercase tracking-wider">Périodes de Suspension</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {charge.excluded_months.sort().map((month) => (
+                        {charge.excluded_months.sort().map((month: string) => (
                           <div key={month} className={`px-3 py-1.5 rounded-xl text-xs font-bold border shadow-sm ${month === currentMonth ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-white border-amber-200 text-amber-700'
                             }`}>
                             {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}
@@ -813,7 +796,7 @@ export default function RecurringChargesPage() {
                   )}
                 </div>
 
-                {charge.reminders && charge.reminders.filter((r) => !r.dismissed).length > 0 && (
+                {charge.reminders && charge.reminders.filter((r: Reminder) => !r.dismissed).length > 0 && (
                   <div className="rounded-2xl bg-indigo-50/50 border border-indigo-100 p-4">
                     <div className="flex items-center gap-2 mb-3 text-indigo-800">
                       <Info className="h-4 w-4" />
@@ -821,9 +804,9 @@ export default function RecurringChargesPage() {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {charge.reminders
-                        .filter((r) => !r.dismissed)
-                        .sort((a, b) => a.month.localeCompare(b.month))
-                        .map((reminder) => (
+                        .filter((r: Reminder) => !r.dismissed)
+                        .sort((a: Reminder, b: Reminder) => a.month.localeCompare(b.month))
+                        .map((reminder: Reminder) => (
                           <div key={reminder.id} className="flex flex-col gap-1 bg-white rounded-xl border border-indigo-100 p-3 shadow-sm">
                             <div className="text-[10px] font-black text-indigo-600/60 uppercase">{new Date(reminder.month + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</div>
                             <div className="text-xs font-bold text-slate-700 leading-relaxed">{reminder.note}</div>
@@ -842,11 +825,11 @@ export default function RecurringChargesPage() {
 
   // Collecter tous les rappels actifs pour ce mois
   const activeReminders = charges
-    .filter((charge) => charge.reminders && charge.reminders.length > 0)
-    .flatMap((charge) =>
-      charge.reminders
-        .filter((reminder) => !reminder.dismissed && reminder.month === currentMonth)
-        .map((reminder) => ({
+    .filter((charge: RecurringCharge) => charge.reminders && charge.reminders.length > 0)
+    .flatMap((charge: RecurringCharge) =>
+      (charge.reminders || [])
+        .filter((reminder: Reminder) => !reminder.dismissed && reminder.month === currentMonth)
+        .map((reminder: Reminder) => ({
           ...reminder,
           chargeId: charge.id,
           chargeLabel: charge.label,
@@ -855,8 +838,8 @@ export default function RecurringChargesPage() {
     .sort((a, b) => a.chargeLabel.localeCompare(b.chargeLabel));
 
   const suspendedCharges = charges
-    .filter((charge) => charge.excluded_months && charge.excluded_months.length > 0)
-    .map((charge) => {
+    .filter((charge: RecurringCharge) => charge.excluded_months && charge.excluded_months.length > 0)
+    .map((charge: RecurringCharge) => {
       const sortedExcludedMonths = [...(charge.excluded_months || [])].sort();
       const currentlySuspended = sortedExcludedMonths.includes(currentMonth);
 
@@ -888,16 +871,33 @@ export default function RecurringChargesPage() {
 
   if (loading) {
     return (
-      <main className="page-shell">
-        <div className="flex items-center justify-center py-20">
-          <p className="text-slate-600">Chargement...</p>
+      <div className="page-shell">
+        <div className="space-y-8 animate-pulse">
+          {/* Header Skeleton */}
+          <div className="h-48 w-full bg-slate-100 rounded-3xl" />
+
+          {/* Stats Skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((i: number) => (
+              <div key={i} className="h-32 bg-slate-50 rounded-2xl border border-slate-100" />
+            ))}
+          </div>
+
+          {/* Table/List Skeleton */}
+          <div className="space-y-6">
+            <div className="h-64 bg-slate-50 rounded-3xl border border-slate-100" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="h-96 bg-slate-50 rounded-3xl border border-slate-100" />
+              <div className="h-96 bg-slate-50 rounded-3xl border border-slate-100" />
+            </div>
+          </div>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="page-shell">
+    <div className="page-shell">
       <div className="space-y-6 sm:space-y-8">
         <header className="relative overflow-hidden rounded-2xl bg-slate-900 px-6 py-8 sm:px-10 sm:py-12 shadow-2xl">
           <div className="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
@@ -1012,18 +1012,18 @@ export default function RecurringChargesPage() {
 
         {/* Panneau récapitulatif des provisions et épargnes */}
         {(() => {
-          const savingsCharges = chargesWithoutDebts.filter((c) => c.purpose === 'SAVINGS' && c.type === 'EXPENSE');
-          const emergencyCharges = chargesWithoutDebts.filter((c) => c.purpose === 'EMERGENCY' && c.type === 'EXPENSE');
-          const healthCharges = chargesWithoutDebts.filter((c) => c.purpose === 'HEALTH' && c.type === 'EXPENSE');
+          const savingsCharges = chargesWithoutDebts.filter((c: RecurringCharge) => c.purpose === 'SAVINGS' && c.type === 'EXPENSE');
+          const emergencyCharges = chargesWithoutDebts.filter((c: RecurringCharge) => c.purpose === 'EMERGENCY' && c.type === 'EXPENSE');
+          const healthCharges = chargesWithoutDebts.filter((c: RecurringCharge) => c.purpose === 'HEALTH' && c.type === 'EXPENSE');
 
-          const totalSavings = savingsCharges.reduce((sum, c) => sum + getAmountForMonth(c, currentMonth), 0);
-          const totalEmergency = emergencyCharges.reduce((sum, c) => sum + getAmountForMonth(c, currentMonth), 0);
-          const totalHealth = healthCharges.reduce((sum, c) => sum + getAmountForMonth(c, currentMonth), 0);
+          const totalSavings = savingsCharges.reduce((sum: number, c: RecurringCharge) => sum + getAmountForMonth(c, currentMonth), 0);
+          const totalEmergency = emergencyCharges.reduce((sum: number, c: RecurringCharge) => sum + getAmountForMonth(c, currentMonth), 0);
+          const totalHealth = healthCharges.reduce((sum: number, c: RecurringCharge) => sum + getAmountForMonth(c, currentMonth), 0);
           const totalProvisions = totalSavings + totalEmergency + totalHealth;
 
-          const activeSavingsCount = savingsCharges.filter(c => getAmountForMonth(c, currentMonth) > 0).length;
-          const activeEmergencyCount = emergencyCharges.filter(c => getAmountForMonth(c, currentMonth) > 0).length;
-          const activeHealthCount = healthCharges.filter(c => getAmountForMonth(c, currentMonth) > 0).length;
+          const activeSavingsCount = savingsCharges.filter((c: RecurringCharge) => getAmountForMonth(c, currentMonth) > 0).length;
+          const activeEmergencyCount = emergencyCharges.filter((c: RecurringCharge) => getAmountForMonth(c, currentMonth) > 0).length;
+          const activeHealthCount = healthCharges.filter((c: RecurringCharge) => getAmountForMonth(c, currentMonth) > 0).length;
 
           if (totalProvisions === 0) return null;
 
@@ -1119,9 +1119,9 @@ export default function RecurringChargesPage() {
         {/* Projection sur 6 mois - Provisions & Épargne - Collapsible */}
         {(() => {
           // Filtre les charges par type de provision
-          const savingsCharges = chargesWithoutDebts.filter((c) => c.purpose === 'SAVINGS' && c.type === 'EXPENSE');
-          const emergencyCharges = chargesWithoutDebts.filter((c) => c.purpose === 'EMERGENCY' && c.type === 'EXPENSE');
-          const healthCharges = chargesWithoutDebts.filter((c) => c.purpose === 'HEALTH' && c.type === 'EXPENSE');
+          const savingsCharges = chargesWithoutDebts.filter((c: RecurringCharge) => c.purpose === 'SAVINGS' && c.type === 'EXPENSE');
+          const emergencyCharges = chargesWithoutDebts.filter((c: RecurringCharge) => c.purpose === 'EMERGENCY' && c.type === 'EXPENSE');
+          const healthCharges = chargesWithoutDebts.filter((c: RecurringCharge) => c.purpose === 'HEALTH' && c.type === 'EXPENSE');
           const allProvisionCharges = [...savingsCharges, ...emergencyCharges, ...healthCharges];
 
           if (allProvisionCharges.length === 0) return null;
@@ -1136,10 +1136,10 @@ export default function RecurringChargesPage() {
           }
 
           // Calcule les montants pour chaque mois
-          const projectionData = projectionMonths.map((month) => {
-            const savings = savingsCharges.reduce((sum, c) => sum + getAmountForMonth(c, month), 0);
-            const emergency = emergencyCharges.reduce((sum, c) => sum + getAmountForMonth(c, month), 0);
-            const health = healthCharges.reduce((sum, c) => sum + getAmountForMonth(c, month), 0);
+          const projectionData = projectionMonths.map((month: string) => {
+            const savings = savingsCharges.reduce((sum: number, c: RecurringCharge) => sum + getAmountForMonth(c, month), 0);
+            const emergency = emergencyCharges.reduce((sum: number, c: RecurringCharge) => sum + getAmountForMonth(c, month), 0);
+            const health = healthCharges.reduce((sum: number, c: RecurringCharge) => sum + getAmountForMonth(c, month), 0);
             const total = savings + emergency + health;
 
             return {
@@ -1225,7 +1225,7 @@ export default function RecurringChargesPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {projectionWithCumul.map((data, index) => {
+                        {projectionWithCumul.map((data, index: number) => {
                           const isCurrentMonth = data.month === currentMonth;
                           return (
                             <tr
@@ -1320,7 +1320,7 @@ export default function RecurringChargesPage() {
               </h3>
             </div>
             <div className="space-y-2">
-              {activeReminders.map((reminder) => (
+              {activeReminders.map((reminder: Reminder & { chargeId: string; chargeLabel: string }) => (
                 <div
                   key={reminder.id}
                   className="flex items-start justify-between rounded-lg bg-white border border-orange-200 p-3"
@@ -1334,7 +1334,7 @@ export default function RecurringChargesPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
-                        const charge = charges.find((c) => c.id === reminder.chargeId);
+                        const charge = charges.find((c: RecurringCharge) => c.id === reminder.chargeId);
                         if (charge) startEdit(charge);
                       }}
                       className="rounded-md bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700"
@@ -1343,10 +1343,10 @@ export default function RecurringChargesPage() {
                     </button>
                     <button
                       onClick={async () => {
-                        const charge = charges.find((c) => c.id === reminder.chargeId);
+                        const charge = charges.find((c: RecurringCharge) => c.id === reminder.chargeId);
                         if (!charge) return;
 
-                        const updatedReminders = charge.reminders.map((r) =>
+                        const updatedReminders = charge.reminders.map((r: Reminder) =>
                           r.id === reminder.id ? { ...r, dismissed: true } : r
                         );
 
@@ -1385,9 +1385,9 @@ export default function RecurringChargesPage() {
                 <h3 className="text-sm font-semibold text-amber-900">
                   Charges avec suspensions ({suspendedCharges.length})
                 </h3>
-                {suspendedCharges.some(c => c.currentlySuspended) && (
+                {suspendedCharges.some((c: RecurringCharge & { currentlySuspended: boolean }) => c.currentlySuspended) && (
                   <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                    {suspendedCharges.filter(c => c.currentlySuspended).length} suspendue(s) ce mois
+                    {suspendedCharges.filter((c: RecurringCharge & { currentlySuspended: boolean }) => c.currentlySuspended).length} suspendue(s) ce mois
                   </span>
                 )}
               </div>
@@ -1403,7 +1403,7 @@ export default function RecurringChargesPage() {
 
             {showSuspensionsSummary && (
               <div className="border-t border-amber-200 p-4 space-y-2">
-                {suspendedCharges.map((charge) => (
+                {suspendedCharges.map((charge: RecurringCharge & { currentlySuspended: boolean; resumeMonth: string | null; sortedExcludedMonths: string[] }) => (
                   <div
                     key={charge.id}
                     className="flex items-start justify-between rounded-md bg-white p-3 text-sm"
@@ -1440,7 +1440,7 @@ export default function RecurringChargesPage() {
                       </div>
                       <div className="mt-2 flex flex-wrap gap-1">
                         <span className="text-xs text-slate-500">Mois exclus:</span>
-                        {charge.sortedExcludedMonths.map((month) => (
+                        {charge.sortedExcludedMonths.map((month: string) => (
                           <span
                             key={month}
                             className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${month === currentMonth
@@ -1612,7 +1612,7 @@ export default function RecurringChargesPage() {
           ) : groupByType ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Revenus */}
-              {showIncome && groupedCharges.INCOME && groupedCharges.INCOME.length > 0 && (
+              {groupedCharges.INCOME && groupedCharges.INCOME.length > 0 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between px-2">
                     <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
@@ -1621,17 +1621,17 @@ export default function RecurringChargesPage() {
                       <span className="text-slate-400 text-sm font-medium">({groupedCharges.INCOME.length})</span>
                     </h2>
                     <div className="text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
-                      Total: +{formatCurrency(groupedCharges.INCOME.reduce((sum, c) => sum + c.amount, 0))}
+                      Total: +{formatCurrency(groupedCharges.INCOME.reduce((sum: number, c: RecurringCharge) => sum + c.amount, 0))}
                     </div>
                   </div>
                   <div className="space-y-4">
-                    {groupedCharges.INCOME.map((charge) => renderChargeCard(charge))}
+                    {groupedCharges.INCOME.map((charge: RecurringCharge) => renderChargeCard(charge))}
                   </div>
                 </div>
               )}
 
               {/* Dépenses */}
-              {showExpense && groupedCharges.EXPENSE && groupedCharges.EXPENSE.length > 0 && (
+              {groupedCharges.EXPENSE && groupedCharges.EXPENSE.length > 0 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between px-2">
                     <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
@@ -1640,11 +1640,11 @@ export default function RecurringChargesPage() {
                       <span className="text-slate-400 text-sm font-medium">({groupedCharges.EXPENSE.length})</span>
                     </h2>
                     <div className="text-sm font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded-full">
-                      Total: -{formatCurrency(groupedCharges.EXPENSE.reduce((sum, c) => sum + c.amount, 0))}
+                      Total: -{formatCurrency(groupedCharges.EXPENSE.reduce((sum: number, c: RecurringCharge) => sum + c.amount, 0))}
                     </div>
                   </div>
                   <div className="space-y-4">
-                    {groupedCharges.EXPENSE.map((charge) => renderChargeCard(charge))}
+                    {groupedCharges.EXPENSE.map((charge: RecurringCharge) => renderChargeCard(charge))}
                   </div>
                 </div>
               )}
@@ -1661,11 +1661,11 @@ export default function RecurringChargesPage() {
                       <span className="text-slate-400 text-sm font-medium">({groupedCharges.SG.length})</span>
                     </h2>
                     <div className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
-                      Solde: {formatCurrency(groupedCharges.SG.reduce((sum, c) => sum + (c.type === 'INCOME' ? c.amount : -c.amount), 0))}
+                      Solde: {formatCurrency(groupedCharges.SG.reduce((sum: number, c: RecurringCharge) => sum + (c.type === 'INCOME' ? c.amount : -c.amount), 0))}
                     </div>
                   </div>
                   <div className="space-y-4">
-                    {groupedCharges.SG.map((charge) => renderChargeCard(charge))}
+                    {groupedCharges.SG.map((charge: RecurringCharge) => renderChargeCard(charge))}
                   </div>
                 </div>
               )}
@@ -1680,22 +1680,22 @@ export default function RecurringChargesPage() {
                       <span className="text-slate-400 text-sm font-medium">({groupedCharges.FLOA.length})</span>
                     </h2>
                     <div className="text-sm font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
-                      Solde: {formatCurrency(groupedCharges.FLOA.reduce((sum, c) => sum + (c.type === 'INCOME' ? c.amount : -c.amount), 0))}
+                      Solde: {formatCurrency(groupedCharges.FLOA.reduce((sum: number, c: RecurringCharge) => sum + (c.type === 'INCOME' ? c.amount : -c.amount), 0))}
                     </div>
                   </div>
                   <div className="space-y-4">
-                    {groupedCharges.FLOA.map((charge) => renderChargeCard(charge))}
+                    {groupedCharges.FLOA.map((charge: RecurringCharge) => renderChargeCard(charge))}
                   </div>
                 </div>
               )}
             </div>
           ) : (
             <div className="space-y-4">
-              {sortedCharges.map((charge) => renderChargeCard(charge))}
+              {groupedCharges.ALL?.map((charge: RecurringCharge) => renderChargeCard(charge))}
             </div>
           )}
         </div>
       </div>
-    </main>
+    </div>
   );
 };

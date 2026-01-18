@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     // Parse query params
     const account = (searchParams.get('account') ?? 'SG') as Account;
     const startMonth = normalizeMonth(searchParams.get('month'), 'month');
-    const monthsToProject = parseInt(searchParams.get('months') ?? '12', 10);
+    const monthsToProject = parseInt(searchParams.get('months') ?? '3', 10);
 
     if (!['SG', 'FLOA'].includes(account)) {
       return jsonError('Invalid account. Must be SG or FLOA.');

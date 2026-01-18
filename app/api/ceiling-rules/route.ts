@@ -13,7 +13,18 @@ const SELECT_COLUMNS = 'id,user_id,label,amount,account,start_month,end_month,cr
 const jsonError = (message: string, status = 400) =>
   NextResponse.json({ error: message }, { status });
 
-const sanitizeCeilingRule = (record: Record<string, unknown>) => ({
+interface CeilingRuleRow {
+  id: string;
+  user_id: string;
+  label: string;
+  amount: number;
+  account: string;
+  start_month: string;
+  end_month: string | null;
+  created_at: string;
+}
+
+const sanitizeCeilingRule = (record: CeilingRuleRow) => ({
   id: record.id,
   user_id: record.user_id,
   label: record.label,
@@ -44,11 +55,13 @@ export async function GET() {
       return jsonError('Failed to load ceiling rules', 500);
     }
 
+    const rows = (data ?? []) as unknown as CeilingRuleRow[];
+
     return NextResponse.json({
-      ceilingRules: (data ?? []).map(sanitizeCeilingRule),
+      ceilingRules: rows.map(sanitizeCeilingRule),
     });
-  } catch (err) {
-    if ((err as Error).message === 'Unauthorized') {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'Unauthorized') {
       return unauthorized();
     }
     console.error('[ceiling-rules][GET][FATAL]', err);
@@ -64,9 +77,10 @@ export async function POST(request: NextRequest) {
   let payload: Record<string, unknown>;
 
   try {
-    payload = await parseJsonBody(request);
-  } catch (err) {
-    return jsonError((err as Error).message, 400);
+    payload = await parseJsonBody(request) as Record<string, unknown>;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Invalid JSON';
+    return jsonError(message, 400);
   }
 
   try {
@@ -76,7 +90,8 @@ export async function POST(request: NextRequest) {
     // Validation
     const label = normalizeStringField(payload.label, 'label');
     const amount = normalizeNumberField(payload.amount, 'amount');
-    const account = (payload.account as string) || 'SG';
+    const accountPayload = payload.account;
+    const account = typeof accountPayload === 'string' ? accountPayload : 'SG';
     const startMonth = normalizeOptionalDate(payload.start_month, 'start_month');
     const endMonth = normalizeOptionalDate(payload.end_month, 'end_month');
 
@@ -116,10 +131,13 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { ceilingRule: sanitizeCeilingRule(data as Record<string, unknown>) },
+      { ceilingRule: sanitizeCeilingRule(data as unknown as CeilingRuleRow) },
       { status: 201 }
     );
-  } catch (err) {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'Unauthorized') {
+      return unauthorized();
+    }
     console.error('[ceiling-rules][POST][FATAL]', err);
     return jsonError('Internal server error', 500);
   }
@@ -153,8 +171,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (err) {
-    if ((err as Error).message === 'Unauthorized') {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'Unauthorized') {
       return unauthorized();
     }
     console.error('[ceiling-rules][DELETE][FATAL]', err);

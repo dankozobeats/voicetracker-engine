@@ -1,13 +1,9 @@
-console.log('[API ENV CHECK]', {
-  SUPABASE_URL: process.env.SUPABASE_URL,
-  HAS_SERVICE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-});
-
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabaseAdmin } from '@/lib/supabase/server';
 import { getAuthenticatedUser, unauthorized } from '@/lib/api/auth';
 import { rateLimiter, RATE_LIMITS } from '@/lib/rate-limiter';
 import { auditLog } from '@/lib/audit-logger';
+import type { Account, TransactionType, SupabaseTransactionRecord } from '@/lib/types';
 import {
   buildMonthBounds,
   normalizeDate,
@@ -21,7 +17,7 @@ const SELECT_COLUMNS = 'id,user_id,date,label,amount,category,account,type,is_de
 
 const jsonError = (message: string, status = 400) => NextResponse.json({ error: message }, { status });
 
-const toTransactionResponse = (record: Record<string, unknown>) => ({
+const toTransactionResponse = (record: SupabaseTransactionRecord) => ({
   id: record.id,
   user_id: record.user_id,
   date: record.date,
@@ -64,13 +60,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       userId: user.id,
       month,
-      transactions: (data ?? []).map(toTransactionResponse),
+      transactions: (data ?? []).map(row => toTransactionResponse(row as unknown as SupabaseTransactionRecord)),
     });
-  } catch (error) {
-    if ((error as Error).message === 'Unauthorized') {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'Unauthorized') {
       return unauthorized();
     }
-    return jsonError((error as Error).message);
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    return jsonError(message, 500);
   }
 }
 
@@ -170,11 +167,12 @@ export async function POST(request: NextRequest) {
       request,
     }).catch(err => console.error('[AUDIT_LOG] Failed:', err));
 
-    return NextResponse.json({ transaction: toTransactionResponse(data as Record<string, unknown>) }, { status: 201 });
-  } catch (error) {
-    if ((error as Error).message === 'Unauthorized') {
+    return NextResponse.json({ transaction: toTransactionResponse(data as unknown as SupabaseTransactionRecord) }, { status: 201 });
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'Unauthorized') {
       return unauthorized();
     }
-    return jsonError((error as Error).message);
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    return jsonError(message, 500);
   }
 }

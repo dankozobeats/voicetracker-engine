@@ -8,32 +8,53 @@ import { BudgetList } from '@/components/overview/BudgetList';
 import { AlertCenter } from '@/components/overview/AlertCenter';
 import { BalanceProjection } from '@/components/projection/BalanceProjection';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { EnginePayload } from '@/lib/types';
 
 type TabView = 'current' | 'projection' | 'budgets';
 type Account = 'SG' | 'FLOA';
 
-export default function OverviewClient() {
+export default function OverviewClient({ initialData }: { initialData?: EnginePayload | null }) {
   const [activeTab, setActiveTab] = useState<TabView>('current');
   const [projectionMonths, setProjectionMonths] = useState<TimeRange>(3);
   const [account, setAccount] = useState<Account>('SG');
 
-  const { data, isLoading, error } = useProjection(account, projectionMonths);
+  const { data, isLoading, error } = useProjection(account, projectionMonths, initialData);
 
-  if (isLoading) {
+  if (isLoading && !initialData) {
     return (
-      <div className="min-h-screen bg-slate-50 p-8">
-        <div className="max-w-7xl mx-auto space-y-6">
-          <div className="animate-pulse flex justify-between items-center">
-            <div className="h-10 bg-gray-200 rounded w-48"></div>
-            <div className="h-10 bg-gray-200 rounded w-32"></div>
+      <div className="min-h-screen bg-slate-50 p-4 sm:p-8">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* Header Skeleton */}
+          <div className="flex justify-between items-end">
+            <div className="space-y-3">
+              <div className="h-10 bg-slate-200 rounded-lg w-64 animate-pulse"></div>
+              <div className="h-5 bg-slate-100 rounded-md w-48 animate-pulse"></div>
+            </div>
+            <div className="flex gap-3">
+              <div className="h-12 bg-slate-200 rounded-lg w-32 animate-pulse"></div>
+              <div className="h-12 bg-slate-200 rounded-lg w-24 animate-pulse"></div>
+            </div>
           </div>
-          <div className="grid grid-cols-4 gap-4">
-            <div className="h-32 bg-gray-200 rounded-lg"></div>
-            <div className="h-32 bg-gray-200 rounded-lg"></div>
-            <div className="h-32 bg-gray-200 rounded-lg"></div>
-            <div className="h-32 bg-gray-200 rounded-lg"></div>
+
+          {/* Tabs Skeleton */}
+          <div className="h-14 bg-white border-2 border-slate-100 rounded-xl w-full animate-pulse"></div>
+
+          {/* KPI Grid Skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-36 bg-white border-2 border-slate-100 rounded-2xl p-6 space-y-4">
+                <div className="h-4 bg-slate-100 rounded w-1/2 animate-pulse"></div>
+                <div className="h-8 bg-slate-200 rounded w-3/4 animate-pulse"></div>
+                <div className="h-3 bg-slate-50 rounded w-full animate-pulse"></div>
+              </div>
+            ))}
           </div>
-          <div className="h-64 bg-gray-200 rounded-lg"></div>
+
+          {/* Main Content Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="h-[400px] bg-white border-2 border-slate-100 rounded-2xl animate-pulse"></div>
+            <div className="h-[400px] bg-white border-2 border-slate-100 rounded-2xl animate-pulse"></div>
+          </div>
         </div>
       </div>
     );
@@ -72,8 +93,8 @@ export default function OverviewClient() {
               <button
                 onClick={() => setAccount('SG')}
                 className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition ${account === 'SG'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-50'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-50'
                   }`}
               >
                 SG
@@ -81,8 +102,8 @@ export default function OverviewClient() {
               <button
                 onClick={() => setAccount('FLOA')}
                 className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition ${account === 'FLOA'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-50'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-50'
                   }`}
               >
                 FLOA
@@ -109,8 +130,8 @@ export default function OverviewClient() {
           <button
             onClick={() => setActiveTab('current')}
             className={`flex-1 min-w-[100px] px-3 sm:px-4 py-2 sm:py-3 rounded-md text-sm sm:text-base font-medium transition ${activeTab === 'current'
-                ? 'bg-blue-600 text-white'
-                : 'text-slate-600 hover:bg-slate-100'
+              ? 'bg-blue-600 text-white'
+              : 'text-slate-600 hover:bg-slate-100'
               }`}
           >
             📅 Synthèse
@@ -118,8 +139,8 @@ export default function OverviewClient() {
           <button
             onClick={() => setActiveTab('projection')}
             className={`flex-1 min-w-[120px] px-3 sm:px-4 py-2 sm:py-3 rounded-md text-sm sm:text-base font-medium transition whitespace-nowrap ${activeTab === 'projection'
-                ? 'bg-blue-600 text-white'
-                : 'text-slate-600 hover:bg-slate-100'
+              ? 'bg-blue-600 text-white'
+              : 'text-slate-600 hover:bg-slate-100'
               }`}
           >
             📈 Projection
@@ -127,8 +148,8 @@ export default function OverviewClient() {
           <button
             onClick={() => setActiveTab('budgets')}
             className={`flex-1 min-w-[100px] px-3 sm:px-4 py-2 sm:py-3 rounded-md text-sm sm:text-base font-medium transition ${activeTab === 'budgets'
-                ? 'bg-blue-600 text-white'
-                : 'text-slate-600 hover:bg-slate-100'
+              ? 'bg-blue-600 text-white'
+              : 'text-slate-600 hover:bg-slate-100'
               }`}
           >
             🎯 Budgets

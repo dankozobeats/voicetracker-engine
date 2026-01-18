@@ -151,6 +151,7 @@ export interface SupabaseTransactionRecord {
   deferred_until: string | null; // YYYY-MM
   max_deferral_months: number | null;
   priority: number;
+  budget_id: string | null;
   created_at?: string;
 }
 
@@ -250,4 +251,42 @@ export interface SupabaseDebtRecord {
   monthly_overrides?: Record<string, number>;
   created_at?: string;
   updated_at?: string;
+}
+
+// =========================================
+// FRONTEND COMPONENT TYPES
+// =========================================
+
+export interface Transaction {
+  id: string;
+  date: string;
+  label: string;
+  amount: number;
+  category: string;
+  account: Account;
+  type: TransactionType;
+  is_deferred: boolean;
+  deferred_to: string | null;
+  deferred_until?: string | null;
+  max_deferral_months?: number | null;
+  priority: number;
+  budget_id: string | null;
+}
+
+export interface RecurringCharge {
+  id: string;
+  label: string;
+  amount: number;
+  account: Account;
+  type: TransactionType;
+  purpose: ChargePurpose;
+  start_date: string; // Mapping to start_month
+  end_date: string | null; // Mapping to end_month
+  excluded_months: string[];
+  monthly_overrides: Record<string, number>;
+  reminders: RecurringChargeReminder[];
+  initial_balance?: number | null;
+  remaining_balance?: number | null;
+  interest_rate?: number | null;
+  debt_start_date?: string | null;
 }

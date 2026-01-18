@@ -128,16 +128,16 @@ export default function CeilingRulesPage() {
 
   if (loading) {
     return (
-      <main className="page-shell">
+      <div className="page-shell">
         <div className="flex items-center justify-center py-20">
           <p className="text-slate-600">Chargement...</p>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="page-shell">
+    <div className="page-shell">
       <div className="mx-auto max-w-4xl space-y-8">
         <header className="flex items-center justify-between">
           <div>
@@ -299,6 +299,6 @@ export default function CeilingRulesPage() {
           </div>
         )}
       </div>
-    </main>
+    </div>
   );
 }

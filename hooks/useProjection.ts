@@ -24,11 +24,13 @@ async function fetchProjection(account: string, months: TimeRange) {
     return json.payload as EnginePayload;
 }
 
-export function useProjection(account: 'SG' | 'FLOA', months: TimeRange) {
+export function useProjection(account: 'SG' | 'FLOA', months: TimeRange, initialData?: EnginePayload | null) {
     return useQuery({
         queryKey: ['projection', account, months],
         queryFn: () => fetchProjection(account, months),
         staleTime: 60 * 1000, // 1 minute stale time
         refetchOnWindowFocus: false, // Don't refetch just by clicking back on the tab to avoid engine spam
+        // Use initialData only if account and months match the SSR defaults
+        initialData: (account === 'SG' && months === 3 && initialData) ? initialData : undefined,
     });
 }

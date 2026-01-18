@@ -7,7 +7,7 @@ export const revalidate = 60;
 
 export default function BudgetsPage() {
   return (
-    <main className="page-shell min-h-screen bg-slate-50/50 pb-20">
+    <div className="page-shell min-h-screen bg-slate-50/50 pb-20">
       {/* Premium Header */}
       <section className="relative overflow-hidden bg-slate-900 px-6 py-12 sm:px-10 sm:py-20 shadow-2xl rounded-b-[40px] mb-12">
         <div className="relative z-10 mx-auto max-w-5xl">
@@ -34,6 +34,6 @@ export default function BudgetsPage() {
       <div className="mx-auto max-w-5xl px-4">
         <BudgetsClient />
       </div>
-    </main>
+    </div>
   );
 }

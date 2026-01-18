@@ -5,7 +5,7 @@ import { mockedEnginePayload } from '@/lib/api';
 
 export default function AlertsPage() {
   return (
-    <main className="page-shell">
+    <div className="page-shell">
       <section className="overview-card">
         <p className="eyebrow">Alertes avancées</p>
         <h1>Alertes contractuelles</h1>
@@ -13,6 +13,6 @@ export default function AlertsPage() {
       </section>
 
       <AlertPanel alertTexts={mockedEnginePayload.alertTexts} />
-    </main>
+    </div>
   );
 }

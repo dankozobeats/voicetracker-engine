@@ -35,6 +35,10 @@ const SECTIONS = [
     label: 'Alertes',
     items: [{ label: 'Alertes avancées', href: '/alerts' }],
   },
+  {
+    label: 'Aide',
+    items: [{ label: 'Guide de démarrage', href: '/auth/welcome' }],
+  },
 ];
 
 export const Sidebar = () => {
@@ -122,109 +126,108 @@ export const Sidebar = () => {
         lg:translate-x-0
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-      {/* Brand */}
-      <div className="p-6 border-b border-slate-800 flex-shrink-0">
-        <h1 className="text-xl font-bold text-white">Voicetracker</h1>
-      </div>
+        {/* Brand */}
+        <div className="p-6 border-b border-slate-800 flex-shrink-0">
+          <h1 className="text-xl font-bold text-white">Voicetracker</h1>
+        </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {SECTIONS.map((section) => (
-          <div key={section.label} className="mb-4">
-            {/* Section Header */}
-            <button
-              onClick={() => toggle(section.label)}
-              className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-200 transition-colors"
-            >
-              <span>{section.label}</span>
-              {openSections[section.label] ? (
-                <ChevronDown className="w-4 h-4" />
-              ) : (
-                <ChevronRight className="w-4 h-4" />
-              )}
-            </button>
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {SECTIONS.map((section) => (
+            <div key={section.label} className="mb-4">
+              {/* Section Header */}
+              <button
+                onClick={() => toggle(section.label)}
+                className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-200 transition-colors"
+              >
+                <span>{section.label}</span>
+                {openSections[section.label] ? (
+                  <ChevronDown className="w-4 h-4" />
+                ) : (
+                  <ChevronRight className="w-4 h-4" />
+                )}
+              </button>
 
-            {/* Section Items */}
-            {openSections[section.label] && (
-              <ul className="mt-1 space-y-0.5">
-                {section.items.map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <li key={`${section.label}-${item.label}`}>
-                      <Link
-                        href={item.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`
+              {/* Section Items */}
+              {openSections[section.label] && (
+                <ul className="mt-1 space-y-0.5">
+                  {section.items.map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                      <li key={`${section.label}-${item.label}`}>
+                        <Link
+                          href={item.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`
                           block px-3 py-2 rounded-md text-sm transition-colors
-                          ${
-                            isActive
+                          ${isActive
                               ? 'bg-slate-800 text-white font-medium'
                               : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
-                          }
+                            }
                         `}
-                      >
-                        {item.label}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        ))}
-      </nav>
+                        >
+                          {item.label}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          ))}
+        </nav>
 
-      {/* Actions */}
-      <div className="p-4 border-t border-slate-800 space-y-2 flex-shrink-0">
-        <Link
-          href="/transactions/new"
-          onClick={() => setMobileMenuOpen(false)}
-          className="flex items-center gap-2 w-full px-4 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium text-sm transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Ajouter une transaction</span>
-        </Link>
-        <Link
-          href="/budgets/new"
-          onClick={() => setMobileMenuOpen(false)}
-          className="flex items-center gap-2 w-full px-4 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium text-sm transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Créer un budget</span>
-        </Link>
-      </div>
-
-      {/* User Profile & Logout */}
-      {userEmail && (
+        {/* Actions */}
         <div className="p-4 border-t border-slate-800 space-y-2 flex-shrink-0">
-          {/* User Info */}
           <Link
-            href="/profile"
-            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors"
+            href="/transactions/new"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-2 w-full px-4 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium text-sm transition-colors"
           >
-            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
-              <User className="w-4 h-4 text-slate-300" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-slate-200 truncate">
-                {userEmail}
-              </p>
-              <p className="text-xs text-slate-400">Voir le profil</p>
-            </div>
+            <Plus className="w-4 h-4" />
+            <span>Ajouter une transaction</span>
           </Link>
-
-          {/* Logout Button */}
-          <button
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className="flex items-center gap-2 w-full px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          <Link
+            href="/budgets/new"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-2 w-full px-4 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium text-sm transition-colors"
           >
-            <LogOut className="w-4 h-4" />
-            <span>{isLoggingOut ? 'Déconnexion...' : 'Se déconnecter'}</span>
-          </button>
+            <Plus className="w-4 h-4" />
+            <span>Créer un budget</span>
+          </Link>
         </div>
-      )}
-    </aside>
+
+        {/* User Profile & Logout */}
+        {userEmail && (
+          <div className="p-4 border-t border-slate-800 space-y-2 flex-shrink-0">
+            {/* User Info */}
+            <Link
+              href="/profile"
+              className="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors"
+            >
+              <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
+                <User className="w-4 h-4 text-slate-300" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-slate-200 truncate">
+                  {userEmail}
+                </p>
+                <p className="text-xs text-slate-400">Voir le profil</p>
+              </div>
+            </Link>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="flex items-center gap-2 w-full px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>{isLoggingOut ? 'Déconnexion...' : 'Se déconnecter'}</span>
+            </button>
+          </div>
+        )}
+      </aside>
     </>
   );
 };

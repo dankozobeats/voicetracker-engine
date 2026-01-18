@@ -13,20 +13,38 @@ const SELECT_COLUMNS = 'id,user_id,label,account,monthly_payment,remaining_balan
 const jsonError = (message: string, status = 400) =>
   NextResponse.json({ error: message }, { status });
 
-const sanitizeDebt = (record: Record<string, unknown>) => ({
+interface DebtRow {
+  id: string;
+  user_id: string;
+  label: string;
+  account: string;
+  monthly_payment: number;
+  remaining_balance: number;
+  initial_balance: number | null;
+  interest_rate: number | null;
+  debt_start_date: string | null;
+  start_month: string;
+  end_month: string | null;
+  excluded_months: string[];
+  monthly_overrides: Record<string, number>;
+  created_at: string;
+  updated_at: string;
+}
+
+const sanitizeDebt = (record: DebtRow) => ({
   id: record.id,
   user_id: record.user_id,
   label: record.label,
   account: record.account,
   monthly_payment: record.monthly_payment,
   remaining_balance: record.remaining_balance,
-  initial_balance: record.initial_balance ?? null,
-  interest_rate: record.interest_rate ?? null,
-  debt_start_date: record.debt_start_date ?? null,
+  initial_balance: record.initial_balance,
+  interest_rate: record.interest_rate,
+  debt_start_date: record.debt_start_date,
   start_month: record.start_month,
-  end_month: record.end_month ?? null,
-  excluded_months: record.excluded_months ?? [],
-  monthly_overrides: record.monthly_overrides ?? {},
+  end_month: record.end_month,
+  excluded_months: record.excluded_months,
+  monthly_overrides: record.monthly_overrides,
   created_at: record.created_at,
   updated_at: record.updated_at,
 });
@@ -51,11 +69,13 @@ export async function GET() {
       return jsonError('Failed to load debts', 500);
     }
 
+    const rows = (data ?? []) as unknown as DebtRow[];
+
     return NextResponse.json({
-      debts: (data ?? []).map(sanitizeDebt),
+      debts: rows.map(sanitizeDebt),
     });
-  } catch (err) {
-    if ((err as Error).message === 'Unauthorized') {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'Unauthorized') {
       return unauthorized();
     }
     console.error('[debts][GET][FATAL]', err);
@@ -71,10 +91,11 @@ export async function POST(request: NextRequest) {
   let payload: Record<string, unknown>;
 
   try {
-    payload = await parseJsonBody(request);
-  } catch (err) {
+    payload = await parseJsonBody(request) as Record<string, unknown>;
+  } catch (err: unknown) {
     console.error('[debts][POST][JSON_PARSE]', err);
-    return jsonError((err as Error).message, 400);
+    const message = err instanceof Error ? err.message : 'Invalid JSON';
+    return jsonError(message, 400);
   }
 
   try {
@@ -87,16 +108,19 @@ export async function POST(request: NextRequest) {
     const label = normalizeStringField(payload.label, 'label');
     const monthlyPayment = normalizeNumberField(payload.monthly_payment, 'monthly_payment');
     const remainingBalance = normalizeNumberField(payload.remaining_balance, 'remaining_balance');
-    const account = (payload.account as string) || 'SG';
+    const accountPayload = payload.account;
+    const account = typeof accountPayload === 'string' ? accountPayload : 'SG';
     const startMonth = normalizeOptionalMonth(payload.start_month, 'start_month');
     const endMonth = normalizeOptionalMonth(payload.end_month, 'end_month');
 
     // Optional fields
-    const initialBalance = payload.initial_balance ? Number(payload.initial_balance) : null;
-    const interestRate = payload.interest_rate ? Number(payload.interest_rate) : null;
-    const debtStartDate = payload.debt_start_date ? String(payload.debt_start_date) : null;
-    const excludedMonths = (payload.excluded_months as string[]) || [];
-    const monthlyOverrides = (payload.monthly_overrides as Record<string, number>) || {};
+    const initialBalance = payload.initial_balance !== undefined && payload.initial_balance !== null ? Number(payload.initial_balance) : null;
+    const interestRate = payload.interest_rate !== undefined && payload.interest_rate !== null ? Number(payload.interest_rate) : null;
+    const debtStartDate = typeof payload.debt_start_date === 'string' ? payload.debt_start_date : null;
+    const excludedMonths = Array.isArray(payload.excluded_months) ? (payload.excluded_months as string[]) : [];
+    const monthlyOverrides = (payload.monthly_overrides && typeof payload.monthly_overrides === 'object')
+      ? (payload.monthly_overrides as Record<string, number>)
+      : {};
 
     console.log('[debts][POST] Validated:', {
       label,
@@ -163,10 +187,13 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { debt: sanitizeDebt(data as Record<string, unknown>) },
+      { debt: sanitizeDebt(data as unknown as DebtRow) },
       { status: 201 }
     );
-  } catch (err) {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'Unauthorized') {
+      return unauthorized();
+    }
     console.error('[debts][POST][FATAL]', err);
     return jsonError('Internal server error', 500);
   }
@@ -187,10 +214,11 @@ export async function PUT(request: NextRequest) {
   let payload: Record<string, unknown>;
 
   try {
-    payload = await parseJsonBody(request);
-  } catch (err) {
+    payload = await parseJsonBody(request) as Record<string, unknown>;
+  } catch (err: unknown) {
     console.error('[debts][PUT][JSON_PARSE]', err);
-    return jsonError((err as Error).message, 400);
+    const message = err instanceof Error ? err.message : 'Invalid JSON';
+    return jsonError(message, 400);
   }
 
   try {
@@ -203,16 +231,19 @@ export async function PUT(request: NextRequest) {
     const label = normalizeStringField(payload.label, 'label');
     const monthlyPayment = normalizeNumberField(payload.monthly_payment, 'monthly_payment');
     const remainingBalance = normalizeNumberField(payload.remaining_balance, 'remaining_balance');
-    const account = (payload.account as string) || 'SG';
+    const accountPayload = payload.account;
+    const account = typeof accountPayload === 'string' ? accountPayload : 'SG';
     const startMonth = normalizeOptionalMonth(payload.start_month, 'start_month');
     const endMonth = normalizeOptionalMonth(payload.end_month, 'end_month');
 
     // Optional fields
-    const initialBalance = payload.initial_balance ? Number(payload.initial_balance) : null;
-    const interestRate = payload.interest_rate ? Number(payload.interest_rate) : null;
-    const debtStartDate = payload.debt_start_date ? String(payload.debt_start_date) : null;
-    const excludedMonths = (payload.excluded_months as string[]) || [];
-    const monthlyOverrides = (payload.monthly_overrides as Record<string, number>) || {};
+    const initialBalance = payload.initial_balance !== undefined && payload.initial_balance !== null ? Number(payload.initial_balance) : null;
+    const interestRate = payload.interest_rate !== undefined && payload.interest_rate !== null ? Number(payload.interest_rate) : null;
+    const debtStartDate = typeof payload.debt_start_date === 'string' ? payload.debt_start_date : null;
+    const excludedMonths = Array.isArray(payload.excluded_months) ? (payload.excluded_months as string[]) : [];
+    const monthlyOverrides = (payload.monthly_overrides && typeof payload.monthly_overrides === 'object')
+      ? (payload.monthly_overrides as Record<string, number>)
+      : {};
 
     console.log('[debts][PUT] Validated:', {
       label,
@@ -279,9 +310,9 @@ export async function PUT(request: NextRequest) {
       return jsonError(error.message ?? 'Failed to update debt', 500);
     }
 
-    return NextResponse.json({ debt: sanitizeDebt(data as Record<string, unknown>) });
-  } catch (err) {
-    if ((err as Error).message === 'Unauthorized') {
+    return NextResponse.json({ debt: sanitizeDebt(data as unknown as DebtRow) });
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'Unauthorized') {
       return unauthorized();
     }
     console.error('[debts][PUT][FATAL]', err);
@@ -317,8 +348,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (err) {
-    if ((err as Error).message === 'Unauthorized') {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'Unauthorized') {
       return unauthorized();
     }
     console.error('[debts][DELETE][FATAL]', err);

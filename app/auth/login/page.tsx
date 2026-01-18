@@ -5,7 +5,7 @@ import LoginClient from './LoginClient';
 const LoginPage = () => {
   // Server-rendered shell (fast, SEO-safe)
   return (
-    <main className="mx-auto max-w-md px-4 py-12">
+    <div className="mx-auto max-w-md px-4 py-12">
       <div className="space-y-2">
         <p className="text-sm font-semibold uppercase tracking-widest text-gray-500">
           Sign in
@@ -33,7 +33,7 @@ const LoginPage = () => {
           </Link>
         </p>
       </div>
-    </main>
+    </div>
   );
 };
 

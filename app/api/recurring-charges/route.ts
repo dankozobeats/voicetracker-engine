@@ -7,13 +7,14 @@ import {
   normalizeOptionalMonth,
   parseJsonBody,
 } from '@/lib/api/validators';
+import type { SupabaseRecurringChargeRecord } from '@/lib/types';
 
 const SELECT_COLUMNS = 'id,user_id,label,amount,account,type,purpose,start_month,end_month,excluded_months,monthly_overrides,reminders,initial_balance,remaining_balance,interest_rate,debt_start_date,created_at';
 
 const jsonError = (message: string, status = 400) =>
   NextResponse.json({ error: message }, { status });
 
-const sanitizeRecurringCharge = (record: Record<string, unknown>) => ({
+const sanitizeRecurringCharge = (record: SupabaseRecurringChargeRecord) => ({
   id: record.id,
   user_id: record.user_id,
   label: record.label,
@@ -54,14 +55,14 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      recurringCharges: (data ?? []).map(sanitizeRecurringCharge),
+      recurringCharges: (data ?? []).map(row => sanitizeRecurringCharge(row as unknown as SupabaseRecurringChargeRecord)),
     });
-  } catch (err) {
-    if ((err as Error).message === 'Unauthorized') {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'Unauthorized') {
       return unauthorized();
     }
-    console.error('[recurring-charges][GET][FATAL]', err);
-    return jsonError('Internal server error', 500);
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    return jsonError(message, 500);
   }
 }
 
@@ -73,10 +74,10 @@ export async function POST(request: NextRequest) {
   let payload: Record<string, unknown>;
 
   try {
-    payload = await parseJsonBody(request);
-  } catch (err) {
-    console.error('[recurring-charges][POST][JSON_PARSE]', err);
-    return jsonError((err as Error).message, 400);
+    payload = await parseJsonBody(request) as Record<string, unknown>;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Invalid JSON';
+    return jsonError(message, 400);
   }
 
   try {
@@ -174,12 +175,15 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { recurringCharge: sanitizeRecurringCharge(data as Record<string, unknown>) },
+      { recurringCharge: sanitizeRecurringCharge(data as unknown as SupabaseRecurringChargeRecord) },
       { status: 201 }
     );
-  } catch (err) {
-    console.error('[recurring-charges][POST][FATAL]', err);
-    return jsonError('Internal server error', 500);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'Unauthorized') {
+      return unauthorized();
+    }
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    return jsonError(message, 500);
   }
 }
 
@@ -198,10 +202,10 @@ export async function PUT(request: NextRequest) {
   let payload: Record<string, unknown>;
 
   try {
-    payload = await parseJsonBody(request);
-  } catch (err) {
-    console.error('[recurring-charges][PUT][JSON_PARSE]', err);
-    return jsonError((err as Error).message, 400);
+    payload = await parseJsonBody(request) as Record<string, unknown>;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Invalid JSON';
+    return jsonError(message, 400);
   }
 
   try {
@@ -271,7 +275,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update
-    const { data, error} = await supabase
+    const { data, error } = await supabase
       .from('recurring_charges')
       .update({
         label,
@@ -299,13 +303,13 @@ export async function PUT(request: NextRequest) {
       return jsonError(error.message ?? 'Failed to update recurring charge', 500);
     }
 
-    return NextResponse.json({ recurringCharge: sanitizeRecurringCharge(data as Record<string, unknown>) });
-  } catch (err) {
-    if ((err as Error).message === 'Unauthorized') {
+    return NextResponse.json({ recurringCharge: sanitizeRecurringCharge(data as unknown as SupabaseRecurringChargeRecord) });
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'Unauthorized') {
       return unauthorized();
     }
-    console.error('[recurring-charges][PUT][FATAL]', err);
-    return jsonError('Internal server error', 500);
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    return jsonError(message, 500);
   }
 }
 
@@ -337,11 +341,11 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (err) {
-    if ((err as Error).message === 'Unauthorized') {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'Unauthorized') {
       return unauthorized();
     }
-    console.error('[recurring-charges][DELETE][FATAL]', err);
-    return jsonError('Internal server error', 500);
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    return jsonError(message, 500);
   }
 }

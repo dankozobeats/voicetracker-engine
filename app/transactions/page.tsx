@@ -1,24 +1,13 @@
 import Link from 'next/link';
 import { serverSupabaseAdmin } from '@/lib/supabase/server';
 import { getAuthenticatedUser } from '@/lib/api/auth';
+import type { Transaction } from '@/lib/types';
 import { TransactionsClient } from './TransactionsClient';
 
 // Cache cette page pendant 30 secondes (données modifiées plus fréquemment)
 export const revalidate = 30;
 
-type Transaction = {
-  id: string;
-  date: string;
-  label: string;
-  amount: number;
-  category: string;
-  account: 'SG' | 'FLOA';
-  type: 'INCOME' | 'EXPENSE';
-  is_deferred: boolean;
-  deferred_to: string | null;
-  priority: number;
-  budget_id: string | null;
-};
+// Transaction type removed, using import from @/lib/types
 
 export default async function TransactionsPage() {
   let transactions: Transaction[] = [];
@@ -45,7 +34,7 @@ export default async function TransactionsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 py-4 sm:py-8 lg:py-12 px-3 sm:px-4 lg:px-8">
+    <div className="min-h-screen bg-slate-50 py-4 sm:py-8 lg:py-12 px-3 sm:px-4 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
         <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex-1">
@@ -106,6 +95,6 @@ export default async function TransactionsPage() {
           <TransactionsClient initialTransactions={transactions} />
         )}
       </div>
-    </main>
+    </div>
   );
 }

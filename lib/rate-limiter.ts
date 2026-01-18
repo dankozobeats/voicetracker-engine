@@ -28,7 +28,7 @@ interface RateLimitEntry {
 class RateLimiter {
   private store: Map<string, RateLimitEntry>;
   private windowMs: number;
-  private cleanupInterval: NodeJS.Timeout | null;
+  private cleanupInterval: ReturnType<typeof setInterval> | null;
 
   constructor(windowMs = 60000) {
     // Default: 1 minute window
@@ -120,7 +120,7 @@ class RateLimiter {
    * Start cleanup interval to remove expired entries
    */
   private startCleanup(): void {
-    this.cleanupInterval = setInterval(() => {
+    this.cleanupInterval = global.setInterval(() => {
       const now = Date.now();
       for (const [key, entry] of this.store.entries()) {
         if (now > entry.resetAt) {
@@ -130,8 +130,8 @@ class RateLimiter {
     }, 60000); // Cleanup every minute
 
     // Don't prevent Node.js from exiting
-    if (this.cleanupInterval.unref) {
-      this.cleanupInterval.unref();
+    if (this.cleanupInterval && typeof this.cleanupInterval === 'object' && 'unref' in this.cleanupInterval) {
+      (this.cleanupInterval as any).unref();
     }
   }
 

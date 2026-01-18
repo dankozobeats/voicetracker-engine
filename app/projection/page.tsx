@@ -21,7 +21,7 @@ export default async function ProjectionPage() {
   const { payload } = await getProjectionData();
 
   return (
-    <main className="page-shell">
+    <div className="page-shell">
       <section className="overview-card">
         <p className="eyebrow">Projection financière</p>
         <h1>Analyse de projection avancée</h1>
@@ -32,6 +32,6 @@ export default async function ProjectionPage() {
       </section>
 
       <BalanceProjection projections={payload.months} />
-    </main>
+    </div>
   );
 }
