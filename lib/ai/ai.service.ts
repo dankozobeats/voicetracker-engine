@@ -34,20 +34,26 @@ export async function chatAi({ userId, message, contextWindowMonths, cookies }: 
   });
 
   let parsedResponse: AiChatResponse | null = null;
+  let parseError: string | null = null;
 
   try {
     const json = JSON.parse(rawResponse) as unknown;
     const result = aiChatResponseSchema.safeParse(json);
     if (result.success) {
       parsedResponse = result.data;
+    } else {
+      parseError = `AI response schema invalid: ${result.error.message}`;
     }
-  } catch {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    parseError = `AI response JSON parse failed: ${message}`;
     parsedResponse = null;
   }
 
   const errors = [
     ...(context.meta?.errors ?? []),
     ...(baseUrlWarning ? [baseUrlWarning] : []),
+    ...(parseError ? [parseError] : []),
   ];
   const limits = context.meta?.limits ?? [];
 
@@ -61,6 +67,8 @@ export async function chatAi({ userId, message, contextWindowMonths, cookies }: 
   if (parsedResponse) {
     return {
       ...parsedResponse,
+      insights: parsedResponse.insights ?? [],
+      proposedActions: parsedResponse.proposedActions ?? [],
       meta,
     };
   }

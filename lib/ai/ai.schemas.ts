@@ -20,9 +20,10 @@ const aiInsightSchema = z.object({
 });
 
 const aiProposedActionSchema = z.object({
+  type: z.enum(['transaction', 'budget', 'projection', 'alert', 'note']),
   title: z.string(),
   description: z.string().optional(),
-  requiresConfirmation: z.boolean(),
+  requiresConfirmation: z.literal(true),
   payload: z.record(z.unknown()).optional(),
 });
 
@@ -35,6 +36,7 @@ const aiMetaSchema = z.object({
 
 export const aiChatResponseSchema = z.object({
   reply: z.string(),
+  analysis: z.string().optional(),
   insights: z.array(aiInsightSchema).optional(),
   proposedActions: z.array(aiProposedActionSchema).optional(),
   meta: aiMetaSchema.optional(),

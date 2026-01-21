@@ -12,7 +12,15 @@ export interface AiInsight {
   severity?: 'info' | 'warning' | 'critical';
 }
 
+export type AiProposedActionType =
+  | 'transaction'
+  | 'budget'
+  | 'projection'
+  | 'alert'
+  | 'note';
+
 export interface AiProposedAction {
+  type: AiProposedActionType;
   title: string;
   description?: string;
   requiresConfirmation: boolean;
@@ -26,8 +34,20 @@ export interface AiMeta {
   limits?: string[];
 }
 
+export type AiConfirmActionType =
+  | 'CREATE_TRANSACTION'
+  | 'CREATE_BUDGET'
+  | 'RUN_PROJECTION';
+
+export interface AiConfirmAction {
+  actionId: string;
+  type: AiConfirmActionType;
+  payload: Record<string, unknown>;
+}
+
 export interface AiChatResponse {
   reply: string;
+  analysis?: string;
   insights?: AiInsight[];
   proposedActions?: AiProposedAction[];
   meta?: AiMeta;
