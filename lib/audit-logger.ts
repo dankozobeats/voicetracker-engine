@@ -24,9 +24,11 @@ import { serverSupabaseAdmin } from '@/lib/supabase/server';
 
 export type AuditAction =
   // AI
+  | 'ai.plan.create'
   | 'ai.confirm.create_transaction'
   | 'ai.confirm.create_budget'
   | 'ai.confirm.run_projection'
+  | 'ai.confirm.failed'
   | 'ai.confirm.invalid_payload'
   // Transactions
   | 'transaction.create'
@@ -67,6 +69,8 @@ export type AuditAction =
 
 export type ResourceType =
   | 'ai_action'
+  | 'ai_plan'
+  | 'ai_plan_step'
   | 'transaction'
   | 'budget'
   | 'debt'

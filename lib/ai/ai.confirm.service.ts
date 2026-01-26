@@ -1,12 +1,15 @@
+import type { AuditAction, ResourceType } from '@/lib/audit-logger';
 import { auditLog, auditLogFailure } from '@/lib/audit-logger';
-import type { AiConfirmRequest } from './ai.confirm.schemas';
+import type { AiDirectConfirmRequest } from './ai.confirm.schemas';
 
 interface ConfirmAiActionOptions {
   userId: string;
-  action: AiConfirmRequest;
+  action: AiDirectConfirmRequest;
   baseUrl: string;
   cookies: string;
   request?: Request;
+  resourceType?: ResourceType;
+  failureAction?: AuditAction;
 }
 
 export interface ConfirmAiActionResult {
@@ -25,7 +28,7 @@ const parseJsonMaybe = (text: string): unknown => {
   }
 };
 
-const getActionAuditKey = (type: AiConfirmRequest['type']) => {
+const getActionAuditKey = (type: AiDirectConfirmRequest['type']) => {
   switch (type) {
     case 'CREATE_TRANSACTION':
       return 'ai.confirm.create_transaction' as const;
@@ -44,6 +47,8 @@ export async function confirmAiAction({
   baseUrl,
   cookies,
   request,
+  resourceType = 'ai_action',
+  failureAction,
 }: ConfirmAiActionOptions): Promise<ConfirmAiActionResult> {
   const headers: Record<string, string> = {
     cookie: cookies,
@@ -92,8 +97,8 @@ export async function confirmAiAction({
       const errorMessage = `API ${response.status} ${response.statusText}`;
       await auditLogFailure({
         userId,
-        action: getActionAuditKey(action.type),
-        resourceType: 'ai_action',
+        action: failureAction ?? getActionAuditKey(action.type),
+        resourceType,
         resourceId: action.actionId,
         errorMessage,
         details: {
@@ -115,7 +120,7 @@ export async function confirmAiAction({
     await auditLog({
       userId,
       action: getActionAuditKey(action.type),
-      resourceType: 'ai_action',
+      resourceType,
       resourceId: action.actionId,
       details: {
         type: action.type,
@@ -133,8 +138,8 @@ export async function confirmAiAction({
     const message = error instanceof Error ? error.message : 'Unknown error';
     await auditLogFailure({
       userId,
-      action: getActionAuditKey(action.type),
-      resourceType: 'ai_action',
+      action: failureAction ?? getActionAuditKey(action.type),
+      resourceType,
       resourceId: action.actionId,
       errorMessage: message,
       details: {

@@ -3,6 +3,11 @@ import { z } from 'zod';
 const monthRegex = /^\d{4}-\d{2}$/;
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
+export const aiPlanRequestSchema = z.object({
+  message: z.string().min(1, 'message is required'),
+  contextWindowMonths: z.union([z.literal(1), z.literal(3), z.literal(6), z.literal(12)]).optional(),
+});
+
 const transactionPayloadSchema = z
   .object({
     date: z.string().regex(dateRegex, 'date must be YYYY-MM-DD'),
@@ -49,36 +54,17 @@ const projectionPayloadSchema = z
   })
   .strict();
 
-export const aiDirectConfirmSchema = z.discriminatedUnion('type', [
-  z.object({
-    actionId: z.string().min(1),
-    type: z.literal('CREATE_TRANSACTION'),
-    payload: transactionPayloadSchema,
-  }),
-  z.object({
-    actionId: z.string().min(1),
-    type: z.literal('CREATE_BUDGET'),
-    payload: budgetPayloadSchema,
-  }),
-  z.object({
-    actionId: z.string().min(1),
-    type: z.literal('RUN_PROJECTION'),
-    payload: projectionPayloadSchema,
-  }),
-]);
+export const aiPlanStepSchema = z.object({
+  step: z.number().int().min(1).max(5),
+  action: z.enum(['CREATE_TRANSACTION', 'CREATE_BUDGET', 'RUN_PROJECTION']),
+  payload: z.record(z.unknown()),
+  requiresConfirmation: z.literal(true),
+  actionId: z.string().uuid().optional(),
+});
 
-export const aiPlanConfirmSchema = z
-  .object({
-    planId: z.string().min(1),
-    step: z.number().int().min(1),
-  })
-  .strict();
+export const aiPlanResponseSchema = z.object({
+  steps: z.array(aiPlanStepSchema),
+});
 
-export const aiConfirmRequestSchema = z.union([
-  aiDirectConfirmSchema,
-  aiPlanConfirmSchema,
-]);
-
-export type AiConfirmRequest = z.infer<typeof aiConfirmRequestSchema>;
-export type AiDirectConfirmRequest = z.infer<typeof aiDirectConfirmSchema>;
-export type AiPlanConfirmRequest = z.infer<typeof aiPlanConfirmSchema>;
+export type AiPlanRequest = z.infer<typeof aiPlanRequestSchema>;
+export type AiPlanResponse = z.infer<typeof aiPlanResponseSchema>;

@@ -45,6 +45,33 @@ export interface AiConfirmAction {
   payload: Record<string, unknown>;
 }
 
+export type AiPlanActionType =
+  | 'CREATE_TRANSACTION'
+  | 'CREATE_BUDGET'
+  | 'RUN_PROJECTION';
+
+export type AiPlanStatus = 'ACTIVE' | 'EXPIRED' | 'COMPLETED' | 'FAILED';
+
+export type AiPlanStepStatus = 'PENDING' | 'CONFIRMED' | 'FAILED';
+
+export interface AiPlanStep {
+  step: number;
+  action: AiPlanActionType;
+  payload: Record<string, unknown>;
+  requiresConfirmation: true;
+  actionId: string;
+  status: AiPlanStepStatus;
+}
+
+export interface AiPlan {
+  planId: string;
+  userId: string;
+  status: AiPlanStatus;
+  createdAt: string;
+  expiresAt: string;
+  steps: AiPlanStep[];
+}
+
 export interface AiChatResponse {
   reply: string;
   analysis?: string;
