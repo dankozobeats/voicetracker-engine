@@ -65,6 +65,7 @@ export async function GET(request: NextRequest) {
           endingBalance: analysis.summary.net,
           ceilings: [],
           deferredResolutions: [],
+          recurringChargeBreakdown: [],
           categoryBudgets: [],
           categorySpending: {},
         },

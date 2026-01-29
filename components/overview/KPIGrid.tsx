@@ -11,6 +11,10 @@ interface KPIGridProps {
 export function KPIGrid({ currentMonth }: KPIGridProps) {
     const variation = currentMonth.endingBalance - currentMonth.openingBalance;
 
+    // Total des sorties = dépenses + charges fixes + différé (si négatif)
+    const deferredExpense = currentMonth.deferredIn < 0 ? Math.abs(currentMonth.deferredIn) : 0;
+    const totalExpenses = currentMonth.expenses + currentMonth.fixedCharges + deferredExpense;
+
     const container = {
         hidden: { opacity: 0 },
         show: {
@@ -59,7 +63,7 @@ export function KPIGrid({ currentMonth }: KPIGridProps) {
                     Dépenses
                 </p>
                 <p className="text-2xl sm:text-3xl font-black text-rose-600 tracking-tight">
-                    -{formatCurrency(currentMonth.expenses)}
+                    -{formatCurrency(totalExpenses)}
                 </p>
             </motion.div>
 

@@ -24,7 +24,7 @@ describe('chatAi', () => {
       debts: [],
       credits: [],
       accountBalances: [],
-      projection: null,
+      projection: { SG: null, FLOA: null },
     });
 
     vi.mocked(callRemoteAI).mockResolvedValue(
@@ -65,7 +65,7 @@ describe('chatAi', () => {
       debts: [],
       credits: [],
       accountBalances: [],
-      projection: null,
+      projection: { SG: null, FLOA: null },
     });
 
     vi.mocked(callRemoteAI).mockResolvedValue(
@@ -86,7 +86,7 @@ describe('chatAi', () => {
     expect(response.proposedActions).toEqual([]);
   });
 
-  it('falls back to plain text when JSON parsing fails or actions are invalid', async () => {
+  it('extracts reply from JSON even when other fields are invalid', async () => {
     const { buildAiContext } = await import('@/lib/ai/ai.context');
     const { callRemoteAI } = await import('@/lib/ai/ai.transport');
 
@@ -99,7 +99,7 @@ describe('chatAi', () => {
       debts: [],
       credits: [],
       accountBalances: [],
-      projection: null,
+      projection: { SG: null, FLOA: null },
     });
 
     vi.mocked(callRemoteAI).mockResolvedValue(
@@ -122,9 +122,37 @@ describe('chatAi', () => {
       cookies: 'session=abc',
     });
 
-    expect(response.reply).toContain('reply');
-    expect(response.meta?.errors).toEqual(
-      expect.arrayContaining([expect.stringContaining('schema invalid')])
-    );
+    // reply is extracted even if proposedActions has invalid items
+    expect(response.reply).toBe('Ok');
+  });
+
+  it('falls back to raw text when response is not JSON', async () => {
+    const { buildAiContext } = await import('@/lib/ai/ai.context');
+    const { callRemoteAI } = await import('@/lib/ai/ai.transport');
+
+    vi.mocked(buildAiContext).mockResolvedValue({
+      generatedAt: new Date().toISOString(),
+      transactions: [],
+      recurringCharges: [],
+      ceilingRules: [],
+      budgets: null,
+      debts: [],
+      credits: [],
+      accountBalances: [],
+      projection: { SG: null, FLOA: null },
+    });
+
+    vi.mocked(callRemoteAI).mockResolvedValue('Voici mon analyse de vos finances.');
+
+    const response = await chatAi({
+      userId: 'user-123',
+      message: 'Hello',
+      contextWindowMonths: 6,
+      cookies: 'session=abc',
+    });
+
+    expect(response.reply).toBe('Voici mon analyse de vos finances.');
+    expect(response.insights).toEqual([]);
+    expect(response.proposedActions).toEqual([]);
   });
 });

@@ -89,7 +89,7 @@ export interface AiContext {
   debts: unknown[];
   credits: unknown[];
   accountBalances: unknown[];
-  projection: unknown | null;
+  projection: { SG: unknown | null; FLOA: unknown | null };
   meta?: AiContextMeta;
 }
 

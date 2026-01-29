@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { ChevronDown, ChevronRight, RefreshCw, Clock } from 'lucide-react';
 import type { MonthProjection } from '@/lib/types';
 import {
   AreaChart,
@@ -68,6 +69,8 @@ type TimeRange = 3 | 6 | 12;
 
 export const BalanceProjection = ({ projections }: BalanceProjectionProps) => {
   const [monthsToShow, setMonthsToShow] = useState<TimeRange>(6);
+  const [expandedCharges, setExpandedCharges] = useState(false);
+  const [expandedDeferred, setExpandedDeferred] = useState(false);
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
@@ -429,6 +432,189 @@ export const BalanceProjection = ({ projections }: BalanceProjectionProps) => {
           </div>
         </div>
       </section>
+
+      {/* Détail des charges récurrentes */}
+      {metrics.some(m => m.recurringChargeBreakdown && m.recurringChargeBreakdown.length > 0) && (
+        <section className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+          <button
+            onClick={() => setExpandedCharges(!expandedCharges)}
+            className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <RefreshCw className="w-5 h-5 text-orange-500" />
+              <div className="text-left">
+                <h3 className="font-semibold text-slate-900">Détail des charges récurrentes</h3>
+                <p className="text-sm text-slate-500">
+                  {metrics[0]?.recurringChargeBreakdown?.length || 0} charge(s) active(s) ce mois
+                </p>
+              </div>
+            </div>
+            {expandedCharges ? (
+              <ChevronDown className="w-5 h-5 text-slate-400" />
+            ) : (
+              <ChevronRight className="w-5 h-5 text-slate-400" />
+            )}
+          </button>
+
+          {expandedCharges && (
+            <div className="border-t border-slate-200 p-6">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Mois</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Libellé</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Type</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Catégorie</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Montant</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 bg-white">
+                    {metrics.map((m) =>
+                      m.recurringChargeBreakdown?.map((charge, idx) => (
+                        <tr key={`${m.month}-${charge.chargeId}-${idx}`} className="hover:bg-slate-50">
+                          <td className="px-4 py-3 text-sm text-slate-600">
+                            {formatMonthLabel(m.month)}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-medium text-slate-900">
+                            {charge.label || '—'}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              charge.type === 'INCOME'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {charge.type === 'INCOME' ? 'Revenu' : 'Dépense'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              charge.purpose === 'DEBT' ? 'bg-purple-100 text-purple-800' :
+                              charge.purpose === 'SAVINGS' ? 'bg-blue-100 text-blue-800' :
+                              charge.purpose === 'HEALTH' ? 'bg-pink-100 text-pink-800' :
+                              charge.purpose === 'EMERGENCY' ? 'bg-orange-100 text-orange-800' :
+                              'bg-slate-100 text-slate-800'
+                            }`}>
+                              {charge.purpose === 'DEBT' ? 'Dette' :
+                               charge.purpose === 'SAVINGS' ? 'Épargne' :
+                               charge.purpose === 'HEALTH' ? 'Santé' :
+                               charge.purpose === 'EMERGENCY' ? 'Urgence' :
+                               'Régulier'}
+                            </span>
+                          </td>
+                          <td className={`px-4 py-3 text-sm font-medium text-right tabular-nums ${
+                            charge.type === 'INCOME' ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {charge.type === 'INCOME' ? '+' : '-'}{formatCurrency(Math.abs(charge.amount))}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Détail des transactions différées */}
+      {metrics.some(m => m.deferredResolutions && m.deferredResolutions.length > 0) && (
+        <section className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+          <button
+            onClick={() => setExpandedDeferred(!expandedDeferred)}
+            className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Clock className="w-5 h-5 text-purple-500" />
+              <div className="text-left">
+                <h3 className="font-semibold text-slate-900">Détail des transactions différées</h3>
+                <p className="text-sm text-slate-500">
+                  {metrics.reduce((sum, m) => sum + (m.deferredResolutions?.length || 0), 0)} transaction(s) différée(s) sur la période
+                </p>
+              </div>
+            </div>
+            {expandedDeferred ? (
+              <ChevronDown className="w-5 h-5 text-slate-400" />
+            ) : (
+              <ChevronRight className="w-5 h-5 text-slate-400" />
+            )}
+          </button>
+
+          {expandedDeferred && (
+            <div className="border-t border-slate-200 p-6">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Mois d'application</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Catégorie</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Statut</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase">Priorité</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Montant</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 bg-white">
+                    {metrics.flatMap((m) =>
+                      (m.deferredResolutions || []).map((def, idx) => (
+                        <tr key={`${m.month}-${def.transactionId}-${idx}`} className="hover:bg-slate-50">
+                          <td className="px-4 py-3 text-sm text-slate-600">
+                            {formatMonthLabel(def.month)}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-600">
+                            {def.category || '—'}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              def.status === 'APPLIED' ? 'bg-green-100 text-green-800' :
+                              def.status === 'FORCED' ? 'bg-orange-100 text-orange-800' :
+                              def.status === 'PENDING' ? 'bg-blue-100 text-blue-800' :
+                              'bg-slate-100 text-slate-800'
+                            }`}>
+                              {def.status === 'APPLIED' ? 'Appliqué' :
+                               def.status === 'FORCED' ? 'Forcé' :
+                               def.status === 'PENDING' ? 'En attente' :
+                               def.status}
+                            </span>
+                            {def.forced && (
+                              <span className="ml-2 text-xs text-orange-600">⚠️</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-center">
+                            <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
+                              def.priority <= 3 ? 'bg-red-100 text-red-800' :
+                              def.priority <= 6 ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-slate-100 text-slate-800'
+                            }`}>
+                              {def.priority}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm font-medium text-right tabular-nums text-red-600">
+                            -{formatCurrency(def.amount)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                  <tfoot className="bg-slate-50 border-t-2 border-slate-300">
+                    <tr>
+                      <td colSpan={4} className="px-4 py-3 text-sm font-bold text-slate-900">
+                        Total différé sur la période
+                      </td>
+                      <td className="px-4 py-3 text-sm font-bold text-right tabular-nums text-red-600">
+                        -{formatCurrency(metrics.reduce((sum, m) =>
+                          sum + (m.deferredResolutions || []).reduce((s, d) => s + d.amount, 0), 0
+                        ))}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 };

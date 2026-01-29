@@ -28,6 +28,8 @@ export async function POST(request: NextRequest) {
     const user = await getAuthenticatedUser();
     const cookieHeader = request.headers.get('cookie') ?? '';
 
+    console.log('[AI Route] Chat request from user:', user.id, '— message:', parsed.data.message.slice(0, 80));
+
     const response = await chatAi({
       userId: user.id,
       message: parsed.data.message,
@@ -35,8 +37,11 @@ export async function POST(request: NextRequest) {
       cookies: cookieHeader,
     });
 
+    console.log('[AI Route] Reply length:', response.reply.length);
     return NextResponse.json(response);
   } catch (error: unknown) {
+    console.error('[AI Route] Error:', error);
+
     if (error instanceof Error && error.message === 'Unauthorized') {
       return unauthorized();
     }

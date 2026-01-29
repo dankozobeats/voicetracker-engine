@@ -347,36 +347,12 @@ export default function RecurringChargesPage() {
     const amount = parseFloat(formData.override_amount);
     if (isNaN(amount) || amount <= 0) return;
 
-    // Apply cumulative override logic: propagate to all future months
-    const newOverrides = { ...formData.monthly_overrides };
-    const overrideMonth = formData.override_month;
-
-    // Calculate end month (either end_date or 12 months from override)
-    const endMonth = formData.end_date || (() => {
-      const date = new Date(overrideMonth + '-01');
-      date.setMonth(date.getMonth() + 12);
-      return date.toISOString().slice(0, 7);
-    })();
-
-    // Set override for selected month and all future months until end
-    let currentMonth = overrideMonth;
-    while (currentMonth <= endMonth) {
-      // Only set if no future override exists for this month
-      if (!(currentMonth in newOverrides) || currentMonth === overrideMonth) {
-        newOverrides[currentMonth] = amount;
-      } else {
-        // Stop propagating when we hit a future override
-        break;
-      }
-
-      const date = new Date(currentMonth + '-01');
-      date.setMonth(date.getMonth() + 1);
-      currentMonth = date.toISOString().slice(0, 7);
-    }
-
     setFormData({
       ...formData,
-      monthly_overrides: newOverrides,
+      monthly_overrides: {
+        ...formData.monthly_overrides,
+        [formData.override_month]: amount,
+      },
       override_month: '',
       override_amount: '',
     });
@@ -385,50 +361,6 @@ export default function RecurringChargesPage() {
   const removeMonthlyOverride = (month: string) => {
     const newOverrides = { ...formData.monthly_overrides };
     delete newOverrides[month];
-
-    // Find the previous override to propagate forward from this month
-    const sortedOverrides = Object.entries(newOverrides)
-      .sort(([a], [b]) => a.localeCompare(b));
-
-    // Find previous override before deleted month
-    let previousAmount = formData.amount; // Default to base amount
-    for (const [overrideMonth, overrideAmount] of sortedOverrides) {
-      if (overrideMonth < month) {
-        previousAmount = overrideAmount;
-      }
-    }
-
-    // Find next override after deleted month
-    let nextOverrideMonth: string | null = null;
-    for (const [overrideMonth] of sortedOverrides) {
-      if (overrideMonth > month) {
-        nextOverrideMonth = overrideMonth;
-        break;
-      }
-    }
-
-    // Propagate previous amount from deleted month to next override (or end)
-    const endMonth = nextOverrideMonth || formData.end_date || (() => {
-      const date = new Date(month + '-01');
-      date.setMonth(date.getMonth() + 12);
-      return date.toISOString().slice(0, 7);
-    })();
-
-    let currentMonth = month;
-    while (currentMonth < endMonth && (!nextOverrideMonth || currentMonth < nextOverrideMonth)) {
-      if (previousAmount !== formData.amount) {
-        // Only set if different from base amount
-        newOverrides[currentMonth] = previousAmount;
-      } else {
-        // Remove if same as base amount
-        delete newOverrides[currentMonth];
-      }
-
-      const date = new Date(currentMonth + '-01');
-      date.setMonth(date.getMonth() + 1);
-      currentMonth = date.toISOString().slice(0, 7);
-    }
-
     setFormData({
       ...formData,
       monthly_overrides: newOverrides,

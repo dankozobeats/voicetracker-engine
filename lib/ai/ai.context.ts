@@ -46,13 +46,17 @@ export async function buildAiContext({ request, cookies, windowMonths }: BuildAi
 
   const cookieHeader = cookies ?? '';
 
+  const FETCH_TIMEOUT_MS = 10_000;
+
   const fetchJson = async (path: string): Promise<unknown | null> => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
     try {
       const response = await fetch(`${baseUrl}${path}`, {
         method: 'GET',
-        headers: {
-          cookie: cookieHeader,
-        },
+        headers: { cookie: cookieHeader },
+        signal: controller.signal,
       });
 
       const text = await response.text();
@@ -70,9 +74,15 @@ export async function buildAiContext({ request, cookies, windowMonths }: BuildAi
         return null;
       }
     } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        meta.errors.push(`GET ${path} timed out after ${FETCH_TIMEOUT_MS}ms`);
+        return null;
+      }
       const message = error instanceof Error ? error.message : 'Unknown error';
       meta.errors.push(`GET ${path} error: ${message}`);
       return null;
+    } finally {
+      clearTimeout(timeout);
     }
   };
 
@@ -85,15 +95,19 @@ export async function buildAiContext({ request, cookies, windowMonths }: BuildAi
   const transactionMonths = buildMonthWindow(transactionWindow);
   const transactions: unknown[] = [];
 
-  for (const month of transactionMonths) {
-    const data = await fetchJson(`/api/transactions?month=${encodeURIComponent(month)}`);
-    if (!data) {
-      continue;
-    }
+  const transactionResults = await Promise.all(
+    transactionMonths.map((month) =>
+      fetchJson(`/api/transactions?month=${encodeURIComponent(month)}`)
+    )
+  );
+
+  for (let i = 0; i < transactionMonths.length; i++) {
+    const data = transactionResults[i];
+    if (!data) continue;
     if (isRecord(data) && Array.isArray(data.transactions)) {
       transactions.push(...data.transactions);
     } else {
-      meta.errors.push(`Unexpected transactions response for month ${month}`);
+      meta.errors.push(`Unexpected transactions response for month ${transactionMonths[i]}`);
     }
   }
 
@@ -102,7 +116,28 @@ export async function buildAiContext({ request, cookies, windowMonths }: BuildAi
     transactions.splice(MAX_TRANSACTIONS);
   }
 
-  const recurringChargesData = await fetchJson('/api/recurring-charges');
+  const projectionMonth = transactionMonths[0] ?? toMonthKey(new Date());
+
+  const [
+    recurringChargesData,
+    ceilingRulesData,
+    budgets,
+    debtsData,
+    creditsData,
+    accountBalancesData,
+    projectionSg,
+    projectionFloa,
+  ] = await Promise.all([
+    fetchJson('/api/recurring-charges'),
+    fetchJson('/api/ceiling-rules'),
+    fetchJson('/api/budgets'),
+    fetchJson('/api/debts'),
+    fetchJson('/api/credits'),
+    fetchJson('/api/account-balances'),
+    fetchJson(`/api/engine/projection?account=SG&month=${encodeURIComponent(projectionMonth)}&months=1`),
+    fetchJson(`/api/engine/projection?account=FLOA&month=${encodeURIComponent(projectionMonth)}&months=1`),
+  ]);
+
   const recurringCharges = isRecord(recurringChargesData) && Array.isArray(recurringChargesData.recurringCharges)
     ? recurringChargesData.recurringCharges
     : [];
@@ -110,7 +145,6 @@ export async function buildAiContext({ request, cookies, windowMonths }: BuildAi
     meta.errors.push('Unexpected recurring-charges response');
   }
 
-  const ceilingRulesData = await fetchJson('/api/ceiling-rules');
   const ceilingRules = isRecord(ceilingRulesData) && Array.isArray(ceilingRulesData.ceilingRules)
     ? ceilingRulesData.ceilingRules
     : [];
@@ -118,33 +152,26 @@ export async function buildAiContext({ request, cookies, windowMonths }: BuildAi
     meta.errors.push('Unexpected ceiling-rules response');
   }
 
-  const budgets = await fetchJson('/api/budgets');
   if (!budgets) {
     meta.errors.push('Missing budgets response');
   }
 
-  const debtsData = await fetchJson('/api/debts');
   const debts = isRecord(debtsData) && Array.isArray(debtsData.debts) ? debtsData.debts : [];
   if (debtsData && !(isRecord(debtsData) && 'debts' in debtsData)) {
     meta.errors.push('Unexpected debts response');
   }
 
-  const creditsData = await fetchJson('/api/credits');
   const credits = isRecord(creditsData) && Array.isArray(creditsData.credits) ? creditsData.credits : [];
   if (creditsData && !(isRecord(creditsData) && 'credits' in creditsData)) {
     meta.errors.push('Unexpected credits response');
   }
 
-  const accountBalancesData = await fetchJson('/api/account-balances');
   const accountBalances = isRecord(accountBalancesData) && Array.isArray(accountBalancesData.accountBalances)
     ? accountBalancesData.accountBalances
     : [];
   if (accountBalancesData && !(isRecord(accountBalancesData) && 'accountBalances' in accountBalancesData)) {
     meta.errors.push('Unexpected account-balances response');
   }
-
-  const projectionMonth = transactionMonths[0] ?? toMonthKey(new Date());
-  const projection = await fetchJson(`/api/engine/projection?account=SG&month=${encodeURIComponent(projectionMonth)}&months=1`);
 
   return {
     generatedAt: new Date().toISOString(),
@@ -155,7 +182,10 @@ export async function buildAiContext({ request, cookies, windowMonths }: BuildAi
     debts,
     credits,
     accountBalances,
-    projection,
+    projection: {
+      SG: projectionSg,
+      FLOA: projectionFloa,
+    },
     meta: meta.errors.length || meta.limits.length ? meta : undefined,
   };
 }

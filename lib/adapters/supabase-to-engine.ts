@@ -48,6 +48,7 @@ export const supabaseRecurringChargeToEngine = (
   record: SupabaseRecurringChargeRecord,
 ): RecurringCharge => ({
   id: record.id,
+  label: record.label,
   account: record.account,
   type: record.type,
   amount: record.amount,

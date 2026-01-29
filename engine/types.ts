@@ -20,6 +20,7 @@ export interface Transaction {
 
 export interface RecurringCharge {
   id: string;
+  label?: string; // Libellé de la charge (ex: "Netflix", "Loyer")
   account: Account;
   type: TransactionType; // INCOME or EXPENSE
   amount: number;
@@ -65,6 +66,14 @@ export interface DeferredResolution {
   category?: string;
 }
 
+export interface RecurringChargeBreakdownItem {
+  chargeId: string;
+  label?: string;
+  amount: number;
+  type: TransactionType;
+  purpose: ChargePurpose;
+}
+
 export interface MonthProjection {
   month: string; // YYYY-MM
   openingBalance: number;
@@ -76,6 +85,7 @@ export interface MonthProjection {
   endingBalance: number;
   ceilings: CeilingStatus[];
   deferredResolutions: DeferredResolution[];
+  recurringChargeBreakdown: RecurringChargeBreakdownItem[];
   categoryBudgets: CategoryBudgetResult[];
   categorySpending: Record<string, number>;
   multiMonthBudgets?: MultiMonthBudgetResult[];

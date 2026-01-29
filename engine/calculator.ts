@@ -10,6 +10,7 @@ import {
   MonthProjection,
   ProjectionInput,
   RecurringCharge,
+  RecurringChargeBreakdownItem,
   Transaction,
 } from './types';
 import { applyDeficitCarryOver } from './deficit-handler';
@@ -149,9 +150,10 @@ const activeRecurringCharges = (
   recurringCharges: RecurringCharge[],
   account: ProjectionInput['account'],
   month: string,
-): { income: number; expenses: number } => {
+): { income: number; expenses: number; breakdown: RecurringChargeBreakdownItem[] } => {
   let income = 0;
   let expenses = 0;
+  const breakdown: RecurringChargeBreakdownItem[] = [];
 
   recurringCharges.forEach((charge) => {
     if (charge.account !== account) return;
@@ -162,6 +164,14 @@ const activeRecurringCharges = (
     // Use the effective amount (last override or base amount)
     const amount = getEffectiveAmount(charge, month);
 
+    breakdown.push({
+      chargeId: charge.id,
+      label: charge.label,
+      amount,
+      type: charge.type,
+      purpose: charge.purpose ?? 'REGULAR',
+    });
+
     if (charge.type === 'INCOME') {
       income += amount;
     } else {
@@ -169,7 +179,7 @@ const activeRecurringCharges = (
     }
   });
 
-  return { income, expenses };
+  return { income, expenses, breakdown };
 };
 
 const ceilingStateFor = (limit: number, totalOutflow: number): CeilingState => {
@@ -357,6 +367,7 @@ export const calculateProjection = (input: ProjectionInput): MonthProjection[] =
       endingBalance: 0,
       ceilings: ceilingStatuses,
       deferredResolutions,
+      recurringChargeBreakdown: recurringChargeAmounts.breakdown,
       categoryBudgets: categoryBudgetResults,
       categorySpending,
     };

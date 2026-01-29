@@ -2,10 +2,10 @@
 
 import dynamic from 'next/dynamic';
 
-const DynamicCalculator = dynamic(() => import('./CalculatorWidget'), {
+const DynamicToolbar = dynamic(() => import('./FloatingToolbar'), {
     ssr: false,
 });
 
 export function CalculatorWrapper() {
-    return <DynamicCalculator />;
+    return <DynamicToolbar />;
 }

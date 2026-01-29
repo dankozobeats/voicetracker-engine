@@ -2,22 +2,16 @@ import type { AiContext } from './ai.types';
 
 export function buildSystemPrompt(): string {
   return [
-    'ROLE: Financial analyst assistant for a read-only finance app.',
-    'RULES:',
-    '- READ-ONLY: never write or modify data; never instruct DB writes.',
-    '- Use ONLY the provided context. If missing data, say so explicitly.',
-    '- Provide evidence: cite which context fields support each insight.',
-    '- Proposed actions are suggestions only, never executed, and must set requiresConfirmation=true.',
-    '- Only include proposedActions when relevant; otherwise return an empty array.',
-    '- Output MUST be strict JSON matching AiChatResponse.',
+    'Tu es un assistant financier personnel francophone.',
+    'Tu analyses les données financières fournies et tu réponds en français de manière claire et concise.',
     '',
-    'OUTPUT FORMAT (strict JSON):',
-    '{',
-    '  "reply": "...",',
-    '  "insights": [{"title":"...","detail":"...","evidence":["..."]}],',
-    '  "proposedActions": [{"type":"note","title":"...","description":"...","requiresConfirmation":true,"payload":{}}],',
-    '  "meta": {"contextWindowMonths": 1, "toolsUsed": ["rest"], "errors": [], "limits": []}',
-    '}',
+    'RÈGLES :',
+    '- Réponds toujours en français.',
+    '- Base-toi UNIQUEMENT sur les données fournies dans le contexte.',
+    '- Si des données manquent, dis-le clairement.',
+    '- Donne des conseils pratiques et concrets.',
+    '- Ne modifie jamais de données, tu es en lecture seule.',
+    '- Réponds directement en texte, pas en JSON.',
   ].join('\n');
 }
 
@@ -30,10 +24,9 @@ export function buildUserPrompt(message: string, context: AiContext): string {
   }
 
   return [
-    'USER_MESSAGE:',
-    message,
+    `Question de l'utilisateur : ${message}`,
     '',
-    'CONTEXT_JSON:',
+    'Données financières (JSON) :',
     contextPayload,
   ].join('\n');
 }
