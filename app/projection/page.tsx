@@ -1,6 +1,6 @@
 import { BalanceProjection } from '@/components/projection/BalanceProjection';
 import { getAuthenticatedUser } from '@/lib/api/auth';
-import { getEngineProjection } from '@/lib/engine-service';
+import { getConsolidatedProjection } from '@/lib/engine-service';
 
 // Cache cette page pendant 60 secondes (projection 12 mois = calcul lourd)
 export const revalidate = 60;
@@ -11,8 +11,8 @@ async function getProjectionData() {
 
   const user = await getAuthenticatedUser();
 
-  // Call the production Engine for 12-month projection (max)
-  const payload = await getEngineProjection(user.id, 'SG', month, 12);
+  // Call the production Engine for 12-month consolidated projection (SG + FLOA)
+  const payload = await getConsolidatedProjection(user.id, month, 12);
 
   return { payload };
 }

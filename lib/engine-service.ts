@@ -252,3 +252,85 @@ export async function getEngineProjection(
 
   return payload;
 }
+
+/**
+ * Fetches and merges projections from both SG and FLOA accounts.
+ * Combines recurring charges breakdowns and deferred resolutions from both accounts
+ * into a single unified view.
+ *
+ * @param userId - The authenticated user's ID
+ * @param startMonth - Starting month in YYYY-MM format
+ * @param months - Number of months to project (1-24)
+ * @returns EnginePayload with consolidated data from both accounts
+ */
+export async function getConsolidatedProjection(
+  userId: string,
+  startMonth: string,
+  months: number,
+): Promise<EnginePayload> {
+  // Fetch both projections in parallel
+  const [sgPayload, floaPayload] = await Promise.all([
+    getEngineProjection(userId, 'SG', startMonth, months),
+    getEngineProjection(userId, 'FLOA', startMonth, months),
+  ]);
+
+  // Merge the monthly projections
+  const mergedMonths = sgPayload.months.map((sgMonth, index) => {
+    const floaMonth = floaPayload.months[index];
+
+    if (!floaMonth) {
+      return sgMonth;
+    }
+
+    return {
+      ...sgMonth,
+      // Combine financial totals
+      income: sgMonth.income + floaMonth.income,
+      expenses: sgMonth.expenses + floaMonth.expenses,
+      fixedCharges: sgMonth.fixedCharges + floaMonth.fixedCharges,
+      deferredIn: sgMonth.deferredIn + floaMonth.deferredIn,
+      // Note: endingBalance is per-account, we keep SG as primary
+      // but merge the breakdowns for visibility
+      recurringChargeBreakdown: [
+        ...sgMonth.recurringChargeBreakdown,
+        ...floaMonth.recurringChargeBreakdown,
+      ],
+      deferredResolutions: [
+        ...sgMonth.deferredResolutions,
+        ...floaMonth.deferredResolutions,
+      ],
+      // Merge category spending
+      categorySpending: {
+        ...sgMonth.categorySpending,
+        ...Object.fromEntries(
+          Object.entries(floaMonth.categorySpending).map(([cat, amount]) => [
+            cat,
+            (sgMonth.categorySpending[cat] ?? 0) + amount,
+          ])
+        ),
+      },
+    };
+  });
+
+  // Merge balances
+  const mergedBalances = [
+    ...sgPayload.balances,
+    ...floaPayload.balances,
+  ];
+
+  // Merge alerts
+  const mergedAlerts = [
+    ...sgPayload.alertTexts,
+    ...floaPayload.alertTexts,
+  ].sort((a, b) => a.priorityRank - b.priorityRank);
+
+  return {
+    months: mergedMonths,
+    balances: mergedBalances,
+    categoryBudgets: sgPayload.categoryBudgets, // Budgets are global, not per-account
+    rollingBudgets: sgPayload.rollingBudgets,
+    multiMonthBudgets: sgPayload.multiMonthBudgets,
+    trends: sgPayload.trends,
+    alertTexts: mergedAlerts,
+  };
+}
