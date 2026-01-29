@@ -622,7 +622,8 @@ export default function RecurringChargesPage() {
                 const result = [];
                 for (let i = 0; i < 12; i++) {
                   const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
-                  const monthStr = date.toISOString().slice(0, 7);
+                  // Use local date methods to avoid UTC timezone issues
+                  const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                   const isBeforeStart = charge.start_date && monthStr < charge.start_date;
                   const isAfterEnd = charge.end_date && monthStr > charge.end_date;
                   const isOutOfPeriod = isBeforeStart || isAfterEnd;
