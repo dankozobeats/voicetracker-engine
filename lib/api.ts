@@ -34,6 +34,29 @@ export const mockedEnginePayload: EnginePayload = {
           category: 'Abonnements',
         },
       ],
+      recurringChargeBreakdown: [
+        {
+          chargeId: 'rc-001',
+          label: 'Loyer',
+          amount: 650,
+          type: 'EXPENSE',
+          purpose: 'REGULAR',
+        },
+        {
+          chargeId: 'rc-002',
+          label: 'Électricité',
+          amount: 120,
+          type: 'EXPENSE',
+          purpose: 'REGULAR',
+        },
+        {
+          chargeId: 'rc-003',
+          label: 'Épargne mensuelle',
+          amount: 200,
+          type: 'EXPENSE',
+          purpose: 'SAVINGS',
+        },
+      ],
       categoryBudgets: [
         {
           category: 'Alimentation',
